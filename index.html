@@ -3,1882 +3,438 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GolfNote — 골프 학습 매니저</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<title>GolfNote</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --navy: #0d1b2e; --navy2: #13243d; --navy3: #1a2f4a;
-    --gold: #c8a84b; --gold2: #e6c76a; --gold-dim: #8a7030;
-    --cream: #f2ead6;
-    --text: #dce8f5; --text-dim: #7a9ab8; --text-muted: #4a6a8a;
-    --green2: #52b870; --red2: #c05050;
-    --border: rgba(200,168,75,0.18); --border2: rgba(200,168,75,0.35);
-    --shadow2: 0 8px 40px rgba(0,0,0,0.5);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Noto Sans KR','DM Sans',sans-serif;
-    background: var(--navy); color: var(--text); min-height: 100vh;
-    background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(200,168,75,0.06) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 100%, rgba(61,138,90,0.05) 0%, transparent 60%);
-  }
-
-  /* ── AUTH SCREEN ── */
-  #auth-screen {
-    display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 1rem;
-  }
-  .auth-box {
-    background: var(--navy2); border: 1px solid var(--border2);
-    border-radius: 16px; padding: 2.5rem 2rem;
-    width: 100%; max-width: 380px;
-    box-shadow: var(--shadow2);
-  }
-  .auth-logo {
-    font-family: 'Cormorant Garamond',serif;
-    font-size: 2rem; font-weight: 700; color: var(--gold2);
-    text-align: center; margin-bottom: 0.3rem;
-  }
-  .auth-sub {
-    font-size: 0.72rem; color: var(--text-muted); text-align: center;
-    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 2rem;
-  }
-  .auth-tabs { display: flex; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
-  .auth-tab {
-    flex: 1; padding: 0.6rem; background: none; border: none;
-    color: var(--text-muted); font-family: inherit; font-size: 0.88rem;
-    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
-  }
-  .auth-tab.active { color: var(--gold2); border-bottom-color: var(--gold); }
-  .auth-err {
-    background: rgba(192,80,80,0.12); border: 1px solid rgba(192,80,80,0.25);
-    color: #f0a0a0; font-size: 0.82rem; padding: 0.6rem 0.8rem;
-    border-radius: 8px; margin-bottom: 1rem; display: none;
-  }
-  .auth-ok {
-    background: rgba(82,184,112,0.12); border: 1px solid rgba(82,184,112,0.25);
-    color: #90e0a0; font-size: 0.82rem; padding: 0.6rem 0.8rem;
-    border-radius: 8px; margin-bottom: 1rem; display: none;
-  }
-
-  /* ── HEADER ── */
-  header {
-    background: linear-gradient(180deg,#0a1520 0%,var(--navy2) 100%);
-    border-bottom: 1px solid var(--border2);
-    padding: 0 1.5rem; position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.5);
-  }
-  .header-inner {
-    display: flex; align-items: center; justify-content: space-between;
-    max-width: 900px; margin: 0 auto; height: 64px;
-  }
-  .logo { display: flex; align-items: baseline; gap: 0.6rem; }
-  .logo-title { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:700; color:var(--gold2); }
-  .logo-sub { font-size:0.68rem; color:var(--text-muted); letter-spacing:3px; text-transform:uppercase; }
-  .header-actions { display:flex; gap:0.5rem; align-items:center; }
-  .user-email { font-size:0.75rem; color:var(--text-muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .sync-dot { width:7px; height:7px; border-radius:50%; background:var(--green2); display:inline-block; margin-right:4px; }
-  .sync-dot.syncing { background:var(--gold); animation: pulse 1s infinite; }
-  .sync-dot.error { background:var(--red2); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  .btn-icon {
-    background:rgba(200,168,75,0.08); border:1px solid var(--border);
-    color:var(--gold); padding:0.4rem 0.9rem; border-radius:6px;
-    font-size:0.75rem; font-weight:500; cursor:pointer; transition:all 0.15s; font-family:inherit;
-  }
-  .btn-icon:hover { background:rgba(200,168,75,0.16); border-color:var(--border2); }
-  .btn-icon.danger { color:var(--red2); border-color:rgba(192,80,80,0.2); background:rgba(192,80,80,0.06); }
-
-  /* ── TABS ── */
-  .tabs { background:var(--navy2); border-bottom:1px solid var(--border); position:sticky; top:64px; z-index:99; }
-  .tabs-inner { display:flex; max-width:900px; margin:0 auto; }
-  .tab-btn {
-    flex:1; padding:0.85rem 1rem; background:none; border:none;
-    color:var(--text-muted); font-family:inherit; font-size:0.88rem; font-weight:500;
-    cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s;
-  }
-  .tab-btn.active { color:var(--gold2); border-bottom-color:var(--gold); }
-
-  /* ── MAIN ── */
-  main { max-width:900px; margin:0 auto; padding:1.5rem 1rem 4rem; }
-  .page { animation: fadeIn 0.2s ease; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-
-  /* ── LOADING ── */
-  .loading-screen {
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    min-height:60vh; gap:1rem; color:var(--text-muted); font-size:0.9rem;
-  }
-  .spinner {
-    width:32px; height:32px; border:2px solid var(--border);
-    border-top-color:var(--gold); border-radius:50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to{transform:rotate(360deg)} }
-
-  /* ── STATS ── */
-  .stats-row { display:flex; gap:0.75rem; margin-bottom:1.5rem; }
-  .stat-card { flex:1; background:var(--navy2); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1rem; text-align:center; }
-  .stat-num { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:700; color:var(--gold2); line-height:1; margin-bottom:4px; }
-  .stat-label { font-size:0.72rem; color:var(--text-muted); letter-spacing:0.5px; }
-
-  /* ── FILTER BAR ── */
-  .filter-bar { display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
-  .filter-bar input, .filter-bar select {
-    background:var(--navy2); border:1px solid var(--border); color:var(--text);
-    padding:0.55rem 0.9rem; border-radius:8px; font-family:inherit; font-size:0.85rem; outline:none;
-    transition:border-color 0.15s;
-  }
-  .filter-bar input { flex:1; min-width:140px; }
-  .filter-bar input:focus, .filter-bar select:focus { border-color:var(--border2); }
-  .filter-bar select { background-color:var(--navy2); min-width:100px; }
-
-  /* ── CARDS ── */
-  .card {
-    background:var(--navy2); border:1px solid var(--border); border-radius:12px;
-    padding:1rem 1.1rem; margin-bottom:0.65rem; cursor:pointer; transition:all 0.18s;
-    position:relative; overflow:hidden;
-  }
-  .card::before {
-    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:linear-gradient(180deg,var(--gold),transparent); opacity:0; transition:opacity 0.18s;
-  }
-  .card:hover { border-color:var(--border2); background:var(--navy3); transform:translateX(2px); }
-  .card:hover::before { opacity:1; }
-  .card-title { font-weight:700; font-size:0.95rem; margin-bottom:5px; color:var(--cream); }
-  .card-meta { font-size:0.75rem; color:var(--text-muted); margin-top:5px; }
-
-  /* ── BADGES ── */
-  .badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.7rem; font-weight:600; margin-right:4px; margin-bottom:2px; letter-spacing:0.3px; }
-  .badge-gold { background:rgba(200,168,75,0.15); color:var(--gold2); border:1px solid rgba(200,168,75,0.3); }
-  .badge-green { background:rgba(61,138,90,0.15); color:var(--green2); border:1px solid rgba(61,138,90,0.3); }
-  .badge-blue { background:rgba(70,120,200,0.15); color:#7ab0e8; border:1px solid rgba(70,120,200,0.25); }
-  .badge-amber { background:rgba(200,130,40,0.15); color:#e8a050; border:1px solid rgba(200,130,40,0.3); }
-
-  /* ── BACK BTN ── */
-  .back-btn {
-    display:inline-flex; align-items:center; gap:6px;
-    background:none; border:none; color:var(--gold); font-family:inherit;
-    font-size:0.82rem; cursor:pointer; padding:0; margin-bottom:1.25rem; transition:color 0.15s;
-  }
-  .back-btn:hover { color:var(--gold2); }
-
-  /* ── SECTION LABEL ── */
-  .section-label {
-    font-size:0.72rem; font-weight:700; color:var(--text-muted);
-    letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem;
-    display:flex; align-items:center; gap:0.5rem;
-  }
-  .section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
-
-  .divider { height:1px; background:var(--border); margin:1rem 0; }
-
-  /* ── FORMS ── */
-  .form-group { margin-bottom:0.85rem; }
-  .form-label { display:block; font-size:0.72rem; font-weight:700; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; }
-  .form-input, .form-select, .form-textarea {
-    width:100%; background:var(--navy); border:1px solid var(--border); color:var(--text);
-    padding:0.6rem 0.85rem; border-radius:8px; font-family:'Noto Sans KR',sans-serif;
-    font-size:0.88rem; outline:none; transition:border-color 0.15s;
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--border2); }
-  .form-textarea { resize:vertical; min-height:80px; line-height:1.6; }
-  .form-select { background-color:var(--navy); }
-  .form-row { display:flex; gap:0.6rem; }
-  .form-row > * { flex:1; }
-
-  /* ── BUTTONS ── */
-  .btn { padding:0.6rem 1.3rem; border-radius:8px; border:none; font-family:inherit; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.15s; letter-spacing:0.3px; }
-  .btn-primary { background:linear-gradient(135deg,var(--gold-dim),var(--gold)); color:var(--navy); }
-  .btn-primary:hover { background:linear-gradient(135deg,var(--gold),var(--gold2)); }
-  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
-  .btn-secondary { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-dim); }
-  .btn-secondary:hover { background:rgba(255,255,255,0.08); }
-  .btn-danger { background:rgba(140,50,50,0.2); border:1px solid rgba(140,50,50,0.3); color:var(--red2); }
-  .btn-danger:hover { background:rgba(140,50,50,0.3); }
-  .btn-sm { padding:0.35rem 0.75rem; font-size:0.78rem; }
-  .btn-row { display:flex; gap:0.5rem; margin-top:1rem; }
-
-  /* ── TIMESTAMPS ── */
-  .ts-item { background:var(--navy); border:1px solid var(--border); border-radius:8px; padding:0.6rem 0.8rem; margin-bottom:0.4rem; display:flex; align-items:flex-start; gap:0.65rem; }
-  .ts-time { background:rgba(200,168,75,0.12); border:1px solid rgba(200,168,75,0.25); color:var(--gold2); padding:2px 10px; border-radius:6px; font-size:0.78rem; font-weight:700; white-space:nowrap; cursor:pointer; transition:all 0.15s; flex-shrink:0; }
-  .ts-time:hover { background:rgba(200,168,75,0.25); }
-  .ts-note { flex:1; font-size:0.85rem; color:var(--text-dim); line-height:1.5; }
-  .ts-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; padding:0 2px; transition:color 0.15s; flex-shrink:0; }
-  .ts-del:hover { color:var(--red2); }
-
-  /* ── THUMBNAIL PLAYER ── */
-  .yt-player { position:relative; width:100%; aspect-ratio:16/9; border-radius:10px; overflow:hidden; margin-bottom:0.75rem; border:1px solid var(--border); background:#111; display:block; text-decoration:none; }
-  .yt-player img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.25s, filter 0.25s; filter:brightness(0.82); }
-  .yt-player:hover img { transform:scale(1.03); filter:brightness(0.6); }
-  .yt-player .play-btn { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:68px; height:48px; background:#ff0000; border-radius:12px; display:flex; align-items:center; justify-content:center; transition:transform 0.2s, background 0.2s; box-shadow:0 4px 20px rgba(0,0,0,0.6); }
-  .yt-player:hover .play-btn { transform:translate(-50%,-50%) scale(1.12); background:#cc0000; }
-  .yt-player .play-btn svg { width:28px; height:28px; fill:white; margin-left:4px; }
-  .yt-player .yt-label { position:absolute; bottom:0; left:0; right:0; padding:2rem 0.75rem 0.6rem; background:linear-gradient(0deg,rgba(0,0,0,0.8) 0%,transparent 100%); font-size:0.72rem; color:rgba(255,255,255,0.75); }
-
-  /* ── INLINE EDIT ── */
-  .inline-edit-row { display:flex; gap:0.5rem; align-items:center; background:var(--navy); border:1px solid var(--border2); border-radius:8px; padding:0.5rem 0.7rem; margin-bottom:0.75rem; }
-  .inline-edit-row input { flex:1; background:transparent; border:none; color:var(--text); font-family:inherit; font-size:0.85rem; outline:none; }
-  .inline-edit-row .edit-label { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; letter-spacing:1px; text-transform:uppercase; }
-
-  /* ── LINK ITEMS ── */
-  .link-item { background:var(--navy); border:1px solid var(--border); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.4rem; }
-  .link-item a { color:var(--gold); text-decoration:none; font-size:0.88rem; }
-  .link-item a:hover { color:var(--gold2); }
-  .link-price { font-weight:700; color:#e8c87a; font-size:0.9rem; }
-  .link-date { font-size:0.72rem; color:var(--text-muted); margin-top:2px; }
-
-  /* ── KEYWORD PILLS ── */
-  .keyword-pills { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-  .kw-pill { padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:500; background:rgba(200,168,75,0.08); border:1px solid rgba(200,168,75,0.2); color:var(--gold); cursor:pointer; transition:all 0.12s; }
-  .kw-pill:hover { background:rgba(200,168,75,0.18); }
-
-  /* ── PRICE HISTORY ── */
-  .price-history { margin-top:0.5rem; }
-  .price-entry { display:flex; justify-content:space-between; font-size:0.8rem; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--text-dim); }
-
-  /* ── DETAIL ── */
-  .detail-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
-  .detail-title { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:700; color:var(--cream); line-height:1.3; }
-  .price-big { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:700; color:#e8c87a; }
-
-  /* ── ADD FORM ── */
-  .add-form { background:var(--navy2); border:1px solid var(--border); border-radius:14px; padding:1.3rem; }
-  .add-form-title { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:700; color:var(--gold2); margin-bottom:1.1rem; }
-  .section-box { background:var(--navy); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1rem; margin-bottom:0.85rem; }
-
-  /* ── EMPTY STATE ── */
-  .empty-state { text-align:center; padding:3rem 1rem; color:var(--text-muted); font-size:0.9rem; }
-  .empty-icon { font-size:2.5rem; margin-bottom:0.75rem; opacity:0.5; }
-
-  /* ── TOAST ── */
-  .toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); background:var(--navy3); border:1px solid var(--border2); color:var(--gold2); padding:0.7rem 1.5rem; border-radius:30px; font-size:0.85rem; font-weight:500; box-shadow:var(--shadow2); z-index:999; animation:toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards; pointer-events:none; }
-  @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
-  @keyframes toastOut { from{opacity:1} to{opacity:0} }
-
-  /* ── VIDEO THUMB ── */
-  .video-thumb { width:90px; height:60px; object-fit:cover; border-radius:6px; flex-shrink:0; border:1px solid var(--border); }
-
-  /* ── 동의 체크박스 ── */
-  .agree-row {
-    display:flex; align-items:flex-start; gap:0.6rem;
-    margin:0.75rem 0 0; padding:0.75rem; border-radius:8px;
-    background:rgba(200,168,75,0.05); border:1px solid var(--border);
-    font-size:0.82rem; color:var(--text-dim); line-height:1.5;
-  }
-  .agree-row input[type=checkbox] { margin-top:2px; flex-shrink:0; accent-color:var(--gold); width:15px; height:15px; cursor:pointer; }
-  .agree-row a { color:var(--gold); text-decoration:underline; cursor:pointer; }
-
-  /* ── 모달 오버레이 ── */
-  .modal-overlay {
-    display:none; position:fixed; inset:0; z-index:500;
-    background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
-    align-items:flex-start; justify-content:center;
-    padding:1rem; overflow-y:auto;
-  }
-  .modal-overlay.open { display:flex; }
-  .modal-box {
-    background:var(--navy2); border:1px solid var(--border2);
-    border-radius:16px; width:100%; max-width:640px;
-    padding:1.8rem; margin:auto;
-    box-shadow:var(--shadow2);
-    animation: fadeIn 0.2s ease;
-  }
-  .modal-title {
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.3rem; font-weight:700; color:var(--gold2);
-    margin-bottom:1.2rem; padding-bottom:0.75rem;
-    border-bottom:1px solid var(--border);
-  }
-  .modal-close {
-    float:right; background:none; border:none; color:var(--text-muted);
-    font-size:1.3rem; cursor:pointer; line-height:1; margin-top:-2px;
-    transition:color 0.15s;
-  }
-  .modal-close:hover { color:var(--text); }
-  .privacy-section { margin-bottom:1.25rem; }
-  .privacy-section h3 { font-size:0.88rem; font-weight:700; color:var(--cream); margin-bottom:0.4rem; }
-  .privacy-section p, .privacy-section li { font-size:0.83rem; color:var(--text-dim); line-height:1.7; }
-  .privacy-section ul { padding-left:1.2rem; }
-  .privacy-section li { margin-bottom:0.2rem; }
-  .privacy-date { font-size:0.75rem; color:var(--text-muted); margin-top:1rem; text-align:right; }
-
-  /* ── 계정 패널 (헤더 드롭다운) ── */
-  .account-panel {
-    display:none; position:absolute; top:68px; right:1rem;
-    background:var(--navy2); border:1px solid var(--border2);
-    border-radius:12px; padding:1rem; min-width:260px;
-    box-shadow:var(--shadow2); z-index:200;
-    animation: fadeIn 0.15s ease;
-  }
-  .account-panel.open { display:block; }
-  .account-panel-email { font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border); word-break:break-all; }
-  .account-panel-btn {
-    display:block; width:100%; text-align:left;
-    background:none; border:none; font-family:inherit;
-    font-size:0.85rem; padding:0.5rem 0.4rem; cursor:pointer;
-    border-radius:6px; color:var(--text-dim); transition:all 0.15s;
-    margin-bottom:2px;
-  }
-  .account-panel-btn:hover { background:rgba(255,255,255,0.05); color:var(--text); }
-  .account-panel-btn.danger { color:var(--red2); }
-  .account-panel-btn.danger:hover { background:rgba(140,50,50,0.15); }
-
-  /* ── 위험 구역 박스 ── */
-  .danger-zone {
-    margin-top:0.75rem; padding:0.75rem;
-    border:1px solid rgba(192,80,80,0.25);
-    border-radius:8px; background:rgba(140,50,50,0.06);
-  }
-  .danger-zone-title { font-size:0.72rem; font-weight:700; color:var(--red2); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:0.5rem; }
-
-  /* ── 연습 기록 ── */
-  .shot-row {
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:0.5rem;
-    background:var(--navy); border:1px solid var(--border); border-radius:8px;
-    padding:0.75rem; margin-bottom:0.5rem; position:relative;
-  }
-  .shot-num {
-    position:absolute; top:0.5rem; left:0.6rem;
-    font-size:0.68rem; color:var(--text-muted); font-weight:700; letter-spacing:1px;
-  }
-  .shot-field { display:flex; flex-direction:column; gap:3px; }
-  .shot-field label { font-size:0.68rem; color:var(--text-muted); letter-spacing:0.5px; text-transform:uppercase; }
-  .shot-field input {
-    background:var(--navy2); border:1px solid var(--border); color:var(--text);
-    padding:0.35rem 0.5rem; border-radius:6px; font-size:0.85rem;
-    font-family:inherit; outline:none; width:100%;
-  }
-  .shot-field input:focus { border-color:var(--border2); }
-  .shot-del-btn {
-    position:absolute; top:0.4rem; right:0.5rem;
-    background:none; border:none; color:var(--text-muted);
-    cursor:pointer; font-size:0.9rem; transition:color 0.15s;
-  }
-  .shot-del-btn:hover { color:var(--red2); }
-
-  .stat-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
-  .stat-table th { text-align:left; padding:0.5rem 0.6rem; font-size:0.72rem; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid var(--border); }
-  .stat-table td { padding:0.6rem 0.6rem; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--text-dim); }
-  .stat-table tr:hover td { background:rgba(255,255,255,0.02); }
-  .stat-table .val { font-family:'DM Sans',monospace; color:var(--text); font-weight:500; }
-  .stat-table .best { color:var(--gold2); font-weight:700; }
-
-  .chart-wrap { background:var(--navy2); border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem; }
-  .chart-title { font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:0.75rem; }
-
-  .session-card-meta { display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:6px; }
-  .session-stat { font-size:0.78rem; color:var(--text-muted); }
-  .session-stat span { color:var(--gold2); font-weight:700; font-family:'DM Sans',monospace; }
-
-  .img-preview { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:0.75rem; display:block; cursor:pointer; }
-  .img-upload-area {
-    border:2px dashed var(--border2); border-radius:10px; padding:1.5rem;
-    text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:0.75rem;
-    color:var(--text-muted); font-size:0.85rem;
-  }
-  .img-upload-area:hover { border-color:var(--gold); color:var(--gold); background:rgba(200,168,75,0.04); }
-  .img-upload-area input { display:none; }
-
-  .club-badge {
-    display:inline-block; padding:3px 10px; border-radius:20px;
-    font-size:0.72rem; font-weight:700;
-    background:rgba(200,168,75,0.12); color:var(--gold2);
-    border:1px solid rgba(200,168,75,0.25);
-  }
-
-  .practice-tabs { display:flex; gap:0.5rem; margin-bottom:1.25rem; }
-  .practice-tab {
-    padding:0.45rem 1rem; border-radius:20px; border:1px solid var(--border);
-    background:none; color:var(--text-muted); font-family:inherit; font-size:0.82rem;
-    cursor:pointer; transition:all 0.15s;
-  }
-  .practice-tab.active { background:rgba(200,168,75,0.12); color:var(--gold2); border-color:var(--border2); }
-
-  @media(max-width:480px){
-    .shot-row { grid-template-columns:repeat(2,1fr); padding-top:1.6rem; }
-  }
+:root{--bg:#0d1b2e;--bg2:#13243d;--bg3:#1a2f4a;--gold:#c8a84b;--gold2:#e6c76a;--goldd:#8a7030;--text:#dce8f5;--dim:#7a9ab8;--muted:#4a6a8a;--green:#52b870;--red:#c05050;--amber:#e8a050;--border:rgba(200,168,75,.18);--border2:rgba(200,168,75,.35)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1rem}
+.spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)}
+#auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem}
+.auth-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.auth-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--gold2);text-align:center;margin-bottom:.25rem}
+.auth-sub{font-size:.68rem;color:var(--muted);text-align:center;letter-spacing:3px;text-transform:uppercase;margin-bottom:2rem}
+.auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
+.auth-tab{flex:1;padding:.6rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:inherit;font-size:.88rem;cursor:pointer;transition:all .2s}
+.auth-tab.on{color:var(--gold2);border-bottom-color:var(--gold)}
+.msg{font-size:.82rem;padding:.6rem .8rem;border-radius:8px;margin-bottom:.9rem;display:none}
+.msg.err{background:rgba(192,80,80,.12);border:1px solid rgba(192,80,80,.25);color:#f0a0a0}
+.msg.ok{background:rgba(82,184,112,.12);border:1px solid rgba(82,184,112,.25);color:#90e0a0}
+.agree-row{display:flex;align-items:flex-start;gap:.6rem;margin:.6rem 0;padding:.7rem;border-radius:8px;background:rgba(200,168,75,.05);border:1px solid var(--border);font-size:.82rem;color:var(--dim);line-height:1.5}
+.agree-row input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:var(--gold);width:15px;height:15px;cursor:pointer}
+.agree-row a{color:var(--gold);text-decoration:underline;cursor:pointer}
+#app{display:none;flex-direction:column;min-height:100vh}
+header{background:linear-gradient(180deg,#0a1520,var(--bg2));border-bottom:1px solid var(--border2);padding:0 1.25rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,.5)}
+.hdr{display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto;height:60px}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--gold2)}
+.hdr-right{display:flex;align-items:center;gap:.5rem}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sync-dot.busy{background:var(--gold);animation:pulse 1s infinite}
+.sync-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.email-lbl{font-size:.72rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:99}
+.tabs-inner{display:flex;max-width:900px;margin:0 auto}
+.tab{flex:1;padding:.8rem .5rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:inherit;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s}
+.tab.on{color:var(--gold2);border-bottom-color:var(--gold)}
+main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
+.page{animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fl-label{display:block;font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.inp,.sel,.ta{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.6rem .85rem;border-radius:8px;font-family:inherit;font-size:.88rem;outline:none;transition:border-color .15s}
+.inp:focus,.sel:focus,.ta:focus{border-color:var(--border2)}
+.sel{background-color:var(--bg)}
+.ta{resize:vertical;min-height:76px;line-height:1.6}
+.fg{margin-bottom:.8rem}
+.frow{display:flex;gap:.6rem}
+.frow>.fg{flex:1}
+.btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:linear-gradient(135deg,var(--goldd),var(--gold));color:var(--bg)}
+.btn-p:hover:not(:disabled){background:linear-gradient(135deg,var(--gold),var(--gold2))}
+.btn-s{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--dim)}
+.btn-s:hover{background:rgba(255,255,255,.08)}
+.btn-d{background:rgba(140,50,50,.2);border:1px solid rgba(140,50,50,.3);color:var(--red)}
+.btn-d:hover{background:rgba(140,50,50,.3)}
+.btn-sm{padding:.3rem .7rem;font-size:.78rem}
+.brow{display:flex;gap:.5rem;margin-top:.9rem}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;margin-bottom:.6rem;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold),transparent);opacity:0;transition:opacity .18s}
+.card:hover{border-color:var(--border2);background:var(--bg3);transform:translateX(2px)}
+.card:hover::before{opacity:1}
+.card-title{font-weight:700;font-size:.95rem;margin-bottom:4px;color:#f2ead6}
+.card-meta{font-size:.74rem;color:var(--muted);margin-top:4px}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;margin-right:3px;margin-bottom:2px}
+.b-gold{background:rgba(200,168,75,.15);color:var(--gold2);border:1px solid rgba(200,168,75,.3)}
+.b-green{background:rgba(61,138,90,.15);color:var(--green);border:1px solid rgba(61,138,90,.3)}
+.b-blue{background:rgba(70,120,200,.15);color:#7ab0e8;border:1px solid rgba(70,120,200,.25)}
+.b-amber{background:rgba(200,130,40,.15);color:var(--amber);border:1px solid rgba(200,130,40,.3)}
+.sec-label{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+.divider{height:1px;background:var(--border);margin:.9rem 0}
+.back-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--gold);font-family:inherit;font-size:.82rem;cursor:pointer;padding:0;margin-bottom:1.1rem;transition:color .15s}
+.back-btn:hover{color:var(--gold2)}
+.stats-row{display:flex;gap:.65rem;margin-bottom:1.25rem}
+.stat{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.8rem;text-align:center}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:1.7rem;font-weight:700;color:var(--gold2);line-height:1;margin-bottom:3px}
+.stat-l{font-size:.7rem;color:var(--muted)}
+.filter-bar{display:flex;gap:.5rem;margin-bottom:1.1rem;flex-wrap:wrap}
+.filter-bar .inp{flex:1;min-width:130px}
+.filter-bar .sel{min-width:100px;width:auto}
+.empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.9rem}
+.empty-icon{font-size:2.2rem;margin-bottom:.7rem;opacity:.5}
+.toast-el{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);color:var(--gold2);padding:.65rem 1.4rem;border-radius:30px;font-size:.85rem;font-weight:500;z-index:9999;pointer-events:none;animation:tin .3s ease,tout .3s ease 2.2s forwards}
+@keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes tout{to{opacity:0}}
+.v-thumb{width:88px;height:58px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--border)}
+.yt-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:.5rem;background:#000;border:1px solid var(--border)}
+.yt-wrap iframe{width:100%;height:100%;border:none;display:block}
+.inline-edit{display:flex;gap:.5rem;align-items:center;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:.5rem .7rem;margin-bottom:.65rem}
+.inline-edit .e-label{font-size:.68rem;color:var(--muted);white-space:nowrap;letter-spacing:1px;text-transform:uppercase}
+.inline-edit input{flex:1;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:.85rem;outline:none}
+.ts-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.55rem .75rem;margin-bottom:.35rem;display:flex;align-items:flex-start;gap:.6rem}
+.ts-time{background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold2);padding:2px 9px;border-radius:6px;font-size:.76rem;font-weight:700;white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0}
+.ts-time:hover{background:rgba(200,168,75,.25)}
+.ts-note{flex:1;font-size:.84rem;color:var(--dim);line-height:1.5}
+.ts-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 2px;transition:color .15s;flex-shrink:0}
+.ts-del:hover{color:var(--red)}
+.kw-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.kw-pill{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:500;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.2);color:var(--gold);cursor:pointer;transition:all .12s}
+.kw-pill:hover{background:rgba(200,168,75,.18)}
+.link-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.65rem .85rem;margin-bottom:.35rem}
+.link-item a{color:var(--gold);text-decoration:none;font-size:.87rem}
+.link-item a:hover{color:var(--gold2)}
+.link-price{font-weight:700;color:#e8c87a;font-size:.9rem}
+.link-date{font-size:.7rem;color:var(--muted);margin-top:2px}
+.price-entry{display:flex;justify-content:space-between;font-size:.79rem;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);color:var(--dim)}
+.sec-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;margin-bottom:.8rem}
+.price-big{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:700;color:#e8c87a}
+.p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
+.p-tab{padding:.4rem 1rem;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);font-family:inherit;font-size:.82rem;cursor:pointer;transition:all .15s}
+.p-tab.on{background:rgba(200,168,75,.12);color:var(--gold2);border-color:var(--border2)}
+.shot-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.45rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.7rem;margin-bottom:.45rem;position:relative}
+.shot-num{position:absolute;top:.45rem;left:.6rem;font-size:.66rem;color:var(--muted);font-weight:700;letter-spacing:1px}
+.shot-field{display:flex;flex-direction:column;gap:3px;margin-top:.2rem}
+.shot-field label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.shot-field input{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:.32rem .5rem;border-radius:6px;font-size:.84rem;font-family:inherit;outline:none;width:100%}
+.shot-field input:focus{border-color:var(--border2)}
+.shot-del{position:absolute;top:.38rem;right:.5rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;transition:color .15s}
+.shot-del:hover{color:var(--red)}
+.stbl{width:100%;border-collapse:collapse;font-size:.83rem}
+.stbl th{text-align:left;padding:.45rem .55rem;font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.stbl td{padding:.55rem .55rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--dim)}
+.stbl tr:hover td{background:rgba(255,255,255,.02)}
+.stbl .vl{font-family:monospace;color:var(--text);font-weight:500}
+.stbl .best{color:var(--gold2);font-weight:700}
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:.9rem}
+.chart-title{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.7rem}
+.club-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(200,168,75,.12);color:var(--gold2);border:1px solid rgba(200,168,75,.25)}
+.img-upload{border:2px dashed var(--border2);border-radius:10px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
+.img-upload:hover{border-color:var(--gold);color:var(--gold)}
+.img-upload input{display:none}
+.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.modal-bg.on{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:620px;padding:1.6rem;margin:auto;box-shadow:0 8px 40px rgba(0,0,0,.5);animation:fadeUp .2s ease}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1.1rem;padding-bottom:.7rem;border-bottom:1px solid var(--border)}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;transition:color .15s;line-height:1}
+.modal-close:hover{color:var(--text)}
+.privacy h3{font-size:.87rem;font-weight:700;color:#f2ead6;margin-bottom:.35rem;margin-top:1rem}
+.privacy p,.privacy li{font-size:.82rem;color:var(--dim);line-height:1.7}
+.privacy ul{padding-left:1.1rem}
+.danger-zone{margin-top:.75rem;padding:.75rem;border:1px solid rgba(192,80,80,.25);border-radius:8px;background:rgba(140,50,50,.06)}
+.danger-title{font-size:.7rem;font-weight:700;color:var(--red);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.45rem}
+.acct-panel{display:none;position:absolute;top:64px;right:1rem;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:.9rem;min-width:240px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:200;animation:fadeUp .15s ease}
+.acct-panel.on{display:block}
+.acct-email{font-size:.78rem;color:var(--muted);margin-bottom:.7rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);word-break:break-all}
+.acct-btn{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:.84rem;padding:.45rem .4rem;cursor:pointer;border-radius:6px;color:var(--dim);transition:all .15s;margin-bottom:2px}
+.acct-btn:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.acct-btn.red{color:var(--red)}
+.acct-btn.red:hover{background:rgba(140,50,50,.15)}
+.acct-sep{height:1px;background:var(--border);margin:.45rem 0}
+.icon-btn{background:rgba(200,168,75,.08);border:1px solid var(--border);color:var(--gold);padding:.38rem .85rem;border-radius:6px;font-size:.74rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.icon-btn:hover{background:rgba(200,168,75,.16);border-color:var(--border2)}
+@media(max-width:480px){.stats-row{gap:.4rem}.stat-n{font-size:1.35rem}.email-lbl,.sync-dot{display:none}.shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}.acct-panel{right:.5rem;left:.5rem;min-width:unset}}
+</style>
 </head>
 <body>
-
-<!-- ════════════════════════════════════════════════════════
-     AUTH SCREEN
-════════════════════════════════════════════════════════ -->
-<div id="auth-screen" style="display:none">
+<div id="loading"><div class="spinner"></div><div class="loading-logo">⛳ GolfNote</div></div>
+<div id="auth">
   <div class="auth-box">
     <div class="auth-logo">⛳ GolfNote</div>
     <div class="auth-sub">Golf Learning Manager</div>
-
     <div class="auth-tabs">
-      <button class="auth-tab active" id="atab-login" onclick="switchAuthTab('login')">로그인</button>
-      <button class="auth-tab" id="atab-signup" onclick="switchAuthTab('signup')">회원가입</button>
+      <button class="auth-tab on" id="atab-login" onclick="setAuthMode('login')">로그인</button>
+      <button class="auth-tab" id="atab-signup" onclick="setAuthMode('signup')">회원가입</button>
     </div>
-
-    <div class="auth-err" id="auth-err"></div>
-    <div class="auth-ok" id="auth-ok"></div>
-
-    <div class="form-group">
-      <label class="form-label">이메일</label>
-      <input class="form-input" type="email" id="auth-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')authSubmit()">
+    <div class="msg err" id="auth-err"></div>
+    <div class="msg ok" id="auth-ok"></div>
+    <div class="fg"><label class="fl-label">이메일</label><input class="inp" type="email" id="a-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div class="fg"><label class="fl-label">비밀번호</label><input class="inp" type="password" id="a-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div id="agree-wrap" style="display:none">
+      <div class="agree-row"><input type="checkbox" id="ag1"><label for="ag1"><a onclick="openModal('privacy-modal')">개인정보 처리방침</a>에 동의합니다 <span style="color:var(--red)">(필수)</span></label></div>
+      <div class="agree-row"><input type="checkbox" id="ag2"><label for="ag2">만 14세 이상이며 이용약관에 동의합니다 <span style="color:var(--red)">(필수)</span></label></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">비밀번호</label>
-      <input class="form-input" type="password" id="auth-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')authSubmit()">
-    </div>
-
-    <!-- 회원가입 시에만 표시되는 동의 영역 -->
-    <div id="signup-agree" style="display:none">
-      <div class="agree-row">
-        <input type="checkbox" id="agree-privacy">
-        <label for="agree-privacy">
-          <a onclick="openPrivacyModal()">개인정보 처리방침</a>을 읽었으며, 개인정보 수집 및 이용에 동의합니다. <span style="color:var(--red2)">(필수)</span>
-        </label>
-      </div>
-      <div class="agree-row">
-        <input type="checkbox" id="agree-terms">
-        <label for="agree-terms">
-          만 14세 이상이며, 서비스 이용약관에 동의합니다. <span style="color:var(--red2)">(필수)</span>
-        </label>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" id="auth-btn" onclick="authSubmit()" style="width:100%;margin-top:0.75rem">로그인</button>
+    <button class="btn btn-p" id="auth-btn" onclick="doAuth()" style="width:100%;margin-top:.75rem">로그인</button>
   </div>
 </div>
-
-<!-- ════ 개인정보 처리방침 모달 ════ -->
-<div class="modal-overlay" id="privacy-modal" onclick="if(event.target===this)closePrivacyModal()">
-  <div class="modal-box">
-    <div class="modal-title">
-      개인정보 처리방침
-      <button class="modal-close" onclick="closePrivacyModal()">✕</button>
-    </div>
-
-    <div class="privacy-section">
-      <h3>1. 수집하는 개인정보 항목</h3>
-      <p>GolfNote는 서비스 제공을 위해 아래 정보를 수집합니다.</p>
-      <ul>
-        <li>필수: 이메일 주소, 비밀번호 (암호화 저장)</li>
-        <li>자동 수집: 서비스 이용 일시, 서비스 이용 기록</li>
-      </ul>
-    </div>
-
-    <div class="privacy-section">
-      <h3>2. 개인정보 수집 및 이용 목적</h3>
-      <ul>
-        <li>회원 식별 및 계정 관리</li>
-        <li>서비스 제공 (영상 아카이빙, 장비 관리 데이터 저장 및 동기화)</li>
-        <li>부정 이용 방지 및 보안</li>
-      </ul>
-    </div>
-
-    <div class="privacy-section">
-      <h3>3. 개인정보 보유 및 이용 기간</h3>
-      <p>회원 탈퇴 시까지 보유하며, 탈퇴 즉시 모든 개인정보 및 서비스 데이터를 파기합니다. 단, 관련 법령에 따라 보존이 필요한 경우 해당 기간 동안 보관합니다.</p>
-    </div>
-
-    <div class="privacy-section">
-      <h3>4. 개인정보의 제3자 제공</h3>
-      <p>GolfNote는 원칙적으로 수집한 개인정보를 제3자에게 제공하지 않습니다. 단, 서비스 운영을 위해 아래 업체에 처리를 위탁합니다.</p>
-      <ul>
-        <li>Supabase Inc. — 데이터베이스 및 인증 서비스 (서버: 한국 서울 리전)</li>
-      </ul>
-    </div>
-
-    <div class="privacy-section">
-      <h3>5. 이용자의 권리</h3>
-      <p>이용자는 언제든지 아래 권리를 행사할 수 있습니다.</p>
-      <ul>
-        <li>개인정보 열람, 정정, 삭제 요청</li>
-        <li>개인정보 처리 정지 요청</li>
-        <li>회원 탈퇴 — 앱 내 계정 설정에서 직접 탈퇴 가능하며, 탈퇴 즉시 모든 데이터가 삭제됩니다</li>
-      </ul>
-    </div>
-
-    <div class="privacy-section">
-      <h3>6. 쿠키 및 자동 수집 장치</h3>
-      <p>로그인 상태 유지를 위해 브라우저의 로컬 스토리지를 사용합니다. 이는 브라우저 설정에서 삭제 가능합니다.</p>
-    </div>
-
-    <div class="privacy-date">시행일: 2025년 1월 1일 · 최종 수정: 2025년 1월 1일</div>
-
-    <div style="margin-top:1.25rem;text-align:right">
-      <button class="btn btn-primary" onclick="closePrivacyModal()">확인</button>
-    </div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════
-     APP SCREEN
-════════════════════════════════════════════════════════ -->
-<div id="app-screen" style="display:none">
-  <header>
-    <div class="header-inner">
-      <div class="logo">
-        <span class="logo-title">⛳ GolfNote</span>
-        <span style="color:var(--gold-dim);font-size:1.2rem;margin:0 0.4rem">·</span>
-        <span class="logo-sub">Golf Learning Manager</span>
+<div id="app">
+  <header style="position:relative">
+    <div class="hdr">
+      <div class="logo">⛳ GolfNote</div>
+      <div class="hdr-right">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span class="email-lbl" id="hdr-email"></span>
+        <button class="icon-btn" id="acct-toggle" onclick="toggleAcctPanel()">계정 ▾</button>
       </div>
-      <div class="header-actions">
-        <span class="sync-dot" id="sync-dot" title="동기화 상태"></span>
-        <span class="user-email" id="user-email"></span>
-        <button class="btn-icon" onclick="toggleAccountPanel()" id="account-btn">계정 ▾</button>
-      </div>
+    </div>
+    <div class="acct-panel" id="acct-panel">
+      <div class="acct-email" id="panel-email"></div>
+      <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
+      <button class="acct-btn" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정 / 회원탈퇴</button>
+      <div class="acct-sep"></div>
+      <button class="acct-btn red" onclick="doSignOut()">로그아웃</button>
     </div>
   </header>
-
-  <!-- 계정 패널 드롭다운 -->
-  <div class="account-panel" id="account-panel">
-    <div class="account-panel-email" id="panel-email"></div>
-    <button class="account-panel-btn" onclick="openPrivacyModal();closeAccountPanel()">📄 개인정보 처리방침</button>
-    <button class="account-panel-btn" onclick="openAccountSettings();closeAccountPanel()">⚙️ 계정 설정 / 회원탈퇴</button>
-    <div style="border-top:1px solid var(--border);margin:0.5rem 0"></div>
-    <button class="account-panel-btn danger" onclick="signOut();closeAccountPanel()">로그아웃</button>
-  </div>
-
-  <!-- 계정 설정 모달 -->
-  <div class="modal-overlay" id="account-modal" onclick="if(event.target===this)closeAccountSettings()">
-    <div class="modal-box">
-      <div class="modal-title">
-        계정 설정
-        <button class="modal-close" onclick="closeAccountSettings()">✕</button>
-      </div>
-
-      <div class="privacy-section">
-        <h3>내 계정 정보</h3>
-        <p id="modal-user-email" style="font-family:'DM Sans',monospace;color:var(--gold)"></p>
-      </div>
-
-      <div class="privacy-section">
-        <h3>데이터 현황</h3>
-        <p id="modal-data-count"></p>
-      </div>
-
-      <div class="danger-zone">
-        <div class="danger-zone-title">⚠ 위험 구역</div>
-        <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.75rem;line-height:1.6">
-          회원 탈퇴 시 저장된 모든 데이터(영상, 장비, 메모)가 즉시 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
-        </p>
-        <button class="btn btn-danger" onclick="deleteAccount()" style="width:100%">회원 탈퇴 및 모든 데이터 삭제</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tabs-inner">
-      <button class="tab-btn active" id="tab-videos" onclick="switchTab('videos')">📹 영상</button>
-      <button class="tab-btn" id="tab-equipment" onclick="switchTab('equipment')">🏌️ 장비</button>
-      <button class="tab-btn" id="tab-practice" onclick="switchTab('practice')">📊 연습 기록</button>
-    </div>
-  </div>
-
-  <main id="main-content"></main>
+  <div class="tabs"><div class="tabs-inner">
+    <button class="tab on" id="tab-videos" onclick="gotoTab('videos')">📹 영상</button>
+    <button class="tab" id="tab-equipment" onclick="gotoTab('equipment')">🏌️ 장비</button>
+    <button class="tab" id="tab-practice" onclick="gotoTab('practice')">📊 연습</button>
+  </div></div>
+  <main id="main"></main>
 </div>
-
-<script>
-// ════════════════════════════════════════════════════════
-// SUPABASE INIT
-// ════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://wmxccuceisvvocumgbfd.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ════════════════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════════════════
-let currentUser = null;
-let appData = { videos: [], equipment: [], sessions: [] };
-let currentTab = 'videos';
-let currentView = 'list';
-let selectedId = null;
-let realtimeChannel = null;
-let practiceSubTab = 'sessions'; // sessions | stats
-let chartInstances = {};
-
-const VIDEO_CATS = ["드라이버","우드/하이브리드","아이언","웨지","퍼팅","숏게임","어프로치","멘탈","피트니스","코스매니지먼트","룰/에티켓","기타"];
-const EQUIP_CATS = ["드라이버","우드/유틸리티","아이언","웨지","퍼터","골프공","골프백","카트/트롤리","의류","신발","글러브","액세서리","레인기어","기타"];
-const CLUB_LIST = ["드라이버","3W","5W","유틸리티","2I","3I","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","퍼터"];
-
-// ════════════════════════════════════════════════════════
-// UTILS
-// ════════════════════════════════════════════════════════
-function fmtPrice(p) { return p!=null ? Number(p).toLocaleString('ko-KR')+'원' : '—'; }
-function getVideoId(url) { const m=url.match(/(?:v=|youtu\.be\/)([^&\s?]+)/); return m?m[1]:null; }
-function getThumbnail(url) { const id=getVideoId(url); return id?`https://img.youtube.com/vi/${id}/mqdefault.jpg`:''; }
-function timeToSec(t) { const p=t.split(':').map(Number); return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2]; }
-function today() { return new Date().toISOString().split('T')[0]; }
-
-function showToast(msg) {
-  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
-  document.body.appendChild(t); setTimeout(()=>t.remove(),2600);
-}
-
-function setSyncStatus(status) {
-  const dot = document.getElementById('sync-dot');
-  if (!dot) return;
-  dot.className = 'sync-dot' + (status==='syncing'?' syncing':status==='error'?' error':'');
-  dot.title = status==='syncing'?'동기화 중...':status==='error'?'동기화 오류':'동기화됨';
-}
-
-// ════════════════════════════════════════════════════════
-// AUTH
-// ════════════════════════════════════════════════════════
-let authMode = 'login';
-
-function switchAuthTab(mode) {
-  authMode = mode;
-  document.getElementById('atab-login').classList.toggle('active', mode==='login');
-  document.getElementById('atab-signup').classList.toggle('active', mode==='signup');
-  document.getElementById('auth-btn').textContent = mode==='login'?'로그인':'회원가입';
-  document.getElementById('auth-err').style.display='none';
-  document.getElementById('auth-ok').style.display='none';
-  // 회원가입 시에만 동의 항목 표시
-  document.getElementById('signup-agree').style.display = mode==='signup'?'block':'none';
-}
-
-function showAuthErr(msg) {
-  const el=document.getElementById('auth-err'); el.textContent=msg; el.style.display='block';
-  document.getElementById('auth-ok').style.display='none';
-}
-function showAuthOk(msg) {
-  const el=document.getElementById('auth-ok'); el.textContent=msg; el.style.display='block';
-  document.getElementById('auth-err').style.display='none';
-}
-
-async function authSubmit() {
-  const email=document.getElementById('auth-email').value.trim();
-  const pw=document.getElementById('auth-pw').value;
-  const btn=document.getElementById('auth-btn');
-  if (!email||!pw) { showAuthErr('이메일과 비밀번호를 입력하세요'); return; }
-  if (pw.length<6) { showAuthErr('비밀번호는 6자 이상이어야 합니다'); return; }
-
-  if (authMode==='signup') {
-    // 필수 동의 항목 검증
-    if (!document.getElementById('agree-privacy').checked) {
-      showAuthErr('개인정보 처리방침에 동의해주세요'); return;
-    }
-    if (!document.getElementById('agree-terms').checked) {
-      showAuthErr('이용약관에 동의해주세요'); return;
-    }
-  }
-
-  btn.disabled=true; btn.textContent='처리 중...';
-
-  if (authMode==='signup') {
-    const {error}=await sb.auth.signUp({email,password:pw});
-    btn.disabled=false; btn.textContent='회원가입';
-    if (error) { showAuthErr(error.message==='User already registered'?'이미 등록된 이메일입니다':error.message); return; }
-    showAuthOk('가입 완료! 이제 로그인하세요.');
-    switchAuthTab('login');
-  } else {
-    const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
-    btn.disabled=false; btn.textContent='로그인';
-    if (error) { showAuthErr('이메일 또는 비밀번호가 올바르지 않습니다'); return; }
-    onSignIn(data.user);
-  }
-}
-
-async function signOut() {
-  if (!confirm('로그아웃 하시겠습니까?')) return;
-  if (realtimeChannel) sb.removeChannel(realtimeChannel);
-  await sb.auth.signOut();
-  currentUser = null;
-  appData = { videos:[], equipment:[], sessions:[] };
-  document.getElementById('app-screen').style.display='none';
-  document.getElementById('auth-screen').style.display='flex';
-  document.body.style.overflow='';
-}
-
-// ════════════════════════════════════════════════════════
-// INIT — check existing session
-// ════════════════════════════════════════════════════════
-async function initApp() {
-  // 세션 확인 전 로딩 스피너 표시
-  document.body.innerHTML += `<div id="init-loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy);z-index:9999">
-    <div style="text-align:center">
-      <div class="spinner" style="margin:0 auto 1rem"></div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--gold2)">⛳ GolfNote</div>
+<div class="modal-bg" id="privacy-modal" onclick="if(event.target===this)closeModal('privacy-modal')">
+  <div class="modal">
+    <div class="modal-title">개인정보 처리방침 <button class="modal-close" onclick="closeModal('privacy-modal')">✕</button></div>
+    <div class="privacy">
+      <h3>1. 수집하는 개인정보</h3><p>이메일 주소, 비밀번호(암호화 저장), 서비스 이용 기록</p>
+      <h3>2. 수집 목적</h3><ul><li>회원 식별 및 계정 관리</li><li>영상·장비·연습 데이터 저장 및 동기화</li><li>부정 이용 방지</li></ul>
+      <h3>3. 보유 기간</h3><p>회원 탈퇴 시까지. 탈퇴 즉시 모든 데이터를 파기합니다.</p>
+      <h3>4. 제3자 위탁</h3><p>Supabase Inc.(데이터베이스·인증, 서울 리전)에 처리를 위탁합니다.</p>
+      <h3>5. 이용자 권리</h3><ul><li>개인정보 열람·정정·삭제 요청 가능</li><li>앱 내 계정 설정에서 탈퇴 시 즉시 전체 삭제</li></ul>
     </div>
-  </div>`;
-
-  try {
-    const {data:{session}} = await sb.auth.getSession();
-    if (session?.user) {
-      await onSignIn(session.user);
-    } else {
-      // 로그인 화면 표시
-      document.getElementById('auth-screen').style.display='flex';
-    }
-  } catch(e) {
-    // 오류 시에도 로그인 화면은 보여줌
-    document.getElementById('auth-screen').style.display='flex';
-  } finally {
-    // 로딩 스피너 제거
-    const loader = document.getElementById('init-loading');
-    if (loader) loader.remove();
+    <div style="text-align:right;margin-top:1.1rem"><button class="btn btn-p" onclick="closeModal('privacy-modal')">확인</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="acct-modal" onclick="if(event.target===this)closeModal('acct-modal')">
+  <div class="modal">
+    <div class="modal-title">계정 설정 <button class="modal-close" onclick="closeModal('acct-modal')">✕</button></div>
+    <div class="privacy">
+      <h3>내 계정</h3><p id="acct-email-disp" style="color:var(--gold);font-size:.9rem"></p>
+      <h3 style="margin-top:.75rem">저장된 데이터</h3><p id="acct-data-cnt"></p>
+    </div>
+    <div class="danger-zone" style="margin-top:1rem">
+      <div class="danger-title">⚠ 위험 구역</div>
+      <p style="font-size:.81rem;color:var(--dim);margin-bottom:.7rem;line-height:1.6">회원 탈퇴 시 모든 데이터가 즉시 영구 삭제됩니다.</p>
+      <button class="btn btn-d" style="width:100%" onclick="doDeleteAccount()">회원 탈퇴 및 모든 데이터 삭제</button>
+    </div>
+  </div>
+</div>
+<script type="module">
+import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import Chart from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
+const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
+const sb=createClient(SB_URL,SB_KEY);
+let user=null,D={videos:[],equip:[],sessions:[]},tab='videos',view='list',selId=null,pSub='sessions',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
+const VCATS=['드라이버','우드/하이브리드','아이언','웨지','퍼팅','숏게임','어프로치','멘탈','피트니스','코스매니지먼트','룰/에티켓','기타'];
+const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
+const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','GW','SW','LW','퍼터'];
+const today=()=>new Date().toISOString().split('T')[0];
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const ea=s=>String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const best=a=>a.length?Math.max(...a):null;
+const fn=(n,u='')=>n!=null?Math.round(n)+u:'—';
+const vidId=url=>{const m=url.match(/(?:v=|youtu\.be\/)([^&\s?]+)/);return m?m[1]:null};
+const thumb=url=>{const id=vidId(url);return id?`https://img.youtube.com/vi/${id}/mqdefault.jpg`:''};
+const t2s=t=>{const p=t.split(':').map(Number);return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2]};
+const $=id=>document.getElementById(id);
+function toast(msg){const el=document.createElement('div');el.className='toast-el';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2700)}
+function sync(s){const d=$('sync-dot');if(!d)return;d.className='sync-dot'+(s==='busy'?' busy':s==='err'?' err':'')}
+window.openModal=id=>{$(id).classList.add('on');document.body.style.overflow='hidden'};
+window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow=''};
+window.toggleAcctPanel=()=>$('acct-panel').classList.toggle('on');
+window.closeAcctPanel=()=>$('acct-panel').classList.remove('on');
+document.addEventListener('click',e=>{const p=$('acct-panel'),b=$('acct-toggle');if(p&&!p.contains(e.target)&&e.target!==b)p.classList.remove('on')});
+window.openAcctSettings=()=>{$('acct-email-disp').textContent=user?.email||'';$('acct-data-cnt').textContent=`영상 ${D.videos.length}개 · 장비 ${D.equip.length}개 · 연습 세션 ${D.sessions.length}개`;openModal('acct-modal')};
+window.setAuthMode=mode=>{authMode=mode;$('atab-login').classList.toggle('on',mode==='login');$('atab-signup').classList.toggle('on',mode==='signup');$('auth-btn').textContent=mode==='login'?'로그인':'회원가입';$('agree-wrap').style.display=mode==='signup'?'block':'none';$('auth-err').style.display='none';$('auth-ok').style.display='none'};
+function showErr(msg){const e=$('auth-err');e.textContent=msg;e.style.display='block';$('auth-ok').style.display='none'}
+function showOk(msg){const e=$('auth-ok');e.textContent=msg;e.style.display='block';$('auth-err').style.display='none'}
+window.doAuth=async()=>{
+  const email=$('a-email').value.trim(),pw=$('a-pw').value,btn=$('auth-btn');
+  if(!email||!pw){showErr('이메일과 비밀번호를 입력하세요');return}
+  if(pw.length<6){showErr('비밀번호는 6자 이상이어야 합니다');return}
+  if(authMode==='signup'){if(!$('ag1').checked){showErr('개인정보 처리방침에 동의해주세요');return}if(!$('ag2').checked){showErr('이용약관에 동의해주세요');return}}
+  btn.disabled=true;btn.textContent='처리 중...';
+  if(authMode==='signup'){
+    const{error}=await sb.auth.signUp({email,password:pw});
+    btn.disabled=false;btn.textContent='회원가입';
+    if(error){showErr(error.message.includes('already')?'이미 등록된 이메일입니다':error.message);return}
+    showOk('가입 완료! 로그인해주세요.');setAuthMode('login');
+  }else{
+    const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
+    btn.disabled=false;btn.textContent='로그인';
+    if(error){showErr('이메일 또는 비밀번호가 올바르지 않습니다');return}
+    await enterApp(data.user);
   }
-
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event==='SIGNED_IN' && session?.user) {
-      if (!currentUser) await onSignIn(session.user);
-    } else if (event==='SIGNED_OUT') {
-      currentUser = null;
-    }
-  });
-}
-
-async function onSignIn(user) {
-  currentUser=user;
-  document.getElementById('auth-screen').style.display='none';
-  document.getElementById('app-screen').style.display='block';
-  document.getElementById('user-email').textContent=user.email;
-  document.getElementById('panel-email').textContent=user.email;
-
-  showMainLoading();
-  await loadAllData();
-  setupRealtime();
-  render();
-}
-
-// ════════════════════════════════════════════════════════
-// 개인정보 처리방침 모달
-// ════════════════════════════════════════════════════════
-function openPrivacyModal() {
-  document.getElementById('privacy-modal').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closePrivacyModal() {
-  document.getElementById('privacy-modal').classList.remove('open');
-  document.body.style.overflow='';
-}
-
-// ════════════════════════════════════════════════════════
-// 계정 패널
-// ════════════════════════════════════════════════════════
-function toggleAccountPanel() {
-  document.getElementById('account-panel').classList.toggle('open');
-}
-function closeAccountPanel() {
-  document.getElementById('account-panel').classList.remove('open');
-}
-// 패널 바깥 클릭 시 닫기
-document.addEventListener('click', function(e) {
-  const panel = document.getElementById('account-panel');
-  const btn = document.getElementById('account-btn');
-  if (panel && !panel.contains(e.target) && e.target !== btn) {
-    panel.classList.remove('open');
-  }
-});
-
-// ════════════════════════════════════════════════════════
-// 계정 설정 모달 (회원탈퇴)
-// ════════════════════════════════════════════════════════
-function openAccountSettings() {
-  document.getElementById('modal-user-email').textContent = currentUser?.email || '';
-  document.getElementById('modal-data-count').textContent =
-    `영상 ${appData.videos.length}개 · 장비 ${appData.equipment.length}개 · 연습 세션 ${appData.sessions.length}개`;
-  document.getElementById('account-modal').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeAccountSettings() {
-  document.getElementById('account-modal').classList.remove('open');
-  document.body.style.overflow='';
-}
-
-function showMainLoading() {
-  document.getElementById('main-content').innerHTML=`
-    <div class="loading-screen">
-      <div class="spinner"></div>
-      <span>데이터 불러오는 중...</span>
-    </div>`;
-}
-
-// ════════════════════════════════════════════════════════
-// DATA LOAD
-// ════════════════════════════════════════════════════════
-async function loadAllData() {
-  setSyncStatus('syncing');
-  try {
-    const [vRes, eRes, sRes] = await Promise.all([
-      sb.from('videos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}),
-      sb.from('equipment').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}),
-      sb.from('practice_sessions').select('*').eq('user_id',currentUser.id).order('session_date',{ascending:false}),
+};
+window.doSignOut=async()=>{
+  if(!confirm('로그아웃 하시겠습니까?'))return;
+  if(rtCh)sb.removeChannel(rtCh);
+  await sb.auth.signOut();
+  user=null;D={videos:[],equip:[],sessions:[]};
+  $('app').style.display='none';$('auth').style.display='flex';document.body.style.overflow='';
+};
+window.doDeleteAccount=async()=>{
+  if(!confirm(`정말 탈퇴하시겠습니까?\n영상 ${D.videos.length}개, 장비 ${D.equip.length}개, 연습 ${D.sessions.length}개\n모든 데이터가 즉시 영구 삭제됩니다.`))return;
+  if(prompt('탈퇴를 확인하려면 "탈퇴합니다" 입력:')||''!=='탈퇴합니다'){toast('탈퇴가 취소됐습니다');return}
+  sync('busy');
+  try{
+    await Promise.all([sb.from('videos').delete().eq('user_id',user.id),sb.from('equipment').delete().eq('user_id',user.id),sb.from('practice_sessions').delete().eq('user_id',user.id)]);
+    if(rtCh)sb.removeChannel(rtCh);await sb.auth.signOut();
+    user=null;D={videos:[],equip:[],sessions:[]};closeModal('acct-modal');
+    $('app').style.display='none';$('auth').style.display='flex';document.body.style.overflow='';toast('모든 데이터가 삭제됐습니다.');
+  }catch(e){toast('오류: '+e.message);sync('err')}
+};
+async function loadAll(){
+  sync('busy');
+  try{
+    const[vR,eR,sR]=await Promise.all([
+      sb.from('videos').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
+      sb.from('equipment').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
+      sb.from('practice_sessions').select('*').eq('user_id',user.id).order('session_date',{ascending:false})
     ]);
-    if (vRes.error) throw vRes.error;
-    if (eRes.error) throw eRes.error;
-    if (sRes.error) throw sRes.error;
-    appData.videos = vRes.data.map(dbToVideo);
-    appData.equipment = eRes.data.map(dbToEquip);
-    appData.sessions = sRes.data.map(dbToSession);
-    setSyncStatus('ok');
-  } catch(e) {
-    setSyncStatus('error');
-    showToast('데이터 로드 실패: '+e.message);
-  }
+    if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
+    D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
+    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[]}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',shots:r.shots||[]}));
+    sync('ok');
+  }catch(e){sync('err');toast('로드 실패: '+e.message)}
 }
-
-// DB row → app object
-function dbToVideo(r) {
-  return { id:r.id, url:r.url, title:r.title, keywords:r.keywords||[], memo:r.memo||'', timestamps:r.timestamps||[], addedAt:r.added_at };
-}
-function dbToEquip(r) {
-  return { id:r.id, name:r.name, category:r.category||'', status:r.status||'wishlist', purchasePrice:r.purchase_price, purchaseDate:r.purchase_date, memo:r.memo||'', links:r.links||[], priceHistory:r.price_history||[] };
-}
-function dbToSession(r) {
-  return { id:r.id, date:r.session_date, location:r.location||'', club:r.club||'', totalShots:r.total_shots||0, memo:r.memo||'', imageUrl:r.image_url||'', shots:r.shots||[] };
-}
-
-// ════════════════════════════════════════════════════════
-// REALTIME SYNC
-// ════════════════════════════════════════════════════════
-function setupRealtime() {
-  if (realtimeChannel) sb.removeChannel(realtimeChannel);
-  realtimeChannel = sb.channel('db-changes')
-    .on('postgres_changes',{event:'*',schema:'public',table:'videos',filter:`user_id=eq.${currentUser.id}`},
-      async ()=>{ await loadAllData(); if(currentTab==='videos'&&currentView==='list') render(); })
-    .on('postgres_changes',{event:'*',schema:'public',table:'equipment',filter:`user_id=eq.${currentUser.id}`},
-      async ()=>{ await loadAllData(); if(currentTab==='equipment'&&currentView==='list') render(); })
+function setupRealtime(){
+  if(rtCh)sb.removeChannel(rtCh);
+  rtCh=sb.channel('rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'videos',filter:`user_id=eq.${user.id}`},async()=>{await loadAll();if(tab==='videos'&&view==='list')render()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'equipment',filter:`user_id=eq.${user.id}`},async()=>{await loadAll();if(tab==='equipment'&&view==='list')render()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'practice_sessions',filter:`user_id=eq.${user.id}`},async()=>{await loadAll();if(tab==='practice'&&view==='list')render()})
     .subscribe();
 }
-
-// ════════════════════════════════════════════════════════
-// ROUTING
-// ════════════════════════════════════════════════════════
-function switchTab(tab) {
-  currentTab=tab; currentView='list'; selectedId=null;
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  // 차트 인스턴스 정리
-  Object.values(chartInstances).forEach(c=>{ try{c.destroy();}catch(e){} });
-  chartInstances={};
-  render();
+async function enterApp(u){
+  user=u;$('auth').style.display='none';$('app').style.display='flex';
+  $('hdr-email').textContent=u.email;$('panel-email').textContent=u.email;
+  $('main').innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:1rem"><div class="spinner"></div><span style="color:var(--muted);font-size:.9rem">데이터 불러오는 중...</span></div>';
+  await loadAll();setupRealtime();render();
 }
-function goList() { currentView='list'; selectedId=null; render(); }
-function goDetail(id) { currentView='detail'; selectedId=id; render(); }
-function goAdd() { currentView='add'; render(); }
-
-function render() {
-  const el=document.getElementById('main-content');
-  if (currentTab==='videos') {
-    if (currentView==='list') el.innerHTML=renderVideoList();
-    else if (currentView==='detail') el.innerHTML=renderVideoDetail();
-    else el.innerHTML=renderVideoAdd();
-  } else if (currentTab==='equipment') {
-    if (currentView==='list') el.innerHTML=renderEquipList();
-    else if (currentView==='detail') el.innerHTML=renderEquipDetail();
-    else el.innerHTML=renderEquipAdd();
-  } else {
-    if (currentView==='list') { el.innerHTML=renderPracticeList(); initPracticeCharts(); }
-    else if (currentView==='detail') el.innerHTML=renderPracticeDetail();
-    else el.innerHTML=renderPracticeAdd();
-  }
+window.gotoTab=t=>{
+  tab=t;view='list';selId=null;
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));$('tab-'+t).classList.add('on');render();
+};
+window.goList=()=>{view='list';selId=null;render()};
+window.goDetail=id=>{view='detail';selId=id;render()};
+window.goAdd=()=>{view='add';shotCnt=1;upFile=null;render()};
+function render(){
+  const m=$('main');
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  if(tab==='videos'){if(view==='list')m.innerHTML=vList();else if(view==='detail')m.innerHTML=vDetail();else m.innerHTML=vAdd();}
+  else if(tab==='equipment'){if(view==='list')m.innerHTML=eList();else if(view==='detail')m.innerHTML=eDetail();else m.innerHTML=eAdd();}
+  else{if(view==='list'){m.innerHTML=pList();if(pSub==='stats')initCharts();}else if(view==='detail')m.innerHTML=pDetail();else m.innerHTML=pAdd();}
 }
-
-// ════════════════════════════════════════════════════════
-// VIDEO LIST
-// ════════════════════════════════════════════════════════
-function renderVideoList() {
-  const allKws=[...new Set(appData.videos.flatMap(v=>v.keywords))];
-  const totalTs=appData.videos.reduce((a,v)=>a+v.timestamps.length,0);
-  let cards=appData.videos.map(v=>{
-    const thumb=getThumbnail(v.url);
-    return `
-    <div class="card" onclick="goDetail('${v.id}')">
-      <div style="display:flex;gap:0.75rem;align-items:flex-start">
-        ${thumb?`<img class="video-thumb" src="${thumb}" onerror="this.style.display='none'" alt="">`:''}
-        <div style="flex:1;min-width:0">
-          <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(v.title)}</div>
-          <div style="margin:4px 0">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
-          <div class="card-meta">⏱ ${v.timestamps.length}개 구간 · ${v.addedAt||''}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  if (!appData.videos.length) cards=`<div class="empty-state"><div class="empty-icon">🎬</div>저장된 영상이 없습니다.<br>첫 영상을 추가해보세요!</div>`;
-  return `
-  <div class="page">
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${appData.videos.length}</div><div class="stat-label">영상</div></div>
-      <div class="stat-card"><div class="stat-num">${totalTs}</div><div class="stat-label">저장 구간</div></div>
-      <div class="stat-card"><div class="stat-num">${allKws.length}</div><div class="stat-label">키워드</div></div>
-    </div>
-    <div class="filter-bar">
-      <input type="text" placeholder="🔍 제목, 키워드 검색..." oninput="filterVideos(this.value,document.getElementById('vcat').value)" id="vsearch">
-      <select id="vcat" onchange="filterVideos(document.getElementById('vsearch').value,this.value)">
-        <option value="">전체 카테고리</option>
-        ${VIDEO_CATS.map(c=>`<option>${c}</option>`).join('')}
-      </select>
-    </div>
-    <div id="video-cards">${cards}</div>
-    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="goAdd()">+ 영상 추가</button>
-  </div>`;
+function vList(){
+  const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
+  const cards=D.videos.length?D.videos.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div><div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">🎬</div>저장된 영상이 없습니다.</div>`;
+  return `<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select></div><div id="vcards">${cards}</div><button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 영상 추가</button></div>`;
 }
-
-function filterVideos(q,cat) {
-  const f=appData.videos.filter(v=>{
-    const mq=!q||v.title.includes(q)||v.keywords.some(k=>k.includes(q));
-    const mc=!cat||v.keywords.includes(cat);
-    return mq&&mc;
-  });
-  const c=document.getElementById('video-cards'); if(!c) return;
-  if (!f.length) { c.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>검색 결과가 없습니다.</div>`; return; }
-  c.innerHTML=f.map(v=>{
-    const thumb=getThumbnail(v.url);
-    return `<div class="card" onclick="goDetail('${v.id}')">
-      <div style="display:flex;gap:0.75rem;align-items:flex-start">
-        ${thumb?`<img class="video-thumb" src="${thumb}" onerror="this.style.display='none'" alt="">`:''}
-        <div style="flex:1;min-width:0">
-          <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(v.title)}</div>
-          <div style="margin:4px 0">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
-          <div class="card-meta">⏱ ${v.timestamps.length}개 구간 · ${v.addedAt||''}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+window.filterV=(q,cat)=>{
+  const f=D.videos.filter(v=>(!q||v.title.includes(q)||v.kw.some(k=>k.includes(q)))&&(!cat||v.kw.includes(cat)));
+  const c=$('vcards');if(!c)return;
+  c.innerHTML=f.length?f.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">🔍</div>검색 결과 없음</div>`;
+};
+function vDetail(){
+  const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">영상을 찾을 수 없습니다.</div>';
+  const vid=vidId(v.url),embed=vid?`https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1`:'';
+  const tsH=v.ts.length?v.ts.map((t,i)=>`<div class="ts-item"><span class="ts-time" onclick="playFrom('${t.time}','${v.id}')">${t.time}</span><span class="ts-note">${esc(t.note)}</span><button class="ts-del" onclick="delTs('${v.id}',${i})">✕</button></div>`).join(''):`<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">저장된 구간이 없습니다.</div>`;
+  return `<div class="page"><button class="back-btn" onclick="goList()">← 영상 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div style="margin-bottom:.65rem">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div>${vid?`<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`:`<div style="padding:.9rem;background:var(--bg);border-radius:8px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">영상 삭제</button></div></div>`;
 }
-
-// ════════════════════════════════════════════════════════
-// VIDEO DETAIL
-// ════════════════════════════════════════════════════════
-function renderVideoDetail() {
-  const v=appData.videos.find(x=>x.id===selectedId); if(!v) return '<div class="empty-state">영상을 찾을 수 없습니다.</div>';
-  const vid=getVideoId(v.url);
-  const embedUrl = vid ? `https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1` : '';
-  const tsHtml=v.timestamps.length?v.timestamps.map((ts,i)=>`
-    <div class="ts-item">
-      <span class="ts-time" onclick="playFrom('${ts.time}','${v.id}')" title="${ts.time}부터 재생">${ts.time}</span>
-      <span class="ts-note">${escHtml(ts.note)}</span>
-      <button class="ts-del" onclick="deleteTimestamp('${v.id}',${i})">✕</button>
-    </div>`).join(''):'<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem 0">아직 저장된 구간이 없습니다.</div>';
-  return `
-  <div class="page">
-    <button class="back-btn" onclick="goList()">← 영상 목록</button>
-    <div class="inline-edit-row" style="margin-bottom:0.5rem">
-      <span class="edit-label">제목</span>
-      <input id="edit-title" value="${escAttr(v.title)}" onblur="saveVideoTitle('${v.id}',this.value)">
-      <span style="font-size:0.75rem;color:var(--text-muted)">✎</span>
-    </div>
-    <div class="inline-edit-row">
-      <span class="edit-label">URL</span>
-      <input id="edit-url" value="${escAttr(v.url)}" placeholder="YouTube URL">
-      <button class="btn btn-secondary btn-sm" style="flex-shrink:0" onclick="saveVideoUrl('${v.id}',document.getElementById('edit-url').value)">적용</button>
-    </div>
-    <div style="margin-bottom:0.75rem">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
-    ${vid ? `
-    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:0.5rem;border:1px solid var(--border);background:#000">
-      <iframe
-        id="yt-iframe"
-        src="${embedUrl}"
-        style="width:100%;height:100%;border:none;display:block"
-        allowfullscreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        referrerpolicy="strict-origin-when-cross-origin"
-      ></iframe>
-    </div>
-    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:1rem;text-align:right">
-      타임스탬프를 클릭하면 해당 구간부터 재생됩니다
-    </div>
-    ` : `<div style="padding:1rem;color:var(--text-muted);background:var(--navy);border-radius:8px;margin-bottom:1rem;font-size:0.88rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}
-    <div class="section-label">메모</div>
-    <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7;margin-bottom:1rem">${escHtml(v.memo)||'메모 없음'}</div>
-    <div class="section-label">구간 타임스탬프</div>
-    <div>${tsHtml}</div>
-    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
-      <input class="form-input" style="width:75px;flex:none" placeholder="0:00" id="ts-time">
-      <input class="form-input" style="flex:1;min-width:150px" placeholder="이 구간의 핵심 내용..." id="ts-note">
-      <button class="btn btn-primary btn-sm" onclick="addTimestamp('${v.id}')">구간 추가</button>
-    </div>
-    <div class="divider"></div>
-    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
-      <button class="btn btn-secondary btn-sm" onclick="editVideoMemo('${v.id}')">메모 편집</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteVideo('${v.id}')">영상 삭제</button>
-    </div>
-  </div>`;
+window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
+window.addTs=async vid=>{const t=$('ts-t').value.trim(),n=$('ts-n').value.trim();if(!t||!n){toast('시간과 내용을 입력하세요');return}const v=D.videos.find(x=>x.id===vid);if(!v)return;const newTs=[...v.ts,{time:t,note:n}].sort((a,b)=>t2s(a.time)-t2s(b.time));sync('busy');const{error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.ts=newTs;sync('ok');toast('구간 추가됨');goDetail(vid)};
+window.delTs=async(vid,idx)=>{if(!confirm('삭제하시겠습니까?'))return;const v=D.videos.find(x=>x.id===vid);if(!v)return;const newTs=v.ts.filter((_,i)=>i!==idx);sync('busy');const{error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}v.ts=newTs;sync('ok');goDetail(vid)};
+window.saveVTitle=async(id,val)=>{const v=D.videos.find(x=>x.id===id);if(!v||!val.trim()||val.trim()===v.title)return;sync('busy');const{error}=await sb.from('videos').update({title:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.title=val.trim();sync('ok');toast('제목 저장됨')};
+window.saveVUrl=async(id,val)=>{const v=D.videos.find(x=>x.id===id);if(!v||!val.trim()||val.trim()===v.url)return;sync('busy');const{error}=await sb.from('videos').update({url:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.url=val.trim();sync('ok');toast('URL 저장됨');goDetail(id)};
+window.editVMemo=async id=>{const v=D.videos.find(x=>x.id===id);if(!v)return;const m=prompt('메모 수정:',v.memo);if(m===null)return;sync('busy');const{error}=await sb.from('videos').update({memo:m}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.memo=m;sync('ok');toast('저장됨');goDetail(id)};
+window.delVideo=async id=>{if(!confirm('영상을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('videos').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.videos=D.videos.filter(v=>v.id!==id);sync('ok');toast('삭제됨');goList()};
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 영상 목록</button><div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem"><div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">새 영상 추가</div><div class="fg"><label class="fl-label">YouTube URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:6px;display:none;border:1px solid var(--border)" src="" alt=""></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 팁..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+window.prevThumb=()=>{const t=thumb($('vu').value),img=$('vthumb');if(t){img.src=t;img.style.display='block'}else img.style.display='none'};
+window.addKw=c=>{const e=$('vk');e.value=e.value.trim()?(e.value.trim()+', '+c):c};
+window.saveVideo=async()=>{const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim(),btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps:[],added_at:today()});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}await loadAll();toast('영상 추가됨');goList()};
+function eList(){
+  const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
+  const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
+  const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
+  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:.7rem">${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon">🏌️</div>등록된 장비가 없습니다.</div>`;
+  return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value)"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value)"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select></div><div id="ecards">${cards}</div><button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 장비 추가</button></div>`;
 }
-
-function playFrom(time, vid) {
-  const v=appData.videos.find(x=>x.id===vid); if(!v) return;
-  const videoId=getVideoId(v.url); if(!videoId) { showToast('유효한 YouTube URL이 없습니다'); return; }
-  const sec=timeToSec(time);
-  const iframe=document.getElementById('yt-iframe');
-  if (iframe) {
-    // iframe src를 해당 시간으로 교체하여 즉시 재생
-    iframe.src=`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&start=${sec}&autoplay=1`;
-    // 플레이어로 부드럽게 스크롤
-    iframe.scrollIntoView({behavior:'smooth', block:'center'});
-  }
-}
-
-// ════════════════════════════════════════════════════════
-// VIDEO ADD
-// ════════════════════════════════════════════════════════
-function renderVideoAdd() {
-  return `
-  <div class="page">
-    <button class="back-btn" onclick="goList()">← 영상 목록</button>
-    <div class="add-form">
-      <div class="add-form-title">새 영상 추가</div>
-      <div class="form-group">
-        <label class="form-label">YouTube URL</label>
-        <input class="form-input" id="v-url" placeholder="https://www.youtube.com/watch?v=..." oninput="previewThumb()">
-        <img id="v-thumb" style="margin-top:0.5rem;width:120px;border-radius:6px;display:none;border:1px solid var(--border)" src="" alt="">
-      </div>
-      <div class="form-group">
-        <label class="form-label">영상 제목</label>
-        <input class="form-input" id="v-title" placeholder="영상 제목">
-      </div>
-      <div class="form-group">
-        <label class="form-label">키워드 / 분류</label>
-        <input class="form-input" id="v-kw" placeholder="쉼표로 구분: 드라이버, 스윙, 기초">
-        <div class="keyword-pills">${VIDEO_CATS.map(c=>`<span class="kw-pill" onclick="addKwVideo('${c}')">${c}</span>`).join('')}</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">메모</label>
-        <textarea class="form-textarea" id="v-memo" placeholder="핵심 내용, 기억할 팁..."></textarea>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="v-save-btn" onclick="saveVideo()">저장</button>
-        <button class="btn btn-secondary" onclick="goList()">취소</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-function previewThumb() {
-  const url=document.getElementById('v-url').value;
-  const thumb=document.getElementById('v-thumb');
-  const t=getThumbnail(url);
-  if(t){thumb.src=t;thumb.style.display='block';}else{thumb.style.display='none';}
-}
-function addKwVideo(cat) {
-  const el=document.getElementById('v-kw');
-  el.value=el.value.trim()?(el.value.trim()+', '+cat):cat;
-}
-
-// ════════════════════════════════════════════════════════
-// VIDEO CRUD (Supabase)
-// ════════════════════════════════════════════════════════
-async function saveVideo() {
-  const url=document.getElementById('v-url').value.trim();
-  const title=document.getElementById('v-title').value.trim();
-  if (!url) { showToast('URL을 입력하세요'); return; }
-  const kws=document.getElementById('v-kw').value.split(',').map(k=>k.trim()).filter(Boolean);
-  const memo=document.getElementById('v-memo').value.trim();
-  const btn=document.getElementById('v-save-btn');
-  btn.disabled=true; btn.textContent='저장 중...';
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').insert({
-    user_id:currentUser.id, url, title:title||'제목 없음',
-    keywords:kws, memo, timestamps:[], added_at:today()
-  });
-  if (error) { showToast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
-  await loadAllData();
-  showToast('영상이 추가됐습니다');
-  goList();
-}
-
-async function saveVideoTitle(id,newTitle) {
-  const v=appData.videos.find(x=>x.id===id); if(!v) return;
-  const t=newTitle.trim(); if(!t||t===v.title) return;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').update({title:t}).eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
-  v.title=t; setSyncStatus('ok'); showToast('제목이 저장됐습니다');
-}
-
-async function saveVideoUrl(id,newUrl) {
-  const v=appData.videos.find(x=>x.id===id); if(!v) return;
-  const t=newUrl.trim(); if(!t||t===v.url) return;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').update({url:t}).eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
-  v.url=t; setSyncStatus('ok'); showToast('URL이 저장됐습니다'); goDetail(id);
-}
-
-async function addTimestamp(vid) {
-  const time=document.getElementById('ts-time').value.trim();
-  const note=document.getElementById('ts-note').value.trim();
-  if (!time||!note) { showToast('시간과 내용을 입력하세요'); return; }
-  const v=appData.videos.find(x=>x.id===vid); if(!v) return;
-  const newTs=[...v.timestamps,{time,note}].sort((a,b)=>timeToSec(a.time)-timeToSec(b.time));
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',currentUser.id);
-  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
-  v.timestamps=newTs; setSyncStatus('ok'); showToast('구간이 추가됐습니다'); goDetail(vid);
-}
-
-async function deleteTimestamp(vid,idx) {
-  if (!confirm('이 구간을 삭제하시겠습니까?')) return;
-  const v=appData.videos.find(x=>x.id===vid); if(!v) return;
-  const newTs=v.timestamps.filter((_,i)=>i!==idx);
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',currentUser.id);
-  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
-  v.timestamps=newTs; setSyncStatus('ok'); goDetail(vid);
-}
-
-async function editVideoMemo(id) {
-  const v=appData.videos.find(x=>x.id===id); if(!v) return;
-  const memo=prompt('메모를 수정하세요:',v.memo); if(memo===null) return;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').update({memo}).eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
-  v.memo=memo; setSyncStatus('ok'); showToast('메모가 저장됐습니다'); goDetail(id);
-}
-
-async function deleteVideo(id) {
-  if (!confirm('이 영상을 삭제하시겠습니까?')) return;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('videos').delete().eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
-  appData.videos=appData.videos.filter(v=>v.id!==id);
-  setSyncStatus('ok'); showToast('영상이 삭제됐습니다'); goList();
-}
-
-// ════════════════════════════════════════════════════════
-// EQUIPMENT LIST
-// ════════════════════════════════════════════════════════
-function renderEquipList() {
-  const owned=appData.equipment.filter(e=>e.status==='owned');
-  const wish=appData.equipment.filter(e=>e.status==='wishlist');
-  const wishTotal=wish.reduce((a,e)=>{
-    const lp=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;
-    return a+(lp===Infinity?0:lp);
-  },0);
-  const renderCard=(e)=>{
-    const lp=e.links.length?e.links[e.links.length-1].price:e.purchasePrice;
-    return `<div class="card" onclick="goDetail('${e.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div style="flex:1;min-width:0">
-          <div class="card-title">${escHtml(e.name)}</div>
-          <div style="margin:4px 0">
-            <span class="badge ${e.status==='owned'?'badge-green':'badge-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
-            <span class="badge badge-blue">${escHtml(e.category)}</span>
-          </div>
-          ${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">${escHtml(e.memo)}</div>`:''}
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:0.75rem">
-          ${lp?`<div class="link-price">${fmtPrice(lp)}</div>`:''}
-          ${e.links.length?`<div style="font-size:0.72rem;color:var(--text-muted)">${e.links.length}개 링크</div>`:''}
-          ${renderPriceTrend(e)}
-        </div>
-      </div>
-    </div>`;
-  };
-  let cards=appData.equipment.length?appData.equipment.map(renderCard).join(''):`<div class="empty-state"><div class="empty-icon">🏌️</div>등록된 장비가 없습니다.</div>`;
-  return `
-  <div class="page">
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${owned.length}</div><div class="stat-label">보유 장비</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:#e8a050">${wish.length}</div><div class="stat-label">관심 목록</div></div>
-      <div class="stat-card"><div class="stat-num" style="font-size:1rem;padding-top:6px">${wishTotal?fmtPrice(wishTotal):'—'}</div><div class="stat-label">관심 합계</div></div>
-    </div>
-    <div class="filter-bar">
-      <input type="text" placeholder="🔍 장비명 검색..." oninput="filterEquip(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esearch">
-      <select id="ecat" onchange="filterEquip(document.getElementById('esearch').value,this.value,document.getElementById('estat').value)">
-        <option value="">전체 분류</option>${EQUIP_CATS.map(c=>`<option>${c}</option>`).join('')}
-      </select>
-      <select id="estat" onchange="filterEquip(document.getElementById('esearch').value,document.getElementById('ecat').value,this.value)">
-        <option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option>
-      </select>
-    </div>
-    <div id="equip-cards">${cards}</div>
-    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="goAdd()">+ 장비 추가</button>
-  </div>`;
-}
-
-function renderPriceTrend(e) {
-  if (!e.priceHistory||e.priceHistory.length<2) return '';
-  const last=e.priceHistory[e.priceHistory.length-1].price;
-  const prev=e.priceHistory[e.priceHistory.length-2].price;
-  const diff=last-prev; if(diff===0) return '';
-  return `<div style="font-size:0.72rem;color:${diff<0?'var(--green2)':'var(--red2)'}">${diff<0?'↓':'↑'} ${Math.abs(diff).toLocaleString()}원</div>`;
-}
-
-function filterEquip(q,cat,status) {
-  const f=appData.equipment.filter(e=>{
-    return (!q||e.name.includes(q))&&(!cat||e.category===cat)&&(!status||e.status===status);
-  });
-  const c=document.getElementById('equip-cards'); if(!c) return;
-  c.innerHTML=f.length?f.map(e=>{
-    const lp=e.links.length?e.links[e.links.length-1].price:e.purchasePrice;
-    return `<div class="card" onclick="goDetail('${e.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div style="flex:1;min-width:0">
-          <div class="card-title">${escHtml(e.name)}</div>
-          <div style="margin:4px 0"><span class="badge ${e.status==='owned'?'badge-green':'badge-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge badge-blue">${escHtml(e.category)}</span></div>
-        </div>
-        ${lp?`<div class="link-price" style="flex-shrink:0;margin-left:0.75rem">${fmtPrice(lp)}</div>`:''}
-      </div>
-    </div>`;
-  }).join(''):`<div class="empty-state"><div class="empty-icon">🔍</div>검색 결과가 없습니다.</div>`;
-}
-
-// ════════════════════════════════════════════════════════
-// EQUIPMENT DETAIL
-// ════════════════════════════════════════════════════════
-function renderEquipDetail() {
-  const e=appData.equipment.find(x=>x.id===selectedId); if(!e) return '<div class="empty-state">장비를 찾을 수 없습니다.</div>';
-  const linksHtml=e.links.length?e.links.map((l,i)=>`
-    <div class="link-item">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <a href="${escAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escHtml(l.label)}</a>
-        ${l.price?`<span class="link-price">${fmtPrice(l.price)}</span>`:''}
-      </div>
-      <div class="link-date">확인일: ${l.checkedAt||'—'}
-        <button class="btn btn-secondary btn-sm" style="margin-left:0.5rem;padding:1px 8px;font-size:0.7rem" onclick="updateLinkPrice('${e.id}',${i})">가격 업데이트</button>
-      </div>
-    </div>`).join(''):'<div style="color:var(--text-muted);font-size:0.85rem">저장된 링크 없음</div>';
-  const histHtml=e.priceHistory&&e.priceHistory.length?`
-    <div class="section-label" style="margin-top:1rem">가격 동향</div>
-    <div class="price-history">${e.priceHistory.slice().reverse().map((h,i,arr)=>{
-      const prev=arr[i+1]; const diff=prev?h.price-prev.price:0;
-      const arrow=diff<0?`<span style="color:var(--green2)">↓${Math.abs(diff).toLocaleString()}원</span>`:diff>0?`<span style="color:var(--red2)">↑${diff.toLocaleString()}원</span>`:'';
-      return `<div class="price-entry"><span>${h.date}</span><span>${fmtPrice(h.price)} ${arrow}</span></div>`;
-    }).join('')}</div>`:'';
+window.filterE=(q,cat,st)=>{const f=D.equip.filter(e=>(!q||e.name.includes(q))&&(!cat||e.cat===cat)&&(!st||e.status===st));const c=$('ecards');if(!c)return;c.innerHTML=f.length?f.map(e=>`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between"><div><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${(e.links.length?e.links[e.links.length-1].price:e.buyPrice)?`<div class="link-price">${fmtP(e.links.length?e.links[e.links.length-1].price:e.buyPrice)}</div>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-icon">🔍</div>검색 결과 없음</div>`};
+function eDetail(){
+  const e=D.equip.find(x=>x.id===selId);if(!e)return'<div class="empty">장비를 찾을 수 없습니다.</div>';
   const lp=e.links.length?e.links[e.links.length-1].price:null;
-  return `
-  <div class="page">
-    <button class="back-btn" onclick="goList()">← 장비 목록</button>
-    <div class="detail-header">
-      <div>
-        <div class="detail-title">${escHtml(e.name)}</div>
-        <div style="margin-top:6px"><span class="badge ${e.status==='owned'?'badge-green':'badge-amber'}">${e.status==='owned'?'✓ 보유 중':'★ 관심 목록'}</span><span class="badge badge-blue">${escHtml(e.category)}</span></div>
-      </div>
-      ${e.purchasePrice||lp?`<div class="price-big">${fmtPrice(e.purchasePrice||lp)}</div>`:''}
-    </div>
-    ${e.status==='owned'&&e.purchaseDate?`<div class="section-box" style="display:flex;gap:1.5rem">
-      <div><div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--gold)">${fmtPrice(e.purchasePrice)}</div></div>
-      <div><div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.purchaseDate}</div></div>
-    </div>`:''}
-    <div class="section-label">메모</div>
-    <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7;margin-bottom:1rem">${escHtml(e.memo)||'메모 없음'}</div>
-    <div class="section-label">인터넷 링크</div>
-    ${linksHtml}${histHtml}
-    <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap">
-      <input class="form-input" style="flex:2;min-width:120px" id="new-link-url" placeholder="https://...">
-      <input class="form-input" style="flex:1;min-width:80px" id="new-link-label" placeholder="쇼핑몰명">
-      <input class="form-input" style="width:110px;flex:none" id="new-link-price" type="number" placeholder="가격">
-      <button class="btn btn-primary btn-sm" onclick="addLink('${e.id}')">링크 추가</button>
-    </div>
-    <div class="divider"></div>
-    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
-      <button class="btn btn-secondary btn-sm" onclick="editEquipMemo('${e.id}')">메모 편집</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteEquip('${e.id}')">삭제</button>
-    </div>
-  </div>`;
+  const linksH=e.links.length?e.links.map((l,i)=>`<div class="link-item"><div style="display:flex;justify-content:space-between;align-items:center"><a href="${ea(l.url)}" target="_blank" rel="noopener">🔗 ${esc(l.label)}</a>${l.price?`<span class="link-price">${fmtP(l.price)}</span>`:''}</div><div class="link-date">확인일: ${l.checkedAt||'—'} <button class="btn btn-s btn-sm" style="margin-left:.5rem;padding:1px 7px;font-size:.7rem" onclick="updLinkP('${e.id}',${i})">가격 업데이트</button></div></div>`).join(''):'<div style="color:var(--muted);font-size:.84rem">저장된 링크 없음</div>';
+  const histH=e.priceH.length?`<div class="sec-label" style="margin-top:.9rem">가격 동향</div><div>${e.priceH.slice().reverse().map((h,i,a)=>{const d=a[i+1]?h.price-a[i+1].price:0;return`<div class="price-entry"><span>${h.date}</span><span>${fmtP(h.price)} ${d?`<span style="color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</span>`:''}</span></div>`}).join('')}</div>`:'';
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#f2ead6">${esc(e.name)}</div><div style="margin-top:5px"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${e.buyPrice||lp?`<div class="price-big">${fmtP(e.buyPrice||lp)}</div>`:''}</div>${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--gold)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(e.memo)||'메모 없음'}</div><div class="sec-label">인터넷 링크</div>${linksH}${histH}<div style="display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap"><input class="inp" style="flex:2;min-width:110px" id="nl-url" placeholder="https://..."><input class="inp" style="flex:1;min-width:70px" id="nl-label" placeholder="쇼핑몰"><input class="inp" style="width:100px;flex:none" type="number" id="nl-price" placeholder="가격"><button class="btn btn-p btn-sm" onclick="addLink('${e.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editEMemo('${e.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button></div></div>`;
 }
-
-// ════════════════════════════════════════════════════════
-// EQUIPMENT ADD
-// ════════════════════════════════════════════════════════
-function renderEquipAdd() {
-  return `
-  <div class="page">
-    <button class="back-btn" onclick="goList()">← 장비 목록</button>
-    <div class="add-form">
-      <div class="add-form-title">장비 추가</div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">장비명</label><input class="form-input" id="e-name" placeholder="예: Titleist TSR3 드라이버"></div>
-        <div class="form-group"><label class="form-label">분류</label>
-          <select class="form-select" id="e-cat"><option value="">선택...</option>${EQUIP_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
-        </div>
-      </div>
-      <div class="form-group"><label class="form-label">상태</label>
-        <div style="display:flex;gap:0.75rem">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.88rem"><input type="radio" name="e-status" value="wishlist" checked onchange="toggleOwnedFields(this.value)"> <span class="badge badge-amber">★ 관심 목록</span></label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.88rem"><input type="radio" name="e-status" value="owned" onchange="toggleOwnedFields(this.value)"> <span class="badge badge-green">✓ 보유 중</span></label>
-        </div>
-      </div>
-      <div id="owned-fields" style="display:none">
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">구매가</label><input class="form-input" id="e-pprice" type="number" placeholder="원"></div>
-          <div class="form-group"><label class="form-label">구매일</label><input class="form-input" id="e-pdate" type="date" value="${today()}"></div>
-        </div>
-      </div>
-      <div class="form-group"><label class="form-label">메모</label><textarea class="form-textarea" id="e-memo" placeholder="스펙, 특징, 느낀 점..."></textarea></div>
-      <div class="section-box">
-        <div class="form-label" style="margin-bottom:0.5rem">🔗 인터넷 링크 (선택)</div>
-        <input class="form-input" id="e-link" placeholder="https://..." style="margin-bottom:0.4rem">
-        <div class="form-row">
-          <input class="form-input" id="e-llabel" placeholder="쇼핑몰 이름 (예: 쿠팡)">
-          <input class="form-input" id="e-lprice" type="number" placeholder="현재 가격">
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="e-save-btn" onclick="saveEquip()">저장</button>
-        <button class="btn btn-secondary" onclick="goList()">취소</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-function toggleOwnedFields(v) {
-  const el=document.getElementById('owned-fields'); if(el) el.style.display=v==='owned'?'block':'none';
-}
-
-// ════════════════════════════════════════════════════════
-// EQUIPMENT CRUD (Supabase)
-// ════════════════════════════════════════════════════════
-async function saveEquip() {
-  const name=document.getElementById('e-name').value.trim();
-  if (!name) { showToast('장비명을 입력하세요'); return; }
-  const statusEl=document.querySelector('input[name="e-status"]:checked');
-  const status=statusEl?statusEl.value:'wishlist';
-  const category=document.getElementById('e-cat').value;
-  const memo=document.getElementById('e-memo').value.trim();
-  const link=document.getElementById('e-link').value.trim();
-  const llabel=document.getElementById('e-llabel').value.trim();
-  const lprice=document.getElementById('e-lprice').value;
-  const pprice=document.getElementById('e-pprice')?.value;
-  const pdate=document.getElementById('e-pdate')?.value;
-  const links=link?[{url:link,label:llabel||'링크',price:lprice?Number(lprice):null,checkedAt:today()}]:[];
-  const priceHistory=(lprice&&link)?[{date:today(),price:Number(lprice)}]:[];
-  const btn=document.getElementById('e-save-btn'); btn.disabled=true; btn.textContent='저장 중...';
-  setSyncStatus('syncing');
-  const {error}=await sb.from('equipment').insert({
-    user_id:currentUser.id, name, category, status, memo, links, price_history:priceHistory,
-    purchase_price:pprice?Number(pprice):null, purchase_date:pdate||null
-  });
-  if (error) { showToast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
-  await loadAllData();
-  showToast('장비가 추가됐습니다'); goList();
-}
-
-async function addLink(id) {
-  const url=document.getElementById('new-link-url').value.trim();
-  const label=document.getElementById('new-link-label').value.trim();
-  const price=document.getElementById('new-link-price').value;
-  if (!url) { showToast('URL을 입력하세요'); return; }
-  const e=appData.equipment.find(x=>x.id===id); if(!e) return;
-  const priceNum=price?Number(price):null;
-  const newLinks=[...e.links,{url,label:label||'링크',price:priceNum,checkedAt:today()}];
-  const newHist=priceNum?[...e.priceHistory,{date:today(),price:priceNum}]:e.priceHistory;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('equipment').update({links:newLinks,price_history:newHist}).eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
-  e.links=newLinks; e.priceHistory=newHist; setSyncStatus('ok'); showToast('링크가 추가됐습니다'); goDetail(id);
-}
-
-async function updateLinkPrice(eid,lidx) {
-  const e=appData.equipment.find(x=>x.id===eid); if(!e) return;
-  const l=e.links[lidx];
-  const p=prompt(`새 가격 입력 (현재: ${fmtPrice(l.price)}):`,l.price||''); if(p===null) return;
-  const newPrice=Number(p);
-  const newLinks=e.links.map((lk,i)=>i===lidx?{...lk,price:newPrice,checkedAt:today()}:lk);
-  const newHist=[...e.priceHistory,{date:today(),price:newPrice}];
-  setSyncStatus('syncing');
-  const {error}=await sb.from('equipment').update({links:newLinks,price_history:newHist}).eq('id',eid).eq('user_id',currentUser.id);
-  if (error) { showToast('업데이트 실패'); setSyncStatus('error'); return; }
-  e.links=newLinks; e.priceHistory=newHist; setSyncStatus('ok'); showToast('가격이 업데이트됐습니다'); goDetail(eid);
-}
-
-async function editEquipMemo(id) {
-  const e=appData.equipment.find(x=>x.id===id); if(!e) return;
-  const memo=prompt('메모를 수정하세요:',e.memo); if(memo===null) return;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('equipment').update({memo}).eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
-  e.memo=memo; setSyncStatus('ok'); showToast('메모가 저장됐습니다'); goDetail(id);
-}
-
-async function deleteEquip(id) {
-  if (!confirm('이 장비를 삭제하시겠습니까?')) return;
-  setSyncStatus('syncing');
-  const {error}=await sb.from('equipment').delete().eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
-  appData.equipment=appData.equipment.filter(e=>e.id!==id);
-  setSyncStatus('ok'); showToast('장비가 삭제됐습니다'); goList();
-}
-
-// ════════════════════════════════════════════════════════
-// PRACTICE — 유틸
-// ════════════════════════════════════════════════════════
-function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
-function best(arr) { return arr.length ? Math.max(...arr) : null; }
-function fmtNum(n, unit='') { return n!=null ? Math.round(n)+unit : '—'; }
-
-function getSessionStats(s) {
-  const shots = s.shots||[];
-  const carries = shots.map(x=>x.carry).filter(x=>x>0);
-  const totals  = shots.map(x=>x.total).filter(x=>x>0);
-  const hs      = shots.map(x=>x.headSpeed).filter(x=>x>0);
-  const bs      = shots.map(x=>x.ballSpeed).filter(x=>x>0);
-  const sf      = shots.map(x=>x.smashFactor).filter(x=>x>0);
-  const la      = shots.map(x=>x.launchAngle).filter(x=>x>0);
-  const spin    = shots.map(x=>x.spin).filter(x=>x>0);
-  const dirs    = shots.map(x=>x.direction).filter(x=>x!=null);
-  return { carries, totals, hs, bs, sf, la, spin, dirs,
-    avgCarry:avg(carries), bestCarry:best(carries),
-    avgTotal:avg(totals),  bestTotal:best(totals),
-    avgHs:avg(hs), bestHs:best(hs),
-    avgBs:avg(bs), avgSf:avg(sf),
-    avgLa:avg(la), avgSpin:avg(spin),
-    avgDir:avg(dirs)
-  };
-}
-
-// ════════════════════════════════════════════════════════
-// PRACTICE LIST
-// ════════════════════════════════════════════════════════
-function renderPracticeList() {
-  const sessions = appData.sessions;
-  const totalShots = sessions.reduce((a,s)=>(a + (s.shots?.length||0)),0);
-  const clubs = [...new Set(sessions.map(s=>s.club).filter(Boolean))];
-
-  const tabHtml = `
-    <div class="practice-tabs">
-      <button class="practice-tab ${practiceSubTab==='sessions'?'active':''}" onclick="setPracticeSubTab('sessions')">세션 목록</button>
-      <button class="practice-tab ${practiceSubTab==='stats'?'active':''}" onclick="setPracticeSubTab('stats')">통계 & 그래프</button>
-    </div>`;
-
-  if (practiceSubTab==='stats') return `
-  <div class="page">
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${sessions.length}</div><div class="stat-label">세션</div></div>
-      <div class="stat-card"><div class="stat-num">${totalShots}</div><div class="stat-label">총 샷</div></div>
-      <div class="stat-card"><div class="stat-num">${clubs.length}</div><div class="stat-label">클럽 종류</div></div>
-    </div>
-    ${tabHtml}
-    ${renderStatsPanel()}
-    <div class="chart-wrap"><div class="chart-title">비거리 추이 (캐리 평균)</div><div style="position:relative;height:200px"><canvas id="chart-carry"></canvas></div></div>
-    <div class="chart-wrap"><div class="chart-title">헤드스피드 추이</div><div style="position:relative;height:200px"><canvas id="chart-hs"></canvas></div></div>
-  </div>`;
-
-  // 세션 목록
-  let cards = sessions.length ? sessions.map(s=>{
-    const st=getSessionStats(s);
-    return `
-    <div class="card" onclick="goDetail('${s.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:4px">
-            <div class="card-title">${s.date||''}</div>
-            ${s.club?`<span class="club-badge">${escHtml(s.club)}</span>`:''}
-          </div>
-          ${s.location?`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">📍 ${escHtml(s.location)}</div>`:''}
-          <div class="session-card-meta">
-            <span class="session-stat">샷 <span>${s.shots?.length||0}개</span></span>
-            ${st.avgCarry?`<span class="session-stat">캐리 평균 <span>${fmtNum(st.avgCarry,'m')}</span></span>`:''}
-            ${st.bestCarry?`<span class="session-stat">베스트 <span>${fmtNum(st.bestCarry,'m')}</span></span>`:''}
-            ${st.avgHs?`<span class="session-stat">헤드스피드 <span>${fmtNum(st.avgHs)}</span></span>`:''}
-          </div>
-        </div>
-        ${s.imageUrl?`<img src="${escAttr(s.imageUrl)}" style="width:60px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border);margin-left:0.75rem;flex-shrink:0" alt="">`:''}
-      </div>
-    </div>`;
-  }).join('') : `<div class="empty-state"><div class="empty-icon">📊</div>아직 연습 기록이 없습니다.<br>첫 세션을 추가해보세요!</div>`;
-
-  return `
-  <div class="page">
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${sessions.length}</div><div class="stat-label">세션</div></div>
-      <div class="stat-card"><div class="stat-num">${totalShots}</div><div class="stat-label">총 샷</div></div>
-      <div class="stat-card"><div class="stat-num">${clubs.length}</div><div class="stat-label">클럽 종류</div></div>
-    </div>
-    ${tabHtml}
-    ${cards}
-    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="goAdd()">+ 세션 추가</button>
-  </div>`;
-}
-
-function setPracticeSubTab(t) {
-  practiceSubTab=t;
-  Object.values(chartInstances).forEach(c=>{ try{c.destroy();}catch(e){} });
-  chartInstances={};
-  const el=document.getElementById('main-content');
-  el.innerHTML=renderPracticeList();
-  if(t==='stats') initPracticeCharts();
-}
-
-function renderStatsPanel() {
-  const sessions=[...appData.sessions].reverse(); // 오래된 순
-  if (!sessions.length) return '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0">세션을 추가하면 통계가 표시됩니다.</div>';
-
-  // 클럽별 통계
-  const clubMap={};
-  sessions.forEach(s=>{
-    if(!s.club) return;
-    if(!clubMap[s.club]) clubMap[s.club]={carries:[],totals:[],hs:[],bs:[],sf:[]};
-    const st=getSessionStats(s);
-    if(st.avgCarry) clubMap[s.club].carries.push(st.avgCarry);
-    if(st.avgTotal) clubMap[s.club].totals.push(st.avgTotal);
-    if(st.avgHs) clubMap[s.club].hs.push(st.avgHs);
-    if(st.avgBs) clubMap[s.club].bs.push(st.avgBs);
-    if(st.avgSf) clubMap[s.club].sf.push(st.avgSf);
-  });
-
-  const clubRows = Object.entries(clubMap).map(([club, d])=>`
-    <tr>
-      <td><span class="club-badge">${escHtml(club)}</span></td>
-      <td class="val">${fmtNum(avg(d.carries),'m')}</td>
-      <td class="val best">${fmtNum(best(d.carries),'m')}</td>
-      <td class="val">${fmtNum(avg(d.hs))}</td>
-      <td class="val">${fmtNum(avg(d.bs))}</td>
-      <td class="val">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td>
-    </tr>`).join('');
-
-  return clubRows ? `
-    <div class="section-label">클럽별 통계</div>
-    <div style="overflow-x:auto;margin-bottom:1.25rem">
-      <table class="stat-table">
-        <thead><tr>
-          <th>클럽</th><th>캐리 평균</th><th>캐리 베스트</th><th>헤드스피드</th><th>볼스피드</th><th>스매시</th>
-        </tr></thead>
-        <tbody>${clubRows}</tbody>
-      </table>
-    </div>` : '';
-}
-
-function initPracticeCharts() {
-  const sessions=[...appData.sessions].reverse();
-  if (!sessions.length) return;
-
-  const labels = sessions.map(s=>s.date?.slice(5)||'');
-  const carryData = sessions.map(s=>{ const st=getSessionStats(s); return st.avgCarry?Math.round(st.avgCarry):null; });
-  const hsData    = sessions.map(s=>{ const st=getSessionStats(s); return st.avgHs?Math.round(st.avgHs):null; });
-
-  const chartOpts = (label, color) => ({
-    type:'line',
-    data:{ labels, datasets:[{ label, data:carryData, borderColor:color, backgroundColor:color+'22',
-      tension:0.35, fill:true, pointBackgroundColor:color, pointRadius:4, spanGaps:true }]},
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{
-        x:{ ticks:{color:'#4a6a8a',font:{size:11}}, grid:{color:'rgba(255,255,255,0.04)'} },
-        y:{ ticks:{color:'#4a6a8a',font:{size:11}}, grid:{color:'rgba(255,255,255,0.06)'} }
-      }
-    }
-  });
-
-  const cc = document.getElementById('chart-carry');
-  const ch = document.getElementById('chart-hs');
-  if (cc) {
-    const cfg = chartOpts('캐리 평균(m)','#c8a84b');
-    cfg.data.datasets[0].data = carryData;
-    chartInstances['carry'] = new Chart(cc, cfg);
+window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
+window.updLinkP=async(eid,idx)=>{const e=D.equip.find(x=>x.id===eid);if(!e)return;const p=prompt(`새 가격 (현재: ${fmtP(e.links[idx].price)}):`,e.links[idx].price||'');if(p===null)return;const np=Number(p),newLinks=e.links.map((l,i)=>i===idx?{...l,price:np,checkedAt:today()}:l),newH=[...e.priceH,{date:today(),price:np}];sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',eid).eq('user_id',user.id);if(error){toast('업데이트 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('업데이트됨');goDetail(eid)};
+window.editEMemo=async id=>{const e=D.equip.find(x=>x.id===id);if(!e)return;const m=prompt('메모 수정:',e.memo);if(m===null)return;sync('busy');const{error}=await sb.from('equipment').update({memo:m}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.memo=m;sync('ok');toast('저장됨');goDetail(id)};
+window.delEquip=async id=>{if(!confirm('삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('equipment').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.equip=D.equip.filter(e=>e.id!==id);sync('ok');toast('삭제됨');goList()};
+function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem"><div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3 드라이버"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
+window.saveEquip=async()=>{const name=$('en').value.trim();if(!name){toast('장비명을 입력하세요');return}const status=(document.querySelector('input[name="est"]:checked')||{}).value||'wishlist',cat=$('ec').value,memo=$('em').value.trim(),link=$('el').value.trim(),lbl=$('ell').value.trim(),lpr=$('elp').value,pp=$('ep')?.value,pd=$('ed')?.value,links=link?[{url:link,label:lbl||'링크',price:lpr?Number(lpr):null,checkedAt:today()}]:[],priceH=(lpr&&link)?[{date:today(),price:Number(lpr)}]:[],btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}await loadAll();toast('장비 추가됨');goList()};
+const ss=s=>{const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null),carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');return{carries,totals,hs,bs,sf,avgCarry:avg(carries),bestCarry:best(carries),avgTotal:avg(totals),avgHs:avg(hs),bestHs:best(hs),avgBs:avg(bs),avgSf:avg(sf)}};
+function pList(){
+  const totalShots=D.sessions.reduce((a,s)=>a+(s.shots?.length||0),0),clubs=[...new Set(D.sessions.map(s=>s.club).filter(Boolean))];
+  const ptabs=`<div class="p-tabs"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">세션 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">통계 & 그래프</button></div>`;
+  const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
+  if(pSub==='stats'){
+    const cm={};D.sessions.forEach(s=>{if(!s.club)return;if(!cm[s.club])cm[s.club]={c:[],h:[],b:[],sf:[]};const st=ss(s);if(st.avgCarry)cm[s.club].c.push(st.avgCarry);if(st.avgHs)cm[s.club].h.push(st.avgHs);if(st.avgBs)cm[s.club].b.push(st.avgBs);if(st.avgSf)cm[s.club].sf.push(st.avgSf)});
+    const rows=Object.entries(cm).map(([club,d])=>`<tr><td><span class="club-badge">${esc(club)}</span></td><td class="vl">${fn(avg(d.c),'m')}</td><td class="vl best">${fn(best(d.c),'m')}</td><td class="vl">${fn(avg(d.h))}</td><td class="vl">${fn(avg(d.b))}</td><td class="vl">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td></tr>`).join('');
+    return`<div class="page">${srow}${ptabs}${rows?`<div class="sec-label">클럽별 통계</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}<div class="chart-wrap"><div class="chart-title">비거리 추이 (캐리 평균)</div><div style="position:relative;height:190px"><canvas id="chart-carry"></canvas></div></div><div class="chart-wrap"><div class="chart-title">헤드스피드 추이</div><div style="position:relative;height:190px"><canvas id="chart-hs"></canvas></div></div></div>`;
   }
-  if (ch) {
-    const cfg = chartOpts('헤드스피드','#52b870');
-    cfg.data.datasets[0].data = hsData;
-    cfg.data.datasets[0].borderColor='#52b870';
-    cfg.data.datasets[0].backgroundColor='#52b87022';
-    cfg.data.datasets[0].pointBackgroundColor='#52b870';
-    chartInstances['hs'] = new Chart(ch, cfg);
-  }
+  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--gold2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--gold2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--gold2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--green);font-weight:700">${fn(st.avgHs)}</span></span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon">📊</div>연습 기록이 없습니다.</div>`;
+  return`<div class="page">${srow}${ptabs}${cards}<button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 세션 추가</button></div>`;
 }
-
-// ════════════════════════════════════════════════════════
-// PRACTICE DETAIL
-// ════════════════════════════════════════════════════════
-function renderPracticeDetail() {
-  const s=appData.sessions.find(x=>x.id===selectedId);
-  if(!s) return '<div class="empty-state">세션을 찾을 수 없습니다.</div>';
-  const st=getSessionStats(s);
-  const shots=s.shots||[];
-
-  const shotsHtml = shots.length ? `
-    <div style="overflow-x:auto">
-      <table class="stat-table">
-        <thead><tr>
-          <th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th>
-        </tr></thead>
-        <tbody>
-          ${shots.map((sh,i)=>`<tr>
-            <td style="color:var(--text-muted)">${i+1}</td>
-            <td class="val">${sh.carry||'—'}</td>
-            <td class="val">${sh.total||'—'}</td>
-            <td class="val">${sh.headSpeed||'—'}</td>
-            <td class="val">${sh.ballSpeed||'—'}</td>
-            <td class="val">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td>
-            <td class="val">${sh.launchAngle||'—'}</td>
-            <td class="val">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td>
-            <td class="val" style="color:${sh.direction>0?'#e8a050':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':sh.direction<0?'L':'0')+Math.abs(sh.direction||0):'—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="stats-row" style="margin-top:1rem">
-      ${st.avgCarry!=null?`<div class="stat-card"><div class="stat-num" style="font-size:1.3rem">${fmtNum(st.avgCarry,'m')}</div><div class="stat-label">캐리 평균</div></div>`:''}
-      ${st.bestCarry!=null?`<div class="stat-card"><div class="stat-num" style="font-size:1.3rem;color:var(--gold2)">${fmtNum(st.bestCarry,'m')}</div><div class="stat-label">캐리 베스트</div></div>`:''}
-      ${st.avgHs!=null?`<div class="stat-card"><div class="stat-num" style="font-size:1.3rem;color:var(--green2)">${fmtNum(st.avgHs)}</div><div class="stat-label">헤드스피드 평균</div></div>`:''}
-    </div>` : '<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem 0">기록된 샷이 없습니다.</div>';
-
-  return `
-  <div class="page">
-    <button class="back-btn" onclick="goList()">← 연습 목록</button>
-    <div class="detail-header">
-      <div>
-        <div class="detail-title">${s.date||''}</div>
-        <div style="margin-top:6px;display:flex;gap:0.5rem;align-items:center">
-          ${s.club?`<span class="club-badge">${escHtml(s.club)}</span>`:''}
-          ${s.location?`<span style="font-size:0.78rem;color:var(--text-muted)">📍 ${escHtml(s.location)}</span>`:''}
-        </div>
-      </div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:var(--gold2)">${shots.length}샷</div>
-    </div>
-
-    ${s.imageUrl?`
-    <div class="section-label">GDR 화면</div>
-    <img src="${escAttr(s.imageUrl)}" class="img-preview" onclick="window.open(this.src,'_blank')" alt="GDR 화면" style="max-height:300px;object-fit:contain;background:#000">
-    `:''}
-
-    <div class="section-label">샷 데이터</div>
-    ${shotsHtml}
-
-    ${s.memo?`<div class="section-label" style="margin-top:1rem">메모</div>
-    <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7">${escHtml(s.memo)}</div>`:''}
-
-    <div class="divider"></div>
-    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
-      <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">세션 삭제</button>
-    </div>
-  </div>`;
+window.setPSub=t=>{pSub=t;Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};const m=$('main');m.innerHTML=pList();if(t==='stats')initCharts()};
+function initCharts(){
+  const sessions=[...D.sessions].reverse();if(!sessions.length)return;
+  const labels=sessions.map(s=>s.date?.slice(5)||''),carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null}),hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs):null});
+  const mk=(id,data,color,label)=>{const c=$(id);if(!c)return;charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{label,data,borderColor:color,backgroundColor:color+'22',tension:.35,fill:true,pointBackgroundColor:color,pointRadius:4,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a6a8a',font:{size:11}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4a6a8a',font:{size:11}},grid:{color:'rgba(255,255,255,.06)'}}}}})};
+  mk('chart-carry',carryD,'#c8a84b','캐리 평균(m)');mk('chart-hs',hsD,'#52b870','헤드스피드');
 }
-
-// ════════════════════════════════════════════════════════
-// PRACTICE ADD
-// ════════════════════════════════════════════════════════
-let practiceShots = [];
-let practiceImageFile = null;
-
-function renderPracticeAdd() {
-  practiceShots = [{}];
-  return `
-  <div class="page">
-    <button class="back-btn" onclick="goList()">← 연습 목록</button>
-    <div class="add-form">
-      <div class="add-form-title">연습 세션 추가</div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">날짜</label>
-          <input class="form-input" type="date" id="p-date" value="${today()}">
-        </div>
-        <div class="form-group">
-          <label class="form-label">클럽</label>
-          <select class="form-select" id="p-club">
-            <option value="">선택...</option>
-            ${CLUB_LIST.map(c=>`<option>${c}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">연습장 / 장소</label>
-        <input class="form-input" id="p-location" placeholder="예: 강남 골프존">
-      </div>
-
-      <div class="section-label" style="margin-top:0.5rem">GDR 화면 사진</div>
-      <div class="img-upload-area" onclick="document.getElementById('p-img-input').click()">
-        <input type="file" id="p-img-input" accept="image/*" onchange="previewPracticeImg(this)">
-        <div id="p-img-preview-wrap">
-          📷 사진을 탭하여 업로드<br>
-          <span style="font-size:0.75rem;opacity:0.7">GDR 화면을 찍은 사진을 첨부하세요</span>
-        </div>
-      </div>
-
-      <div class="section-label">샷 데이터 입력</div>
-      <div id="shots-container">${renderShotRow(0)}</div>
-      <button class="btn btn-secondary btn-sm" onclick="addShotRow()" style="margin-bottom:1rem">+ 샷 추가</button>
-
-      <div class="form-group">
-        <label class="form-label">메모</label>
-        <textarea class="form-textarea" id="p-memo" placeholder="오늘 연습 소감, 개선점, 코치 피드백 등..."></textarea>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-primary" id="p-save-btn" onclick="saveSession()">저장</button>
-        <button class="btn btn-secondary" onclick="goList()">취소</button>
-      </div>
-    </div>
-  </div>`;
+function pDetail(){
+  const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
+  const st=ss(s);
+  const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--gold2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--green)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">기록된 샷이 없습니다.</div>';
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#f2ead6">${s.date||''}</div><div style="margin-top:5px;display:flex;gap:.45rem;align-items:center">${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}${s.loc?`<span style="font-size:.76rem;color:var(--muted)">📍 ${esc(s.loc)}</span>`:''}</div></div><div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:700;color:var(--gold2)">${s.shots.length}샷</div></div>${s.imgUrl?`<div class="sec-label">GDR 화면</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">`:''}<div class="sec-label">샷 데이터</div>${shotsH}${s.memo?`<div class="sec-label" style="margin-top:.9rem">메모</div><div style="font-size:.88rem;color:var(--dim);line-height:1.7">${esc(s.memo)}</div>`:''}<div class="divider"></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button></div></div>`;
 }
-
-function renderShotRow(idx) {
-  return `
-  <div class="shot-row" id="shot-row-${idx}">
-    <span class="shot-num">SHOT ${idx+1}</span>
-    <button class="shot-del-btn" onclick="removeShotRow(${idx})" title="삭제">✕</button>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>캐리(m)</label><input type="number" id="sh-carry-${idx}" placeholder="예: 215">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>총거리(m)</label><input type="number" id="sh-total-${idx}" placeholder="예: 235">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>헤드속도</label><input type="number" id="sh-hs-${idx}" placeholder="예: 43.2" step="0.1">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>볼속도</label><input type="number" id="sh-bs-${idx}" placeholder="예: 64.5" step="0.1">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>스매시팩터</label><input type="number" id="sh-sf-${idx}" placeholder="예: 1.49" step="0.01">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>발사각(°)</label><input type="number" id="sh-la-${idx}" placeholder="예: 12.5" step="0.1">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>스핀(rpm)</label><input type="number" id="sh-spin-${idx}" placeholder="예: 2800">
-    </div>
-    <div class="shot-field" style="margin-top:0.5rem">
-      <label>방향(R+/L-)</label><input type="number" id="sh-dir-${idx}" placeholder="예: +5 또는 -3" step="0.1">
-    </div>
-  </div>`;
-}
-
-let shotCount = 1;
-function addShotRow() {
-  const container = document.getElementById('shots-container');
-  const div = document.createElement('div');
-  div.innerHTML = renderShotRow(shotCount);
-  container.appendChild(div.firstElementChild);
-  shotCount++;
-}
-function removeShotRow(idx) {
-  const el = document.getElementById('shot-row-'+idx);
-  if (el) el.remove();
-}
-
-function previewPracticeImg(input) {
-  const file = input.files[0]; if(!file) return;
-  practiceImageFile = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('p-img-preview-wrap').innerHTML =
-      `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:6px;margin-bottom:0.5rem" alt="미리보기"><br>
-       <span style="font-size:0.75rem;opacity:0.7">다른 사진으로 교체하려면 다시 탭하세요</span>`;
-  };
-  reader.readAsDataURL(file);
-}
-
-function collectShots() {
-  const rows = document.querySelectorAll('[id^="shot-row-"]');
-  const shots = [];
-  rows.forEach(row => {
-    const idx = row.id.replace('shot-row-','');
-    const carry     = parseFloat(document.getElementById('sh-carry-'+idx)?.value)||0;
-    const total     = parseFloat(document.getElementById('sh-total-'+idx)?.value)||0;
-    const headSpeed = parseFloat(document.getElementById('sh-hs-'+idx)?.value)||0;
-    const ballSpeed = parseFloat(document.getElementById('sh-bs-'+idx)?.value)||0;
-    const smashFactor= parseFloat(document.getElementById('sh-sf-'+idx)?.value)||0;
-    const launchAngle= parseFloat(document.getElementById('sh-la-'+idx)?.value)||0;
-    const spin      = parseFloat(document.getElementById('sh-spin-'+idx)?.value)||0;
-    const direction = document.getElementById('sh-dir-'+idx)?.value !== ''
-      ? parseFloat(document.getElementById('sh-dir-'+idx)?.value) : null;
-    // 아무것도 없으면 skip
-    if (!carry && !total && !headSpeed) return;
-    shots.push({ carry, total, headSpeed, ballSpeed, smashFactor, launchAngle, spin, direction });
-  });
-  return shots;
-}
-
-// ════════════════════════════════════════════════════════
-// PRACTICE CRUD
-// ════════════════════════════════════════════════════════
-async function saveSession() {
-  const date     = document.getElementById('p-date').value;
-  const club     = document.getElementById('p-club').value;
-  const location = document.getElementById('p-location').value.trim();
-  const memo     = document.getElementById('p-memo').value.trim();
-  const shots    = collectShots();
-
-  if (!date) { showToast('날짜를 입력하세요'); return; }
-
-  const btn = document.getElementById('p-save-btn');
-  btn.disabled=true; btn.textContent='저장 중...';
-  setSyncStatus('syncing');
-
-  // 이미지 업로드 (있을 때)
-  let imageUrl = '';
-  if (practiceImageFile) {
-    const ext = practiceImageFile.name.split('.').pop();
-    const path = `${currentUser.id}/${Date.now()}.${ext}`;
-    const { error: upErr } = await sb.storage.from('gdr-images').upload(path, practiceImageFile);
-    if (upErr) { showToast('이미지 업로드 실패: '+upErr.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
-    const { data: urlData } = sb.storage.from('gdr-images').getPublicUrl(path);
-    // 공개 URL 대신 signed URL 사용 (private bucket)
-    const { data: signed } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
-    imageUrl = signed?.signedUrl || '';
-  }
-
-  const { error } = await sb.from('practice_sessions').insert({
-    user_id: currentUser.id,
-    session_date: date,
-    club, location, memo,
-    total_shots: shots.length,
-    shots,
-    image_url: imageUrl,
-  });
-
-  if (error) { showToast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
-
-  practiceImageFile = null; shotCount = 1;
-  await loadAllData();
-  showToast('세션이 저장됐습니다');
-  goList();
-}
-
-async function deleteSession(id) {
-  if (!confirm('이 세션을 삭제하시겠습니까?')) return;
-  setSyncStatus('syncing');
-  const { error } = await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',currentUser.id);
-  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
-  appData.sessions = appData.sessions.filter(s=>s.id!==id);
-  setSyncStatus('ok'); showToast('세션이 삭제됐습니다'); goList();
-}
-
-// ════════════════════════════════════════════════════════
-// 회원탈퇴 시 세션도 삭제하도록 deleteAccount 업데이트
-// ════════════════════════════════════════════════════════
-async function deleteAccount() {
-  const confirmed = confirm(
-    '정말로 탈퇴하시겠습니까?\n\n' +
-    '· 저장된 영상 ' + appData.videos.length + '개\n' +
-    '· 저장된 장비 ' + appData.equipment.length + '개\n' +
-    '· 연습 세션 ' + appData.sessions.length + '개\n\n' +
-    '모든 데이터가 즉시 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.'
-  );
-  if (!confirmed) return;
-  const reconfirm = prompt('탈퇴를 확인하려면 아래에 "탈퇴합니다"를 입력하세요:');
-  if (reconfirm !== '탈퇴합니다') { showToast('탈퇴가 취소됐습니다'); return; }
-  setSyncStatus('syncing');
-  try {
-    await sb.from('videos').delete().eq('user_id', currentUser.id);
-    await sb.from('equipment').delete().eq('user_id', currentUser.id);
-    await sb.from('practice_sessions').delete().eq('user_id', currentUser.id);
-    if (realtimeChannel) sb.removeChannel(realtimeChannel);
-    await sb.auth.signOut();
-    currentUser=null; appData={videos:[],equipment:[],sessions:[]};
-    closeAccountSettings();
-    document.getElementById('app-screen').style.display='none';
-    document.getElementById('auth-screen').style.display='flex';
-    showToast('모든 데이터가 삭제됐습니다. 이용해주셔서 감사합니다.');
-  } catch(e) {
-    showToast('오류가 발생했습니다: ' + e.message);
-    setSyncStatus('error');
-  }
-}
-function escHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escAttr(s) {
-  return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-// ════════════════════════════════════════════════════════
-// START
-// ════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  // 초기 상태: 로딩 중 아무것도 안 보이다가 세션 확인 후 적절한 화면 표시
-  initApp();
-});
+function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
+function pAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button><div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem"><div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">연습 세션 추가</div><div class="frow"><div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div><div class="fg"><label class="fl-label">클럽</label><select class="sel" id="pc"><option value="">선택...</option>${CLUBS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">연습장 / 장소</label><input class="inp" id="pl" placeholder="예: 강남 골프존"></div><div class="sec-label">GDR 화면 사진</div><div class="img-upload" onclick="document.getElementById('pimg').click()"><input type="file" id="pimg" accept="image/*" onchange="prevImg(this)"><div id="img-prev">📷 사진 탭하여 업로드<br><span style="font-size:.73rem;opacity:.7">GDR 화면 사진을 첨부하세요</span></div></div><div class="sec-label">샷 데이터 입력</div><div id="shots-wrap">${mkShotRow(0)}</div><button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 추가</button><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="오늘 연습 소감, 개선점..."></textarea></div><div class="brow"><button class="btn btn-p" id="psavebtn" onclick="saveSession()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+window.addRow=()=>{const w=$('shots-wrap'),d=document.createElement('div');d.innerHTML=mkShotRow(shotCnt);w.appendChild(d.firstElementChild);shotCnt++};
+window.rmRow=idx=>{const e=$('sr-'+idx);if(e)e.remove()};
+window.prevImg=input=>{const f=input.files[0];if(!f)return;upFile=f;const r=new FileReader();r.onload=e=>{$('img-prev').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:6px" alt=""><br><span style="font-size:.72rem;opacity:.7">다시 탭하면 교체</span>`};r.readAsDataURL(f)};
+function collectShots(){const rows=document.querySelectorAll('[id^="sr-"]'),shots=[];rows.forEach(row=>{const idx=row.id.replace('sr-',''),get=k=>{const e=document.getElementById(`sh-${k}-${idx}`);return e?e.value:''},carry=parseFloat(get('carry'))||0,total=parseFloat(get('total'))||0,hs=parseFloat(get('headSpeed'))||0;if(!carry&&!total&&!hs)return;shots.push({carry,total,headSpeed:hs,ballSpeed:parseFloat(get('ballSpeed'))||0,smashFactor:parseFloat(get('smashFactor'))||0,launchAngle:parseFloat(get('launchAngle'))||0,spin:parseFloat(get('spin'))||0,direction:get('direction')!==''?parseFloat(get('direction')):null})});return shots}
+window.saveSession=async()=>{const date=$('pd').value;if(!date){toast('날짜를 입력하세요');return}const club=$('pc').value,loc=$('pl').value.trim(),memo=$('pm').value.trim(),shots=collectShots(),btn=$('psavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');let imageUrl='';if(upFile){const ext=upFile.name.split('.').pop(),path=`${user.id}/${Date.now()}.${ext}`,{error:ue}=await sb.storage.from('gdr-images').upload(path,upFile);if(ue){toast('이미지 업로드 실패: '+ue.message);btn.disabled=false;btn.textContent='저장';sync('err');return}const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path,60*60*24*365);imageUrl=sd?.signedUrl||''}const{error}=await sb.from('practice_sessions').insert({user_id:user.id,session_date:date,club,location:loc,memo,total_shots:shots.length,shots,image_url:imageUrl});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}upFile=null;shotCnt=1;await loadAll();toast('세션 저장됨');goList()};
+window.delSession=async id=>{if(!confirm('이 세션을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
+(async()=>{
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session?.user){await enterApp(session.user)}else{$('auth').style.display='flex'}
+  }catch(e){$('auth').style.display='flex'}
+  finally{$('loading').style.display='none'}
+  sb.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN'&&session?.user&&!user){await enterApp(session.user)}else if(event==='SIGNED_OUT'){user=null}});
+})();
 </script>
 </body>
 </html>
