@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GolfNote — 골프 학습 매니저</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #0d1b2e; --navy2: #13243d; --navy3: #1a2f4a;
+    --gold: #c8a84b; --gold2: #e6c76a; --gold-dim: #8a7030;
+    --cream: #f2ead6;
+    --text: #dce8f5; --text-dim: #7a9ab8; --text-muted: #4a6a8a;
+    --green2: #52b870; --red2: #c05050;
+    --border: rgba(200,168,75,0.18); --border2: rgba(200,168,75,0.35);
+    --shadow2: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR','DM Sans',sans-serif;
+    background: var(--navy); color: var(--text); min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(200,168,75,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(61,138,90,0.05) 0%, transparent 60%);
+  }
+
+  /* ── AUTH SCREEN ── */
+  #auth-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 1rem;
+  }
+  .auth-box {
+    background: var(--navy2); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 2.5rem 2rem;
+    width: 100%; max-width: 380px;
+    box-shadow: var(--shadow2);
+  }
+  .auth-logo {
+    font-family: 'Cormorant Garamond',serif;
+    font-size: 2rem; font-weight: 700; color: var(--gold2);
+    text-align: center; margin-bottom: 0.3rem;
+  }
+  .auth-sub {
+    font-size: 0.72rem; color: var(--text-muted); text-align: center;
+    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 2rem;
+  }
+  .auth-tabs { display: flex; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .auth-tab {
+    flex: 1; padding: 0.6rem; background: none; border: none;
+    color: var(--text-muted); font-family: inherit; font-size: 0.88rem;
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .auth-tab.active { color: var(--gold2); border-bottom-color: var(--gold); }
+  .auth-err {
+    background: rgba(192,80,80,0.12); border: 1px solid rgba(192,80,80,0.25);
+    color: #f0a0a0; font-size: 0.82rem; padding: 0.6rem 0.8rem;
+    border-radius: 8px; margin-bottom: 1rem; display: none;
+  }
+  .auth-ok {
+    background: rgba(82,184,112,0.12); border: 1px solid rgba(82,184,112,0.25);
+    color: #90e0a0; font-size: 0.82rem; padding: 0.6rem 0.8rem;
+    border-radius: 8px; margin-bottom: 1rem; display: none;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(180deg,#0a1520 0%,var(--navy2) 100%);
+    border-bottom: 1px solid var(--border2);
+    padding: 0 1.5rem; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 900px; margin: 0 auto; height: 64px;
+  }
+  .logo { display: flex; align-items: baseline; gap: 0.6rem; }
+  .logo-title { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:700; color:var(--gold2); }
+  .logo-sub { font-size:0.68rem; color:var(--text-muted); letter-spacing:3px; text-transform:uppercase; }
+  .header-actions { display:flex; gap:0.5rem; align-items:center; }
+  .user-email { font-size:0.75rem; color:var(--text-muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sync-dot { width:7px; height:7px; border-radius:50%; background:var(--green2); display:inline-block; margin-right:4px; }
+  .sync-dot.syncing { background:var(--gold); animation: pulse 1s infinite; }
+  .sync-dot.error { background:var(--red2); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .btn-icon {
+    background:rgba(200,168,75,0.08); border:1px solid var(--border);
+    color:var(--gold); padding:0.4rem 0.9rem; border-radius:6px;
+    font-size:0.75rem; font-weight:500; cursor:pointer; transition:all 0.15s; font-family:inherit;
+  }
+  .btn-icon:hover { background:rgba(200,168,75,0.16); border-color:var(--border2); }
+  .btn-icon.danger { color:var(--red2); border-color:rgba(192,80,80,0.2); background:rgba(192,80,80,0.06); }
+
+  /* ── TABS ── */
+  .tabs { background:var(--navy2); border-bottom:1px solid var(--border); position:sticky; top:64px; z-index:99; }
+  .tabs-inner { display:flex; max-width:900px; margin:0 auto; }
+  .tab-btn {
+    flex:1; padding:0.85rem 1rem; background:none; border:none;
+    color:var(--text-muted); font-family:inherit; font-size:0.88rem; font-weight:500;
+    cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s;
+  }
+  .tab-btn.active { color:var(--gold2); border-bottom-color:var(--gold); }
+
+  /* ── MAIN ── */
+  main { max-width:900px; margin:0 auto; padding:1.5rem 1rem 4rem; }
+  .page { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── LOADING ── */
+  .loading-screen {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:60vh; gap:1rem; color:var(--text-muted); font-size:0.9rem;
+  }
+  .spinner {
+    width:32px; height:32px; border:2px solid var(--border);
+    border-top-color:var(--gold); border-radius:50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* ── STATS ── */
+  .stats-row { display:flex; gap:0.75rem; margin-bottom:1.5rem; }
+  .stat-card { flex:1; background:var(--navy2); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1rem; text-align:center; }
+  .stat-num { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:700; color:var(--gold2); line-height:1; margin-bottom:4px; }
+  .stat-label { font-size:0.72rem; color:var(--text-muted); letter-spacing:0.5px; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar { display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+  .filter-bar input, .filter-bar select {
+    background:var(--navy2); border:1px solid var(--border); color:var(--text);
+    padding:0.55rem 0.9rem; border-radius:8px; font-family:inherit; font-size:0.85rem; outline:none;
+    transition:border-color 0.15s;
+  }
+  .filter-bar input { flex:1; min-width:140px; }
+  .filter-bar input:focus, .filter-bar select:focus { border-color:var(--border2); }
+  .filter-bar select { background-color:var(--navy2); min-width:100px; }
+
+  /* ── CARDS ── */
+  .card {
+    background:var(--navy2); border:1px solid var(--border); border-radius:12px;
+    padding:1rem 1.1rem; margin-bottom:0.65rem; cursor:pointer; transition:all 0.18s;
+    position:relative; overflow:hidden;
+  }
+  .card::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--gold),transparent); opacity:0; transition:opacity 0.18s;
+  }
+  .card:hover { border-color:var(--border2); background:var(--navy3); transform:translateX(2px); }
+  .card:hover::before { opacity:1; }
+  .card-title { font-weight:700; font-size:0.95rem; margin-bottom:5px; color:var(--cream); }
+  .card-meta { font-size:0.75rem; color:var(--text-muted); margin-top:5px; }
+
+  /* ── BADGES ── */
+  .badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.7rem; font-weight:600; margin-right:4px; margin-bottom:2px; letter-spacing:0.3px; }
+  .badge-gold { background:rgba(200,168,75,0.15); color:var(--gold2); border:1px solid rgba(200,168,75,0.3); }
+  .badge-green { background:rgba(61,138,90,0.15); color:var(--green2); border:1px solid rgba(61,138,90,0.3); }
+  .badge-blue { background:rgba(70,120,200,0.15); color:#7ab0e8; border:1px solid rgba(70,120,200,0.25); }
+  .badge-amber { background:rgba(200,130,40,0.15); color:#e8a050; border:1px solid rgba(200,130,40,0.3); }
+
+  /* ── BACK BTN ── */
+  .back-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    background:none; border:none; color:var(--gold); font-family:inherit;
+    font-size:0.82rem; cursor:pointer; padding:0; margin-bottom:1.25rem; transition:color 0.15s;
+  }
+  .back-btn:hover { color:var(--gold2); }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size:0.72rem; font-weight:700; color:var(--text-muted);
+    letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem;
+    display:flex; align-items:center; gap:0.5rem;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+  .divider { height:1px; background:var(--border); margin:1rem 0; }
+
+  /* ── FORMS ── */
+  .form-group { margin-bottom:0.85rem; }
+  .form-label { display:block; font-size:0.72rem; font-weight:700; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; }
+  .form-input, .form-select, .form-textarea {
+    width:100%; background:var(--navy); border:1px solid var(--border); color:var(--text);
+    padding:0.6rem 0.85rem; border-radius:8px; font-family:'Noto Sans KR',sans-serif;
+    font-size:0.88rem; outline:none; transition:border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--border2); }
+  .form-textarea { resize:vertical; min-height:80px; line-height:1.6; }
+  .form-select { background-color:var(--navy); }
+  .form-row { display:flex; gap:0.6rem; }
+  .form-row > * { flex:1; }
+
+  /* ── BUTTONS ── */
+  .btn { padding:0.6rem 1.3rem; border-radius:8px; border:none; font-family:inherit; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.15s; letter-spacing:0.3px; }
+  .btn-primary { background:linear-gradient(135deg,var(--gold-dim),var(--gold)); color:var(--navy); }
+  .btn-primary:hover { background:linear-gradient(135deg,var(--gold),var(--gold2)); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn-secondary { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-dim); }
+  .btn-secondary:hover { background:rgba(255,255,255,0.08); }
+  .btn-danger { background:rgba(140,50,50,0.2); border:1px solid rgba(140,50,50,0.3); color:var(--red2); }
+  .btn-danger:hover { background:rgba(140,50,50,0.3); }
+  .btn-sm { padding:0.35rem 0.75rem; font-size:0.78rem; }
+  .btn-row { display:flex; gap:0.5rem; margin-top:1rem; }
+
+  /* ── TIMESTAMPS ── */
+  .ts-item { background:var(--navy); border:1px solid var(--border); border-radius:8px; padding:0.6rem 0.8rem; margin-bottom:0.4rem; display:flex; align-items:flex-start; gap:0.65rem; }
+  .ts-time { background:rgba(200,168,75,0.12); border:1px solid rgba(200,168,75,0.25); color:var(--gold2); padding:2px 10px; border-radius:6px; font-size:0.78rem; font-weight:700; white-space:nowrap; cursor:pointer; transition:all 0.15s; flex-shrink:0; }
+  .ts-time:hover { background:rgba(200,168,75,0.25); }
+  .ts-note { flex:1; font-size:0.85rem; color:var(--text-dim); line-height:1.5; }
+  .ts-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; padding:0 2px; transition:color 0.15s; flex-shrink:0; }
+  .ts-del:hover { color:var(--red2); }
+
+  /* ── THUMBNAIL PLAYER ── */
+  .yt-player { position:relative; width:100%; aspect-ratio:16/9; border-radius:10px; overflow:hidden; margin-bottom:0.75rem; border:1px solid var(--border); background:#111; display:block; text-decoration:none; }
+  .yt-player img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.25s, filter 0.25s; filter:brightness(0.82); }
+  .yt-player:hover img { transform:scale(1.03); filter:brightness(0.6); }
+  .yt-player .play-btn { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:68px; height:48px; background:#ff0000; border-radius:12px; display:flex; align-items:center; justify-content:center; transition:transform 0.2s, background 0.2s; box-shadow:0 4px 20px rgba(0,0,0,0.6); }
+  .yt-player:hover .play-btn { transform:translate(-50%,-50%) scale(1.12); background:#cc0000; }
+  .yt-player .play-btn svg { width:28px; height:28px; fill:white; margin-left:4px; }
+  .yt-player .yt-label { position:absolute; bottom:0; left:0; right:0; padding:2rem 0.75rem 0.6rem; background:linear-gradient(0deg,rgba(0,0,0,0.8) 0%,transparent 100%); font-size:0.72rem; color:rgba(255,255,255,0.75); }
+
+  /* ── INLINE EDIT ── */
+  .inline-edit-row { display:flex; gap:0.5rem; align-items:center; background:var(--navy); border:1px solid var(--border2); border-radius:8px; padding:0.5rem 0.7rem; margin-bottom:0.75rem; }
+  .inline-edit-row input { flex:1; background:transparent; border:none; color:var(--text); font-family:inherit; font-size:0.85rem; outline:none; }
+  .inline-edit-row .edit-label { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; letter-spacing:1px; text-transform:uppercase; }
+
+  /* ── LINK ITEMS ── */
+  .link-item { background:var(--navy); border:1px solid var(--border); border-radius:8px; padding:0.7rem 0.9rem; margin-bottom:0.4rem; }
+  .link-item a { color:var(--gold); text-decoration:none; font-size:0.88rem; }
+  .link-item a:hover { color:var(--gold2); }
+  .link-price { font-weight:700; color:#e8c87a; font-size:0.9rem; }
+  .link-date { font-size:0.72rem; color:var(--text-muted); margin-top:2px; }
+
+  /* ── KEYWORD PILLS ── */
+  .keyword-pills { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .kw-pill { padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:500; background:rgba(200,168,75,0.08); border:1px solid rgba(200,168,75,0.2); color:var(--gold); cursor:pointer; transition:all 0.12s; }
+  .kw-pill:hover { background:rgba(200,168,75,0.18); }
+
+  /* ── PRICE HISTORY ── */
+  .price-history { margin-top:0.5rem; }
+  .price-entry { display:flex; justify-content:space-between; font-size:0.8rem; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--text-dim); }
+
+  /* ── DETAIL ── */
+  .detail-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+  .detail-title { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:700; color:var(--cream); line-height:1.3; }
+  .price-big { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:700; color:#e8c87a; }
+
+  /* ── ADD FORM ── */
+  .add-form { background:var(--navy2); border:1px solid var(--border); border-radius:14px; padding:1.3rem; }
+  .add-form-title { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:700; color:var(--gold2); margin-bottom:1.1rem; }
+  .section-box { background:var(--navy); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1rem; margin-bottom:0.85rem; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align:center; padding:3rem 1rem; color:var(--text-muted); font-size:0.9rem; }
+  .empty-icon { font-size:2.5rem; margin-bottom:0.75rem; opacity:0.5; }
+
+  /* ── TOAST ── */
+  .toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); background:var(--navy3); border:1px solid var(--border2); color:var(--gold2); padding:0.7rem 1.5rem; border-radius:30px; font-size:0.85rem; font-weight:500; box-shadow:var(--shadow2); z-index:999; animation:toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards; pointer-events:none; }
+  @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0} }
+
+  /* ── VIDEO THUMB ── */
+  .video-thumb { width:90px; height:60px; object-fit:cover; border-radius:6px; flex-shrink:0; border:1px solid var(--border); }
+
+  @media (max-width:480px) {
+    .stats-row { gap:0.4rem; } .stat-num { font-size:1.4rem; }
+    .user-email { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">⛳ GolfNote</div>
+    <div class="auth-sub">Golf Learning Manager</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="atab-login" onclick="switchAuthTab('login')">로그인</button>
+      <button class="auth-tab" id="atab-signup" onclick="switchAuthTab('signup')">회원가입</button>
+    </div>
+
+    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-ok" id="auth-ok"></div>
+
+    <div class="form-group">
+      <label class="form-label">이메일</label>
+      <input class="form-input" type="email" id="auth-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <input class="form-input" type="password" id="auth-pw" placeholder="8자 이상" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+
+    <button class="btn btn-primary" id="auth-btn" onclick="authSubmit()" style="width:100%;margin-top:0.5rem">로그인</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     APP SCREEN
+════════════════════════════════════════════════════════ -->
+<div id="app-screen" style="display:none">
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-title">⛳ GolfNote</span>
+        <span style="color:var(--gold-dim);font-size:1.2rem;margin:0 0.4rem">·</span>
+        <span class="logo-sub">Golf Learning Manager</span>
+      </div>
+      <div class="header-actions">
+        <span class="sync-dot" id="sync-dot" title="동기화 상태"></span>
+        <span class="user-email" id="user-email"></span>
+        <button class="btn-icon danger" onclick="signOut()">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tabs-inner">
+      <button class="tab-btn active" id="tab-videos" onclick="switchTab('videos')">📹 영상 아카이브</button>
+      <button class="tab-btn" id="tab-equipment" onclick="switchTab('equipment')">🏌️ 장비 관리</button>
+    </div>
+  </div>
+
+  <main id="main-content"></main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// SUPABASE INIT
+// ════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://wmxccuceisvvocumgbfd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let currentUser = null;
+let appData = { videos: [], equipment: [] };
+let currentTab = 'videos';
+let currentView = 'list';
+let selectedId = null;
+let realtimeChannel = null;
+
+const VIDEO_CATS = ["드라이버","우드/하이브리드","아이언","웨지","퍼팅","숏게임","어프로치","멘탈","피트니스","코스매니지먼트","룰/에티켓","기타"];
+const EQUIP_CATS = ["드라이버","우드/유틸리티","아이언","웨지","퍼터","골프공","골프백","카트/트롤리","의류","신발","글러브","액세서리","레인기어","기타"];
+
+// ════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════
+function fmtPrice(p) { return p!=null ? Number(p).toLocaleString('ko-KR')+'원' : '—'; }
+function getVideoId(url) { const m=url.match(/(?:v=|youtu\.be\/)([^&\s?]+)/); return m?m[1]:null; }
+function getThumbnail(url) { const id=getVideoId(url); return id?`https://img.youtube.com/vi/${id}/mqdefault.jpg`:''; }
+function timeToSec(t) { const p=t.split(':').map(Number); return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2]; }
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function showToast(msg) {
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2600);
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  if (!dot) return;
+  dot.className = 'sync-dot' + (status==='syncing'?' syncing':status==='error'?' error':'');
+  dot.title = status==='syncing'?'동기화 중...':status==='error'?'동기화 오류':'동기화됨';
+}
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+let authMode = 'login';
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  document.getElementById('atab-login').classList.toggle('active', mode==='login');
+  document.getElementById('atab-signup').classList.toggle('active', mode==='signup');
+  document.getElementById('auth-btn').textContent = mode==='login'?'로그인':'회원가입';
+  document.getElementById('auth-err').style.display='none';
+  document.getElementById('auth-ok').style.display='none';
+}
+
+function showAuthErr(msg) {
+  const el=document.getElementById('auth-err'); el.textContent=msg; el.style.display='block';
+  document.getElementById('auth-ok').style.display='none';
+}
+function showAuthOk(msg) {
+  const el=document.getElementById('auth-ok'); el.textContent=msg; el.style.display='block';
+  document.getElementById('auth-err').style.display='none';
+}
+
+async function authSubmit() {
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-pw').value;
+  const btn=document.getElementById('auth-btn');
+  if (!email||!pw) { showAuthErr('이메일과 비밀번호를 입력하세요'); return; }
+  if (pw.length<6) { showAuthErr('비밀번호는 6자 이상이어야 합니다'); return; }
+
+  btn.disabled=true; btn.textContent='처리 중...';
+
+  if (authMode==='signup') {
+    const {error}=await sb.auth.signUp({email,password:pw});
+    btn.disabled=false; btn.textContent='회원가입';
+    if (error) { showAuthErr(error.message==='User already registered'?'이미 등록된 이메일입니다':error.message); return; }
+    showAuthOk('가입 완료! 이제 로그인하세요.');
+    switchAuthTab('login');
+  } else {
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+    btn.disabled=false; btn.textContent='로그인';
+    if (error) { showAuthErr('이메일 또는 비밀번호가 올바르지 않습니다'); return; }
+    onSignIn(data.user);
+  }
+}
+
+async function signOut() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  await sb.auth.signOut();
+  currentUser=null; appData={videos:[],equipment:[]};
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+// ════════════════════════════════════════════════════════
+// INIT — check existing session
+// ════════════════════════════════════════════════════════
+async function initApp() {
+  const {data:{session}}=await sb.auth.getSession();
+  if (session?.user) {
+    await onSignIn(session.user);
+  }
+  // auth state change listener
+  sb.auth.onAuthStateChange(async (event,session)=>{
+    if (event==='SIGNED_IN' && session?.user) {
+      if (!currentUser) await onSignIn(session.user);
+    } else if (event==='SIGNED_OUT') {
+      currentUser=null;
+    }
+  });
+}
+
+async function onSignIn(user) {
+  currentUser=user;
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('user-email').textContent=user.email;
+
+  // Load data
+  showMainLoading();
+  await loadAllData();
+  setupRealtime();
+  render();
+}
+
+function showMainLoading() {
+  document.getElementById('main-content').innerHTML=`
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <span>데이터 불러오는 중...</span>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// DATA LOAD
+// ════════════════════════════════════════════════════════
+async function loadAllData() {
+  setSyncStatus('syncing');
+  try {
+    const [vRes, eRes] = await Promise.all([
+      sb.from('videos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}),
+      sb.from('equipment').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}),
+    ]);
+    if (vRes.error) throw vRes.error;
+    if (eRes.error) throw eRes.error;
+    appData.videos = vRes.data.map(dbToVideo);
+    appData.equipment = eRes.data.map(dbToEquip);
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+    showToast('데이터 로드 실패: '+e.message);
+  }
+}
+
+// DB row → app object
+function dbToVideo(r) {
+  return { id:r.id, url:r.url, title:r.title, keywords:r.keywords||[], memo:r.memo||'', timestamps:r.timestamps||[], addedAt:r.added_at };
+}
+function dbToEquip(r) {
+  return { id:r.id, name:r.name, category:r.category||'', status:r.status||'wishlist', purchasePrice:r.purchase_price, purchaseDate:r.purchase_date, memo:r.memo||'', links:r.links||[], priceHistory:r.price_history||[] };
+}
+
+// ════════════════════════════════════════════════════════
+// REALTIME SYNC
+// ════════════════════════════════════════════════════════
+function setupRealtime() {
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  realtimeChannel = sb.channel('db-changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'videos',filter:`user_id=eq.${currentUser.id}`},
+      async ()=>{ await loadAllData(); if(currentTab==='videos'&&currentView==='list') render(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'equipment',filter:`user_id=eq.${currentUser.id}`},
+      async ()=>{ await loadAllData(); if(currentTab==='equipment'&&currentView==='list') render(); })
+    .subscribe();
+}
+
+// ════════════════════════════════════════════════════════
+// ROUTING
+// ════════════════════════════════════════════════════════
+function switchTab(tab) {
+  currentTab=tab; currentView='list'; selectedId=null;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  render();
+}
+function goList() { currentView='list'; selectedId=null; render(); }
+function goDetail(id) { currentView='detail'; selectedId=id; render(); }
+function goAdd() { currentView='add'; render(); }
+
+function render() {
+  const el=document.getElementById('main-content');
+  if (currentTab==='videos') {
+    if (currentView==='list') el.innerHTML=renderVideoList();
+    else if (currentView==='detail') el.innerHTML=renderVideoDetail();
+    else el.innerHTML=renderVideoAdd();
+  } else {
+    if (currentView==='list') el.innerHTML=renderEquipList();
+    else if (currentView==='detail') el.innerHTML=renderEquipDetail();
+    else el.innerHTML=renderEquipAdd();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// VIDEO LIST
+// ════════════════════════════════════════════════════════
+function renderVideoList() {
+  const allKws=[...new Set(appData.videos.flatMap(v=>v.keywords))];
+  const totalTs=appData.videos.reduce((a,v)=>a+v.timestamps.length,0);
+  let cards=appData.videos.map(v=>{
+    const thumb=getThumbnail(v.url);
+    return `
+    <div class="card" onclick="goDetail('${v.id}')">
+      <div style="display:flex;gap:0.75rem;align-items:flex-start">
+        ${thumb?`<img class="video-thumb" src="${thumb}" onerror="this.style.display='none'" alt="">`:''}
+        <div style="flex:1;min-width:0">
+          <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(v.title)}</div>
+          <div style="margin:4px 0">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
+          <div class="card-meta">⏱ ${v.timestamps.length}개 구간 · ${v.addedAt||''}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  if (!appData.videos.length) cards=`<div class="empty-state"><div class="empty-icon">🎬</div>저장된 영상이 없습니다.<br>첫 영상을 추가해보세요!</div>`;
+  return `
+  <div class="page">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">${appData.videos.length}</div><div class="stat-label">영상</div></div>
+      <div class="stat-card"><div class="stat-num">${totalTs}</div><div class="stat-label">저장 구간</div></div>
+      <div class="stat-card"><div class="stat-num">${allKws.length}</div><div class="stat-label">키워드</div></div>
+    </div>
+    <div class="filter-bar">
+      <input type="text" placeholder="🔍 제목, 키워드 검색..." oninput="filterVideos(this.value,document.getElementById('vcat').value)" id="vsearch">
+      <select id="vcat" onchange="filterVideos(document.getElementById('vsearch').value,this.value)">
+        <option value="">전체 카테고리</option>
+        ${VIDEO_CATS.map(c=>`<option>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div id="video-cards">${cards}</div>
+    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="goAdd()">+ 영상 추가</button>
+  </div>`;
+}
+
+function filterVideos(q,cat) {
+  const f=appData.videos.filter(v=>{
+    const mq=!q||v.title.includes(q)||v.keywords.some(k=>k.includes(q));
+    const mc=!cat||v.keywords.includes(cat);
+    return mq&&mc;
+  });
+  const c=document.getElementById('video-cards'); if(!c) return;
+  if (!f.length) { c.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>검색 결과가 없습니다.</div>`; return; }
+  c.innerHTML=f.map(v=>{
+    const thumb=getThumbnail(v.url);
+    return `<div class="card" onclick="goDetail('${v.id}')">
+      <div style="display:flex;gap:0.75rem;align-items:flex-start">
+        ${thumb?`<img class="video-thumb" src="${thumb}" onerror="this.style.display='none'" alt="">`:''}
+        <div style="flex:1;min-width:0">
+          <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(v.title)}</div>
+          <div style="margin:4px 0">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
+          <div class="card-meta">⏱ ${v.timestamps.length}개 구간 · ${v.addedAt||''}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// VIDEO DETAIL
+// ════════════════════════════════════════════════════════
+function renderVideoDetail() {
+  const v=appData.videos.find(x=>x.id===selectedId); if(!v) return '<div class="empty-state">영상을 찾을 수 없습니다.</div>';
+  const vid=getVideoId(v.url);
+  const tsHtml=v.timestamps.length?v.timestamps.map((ts,i)=>`
+    <div class="ts-item">
+      <span class="ts-time" onclick="playFrom('${ts.time}','${v.id}')" title="${ts.time}부터 재생">${ts.time}</span>
+      <span class="ts-note">${escHtml(ts.note)}</span>
+      <button class="ts-del" onclick="deleteTimestamp('${v.id}',${i})">✕</button>
+    </div>`).join(''):'<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem 0">아직 저장된 구간이 없습니다.</div>';
+  return `
+  <div class="page">
+    <button class="back-btn" onclick="goList()">← 영상 목록</button>
+    <div class="inline-edit-row" style="margin-bottom:0.5rem">
+      <span class="edit-label">제목</span>
+      <input id="edit-title" value="${escAttr(v.title)}" onblur="saveVideoTitle('${v.id}',this.value)">
+      <span style="font-size:0.75rem;color:var(--text-muted)">✎</span>
+    </div>
+    <div class="inline-edit-row">
+      <span class="edit-label">URL</span>
+      <input id="edit-url" value="${escAttr(v.url)}" placeholder="YouTube URL">
+      <button class="btn btn-secondary btn-sm" style="flex-shrink:0" onclick="saveVideoUrl('${v.id}',document.getElementById('edit-url').value)">적용</button>
+    </div>
+    <div style="margin-bottom:0.75rem">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
+    ${vid?`
+    <a class="yt-player" href="https://www.youtube.com/watch?v=${vid}" target="_blank" rel="noopener">
+      <img src="https://img.youtube.com/vi/${vid}/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/${vid}/mqdefault.jpg'" alt="">
+      <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+      <div class="yt-label">▶ YouTube에서 열기 · 타임스탬프 클릭 시 해당 시간으로 이동</div>
+    </a>`:`<div style="padding:1rem;color:var(--text-muted);background:var(--navy);border-radius:8px;margin-bottom:1rem;font-size:0.88rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}
+    <div class="section-label">메모</div>
+    <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7;margin-bottom:1rem">${escHtml(v.memo)||'메모 없음'}</div>
+    <div class="section-label">구간 타임스탬프</div>
+    <div>${tsHtml}</div>
+    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
+      <input class="form-input" style="width:75px;flex:none" placeholder="0:00" id="ts-time">
+      <input class="form-input" style="flex:1;min-width:150px" placeholder="이 구간의 핵심 내용..." id="ts-note">
+      <button class="btn btn-primary btn-sm" onclick="addTimestamp('${v.id}')">구간 추가</button>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+      <button class="btn btn-secondary btn-sm" onclick="editVideoMemo('${v.id}')">메모 편집</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteVideo('${v.id}')">영상 삭제</button>
+    </div>
+  </div>`;
+}
+
+function playFrom(time,vid) {
+  const v=appData.videos.find(x=>x.id===vid); if(!v) return;
+  const videoId=getVideoId(v.url); if(!videoId) { showToast('유효한 YouTube URL이 없습니다'); return; }
+  window.open(`https://www.youtube.com/watch?v=${videoId}&t=${timeToSec(time)}s`,'_blank','noopener');
+}
+
+// ════════════════════════════════════════════════════════
+// VIDEO ADD
+// ════════════════════════════════════════════════════════
+function renderVideoAdd() {
+  return `
+  <div class="page">
+    <button class="back-btn" onclick="goList()">← 영상 목록</button>
+    <div class="add-form">
+      <div class="add-form-title">새 영상 추가</div>
+      <div class="form-group">
+        <label class="form-label">YouTube URL</label>
+        <input class="form-input" id="v-url" placeholder="https://www.youtube.com/watch?v=..." oninput="previewThumb()">
+        <img id="v-thumb" style="margin-top:0.5rem;width:120px;border-radius:6px;display:none;border:1px solid var(--border)" src="" alt="">
+      </div>
+      <div class="form-group">
+        <label class="form-label">영상 제목</label>
+        <input class="form-input" id="v-title" placeholder="영상 제목">
+      </div>
+      <div class="form-group">
+        <label class="form-label">키워드 / 분류</label>
+        <input class="form-input" id="v-kw" placeholder="쉼표로 구분: 드라이버, 스윙, 기초">
+        <div class="keyword-pills">${VIDEO_CATS.map(c=>`<span class="kw-pill" onclick="addKwVideo('${c}')">${c}</span>`).join('')}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea class="form-textarea" id="v-memo" placeholder="핵심 내용, 기억할 팁..."></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="v-save-btn" onclick="saveVideo()">저장</button>
+        <button class="btn btn-secondary" onclick="goList()">취소</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function previewThumb() {
+  const url=document.getElementById('v-url').value;
+  const thumb=document.getElementById('v-thumb');
+  const t=getThumbnail(url);
+  if(t){thumb.src=t;thumb.style.display='block';}else{thumb.style.display='none';}
+}
+function addKwVideo(cat) {
+  const el=document.getElementById('v-kw');
+  el.value=el.value.trim()?(el.value.trim()+', '+cat):cat;
+}
+
+// ════════════════════════════════════════════════════════
+// VIDEO CRUD (Supabase)
+// ════════════════════════════════════════════════════════
+async function saveVideo() {
+  const url=document.getElementById('v-url').value.trim();
+  const title=document.getElementById('v-title').value.trim();
+  if (!url) { showToast('URL을 입력하세요'); return; }
+  const kws=document.getElementById('v-kw').value.split(',').map(k=>k.trim()).filter(Boolean);
+  const memo=document.getElementById('v-memo').value.trim();
+  const btn=document.getElementById('v-save-btn');
+  btn.disabled=true; btn.textContent='저장 중...';
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').insert({
+    user_id:currentUser.id, url, title:title||'제목 없음',
+    keywords:kws, memo, timestamps:[], added_at:today()
+  });
+  if (error) { showToast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
+  await loadAllData();
+  showToast('영상이 추가됐습니다');
+  goList();
+}
+
+async function saveVideoTitle(id,newTitle) {
+  const v=appData.videos.find(x=>x.id===id); if(!v) return;
+  const t=newTitle.trim(); if(!t||t===v.title) return;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').update({title:t}).eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
+  v.title=t; setSyncStatus('ok'); showToast('제목이 저장됐습니다');
+}
+
+async function saveVideoUrl(id,newUrl) {
+  const v=appData.videos.find(x=>x.id===id); if(!v) return;
+  const t=newUrl.trim(); if(!t||t===v.url) return;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').update({url:t}).eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
+  v.url=t; setSyncStatus('ok'); showToast('URL이 저장됐습니다'); goDetail(id);
+}
+
+async function addTimestamp(vid) {
+  const time=document.getElementById('ts-time').value.trim();
+  const note=document.getElementById('ts-note').value.trim();
+  if (!time||!note) { showToast('시간과 내용을 입력하세요'); return; }
+  const v=appData.videos.find(x=>x.id===vid); if(!v) return;
+  const newTs=[...v.timestamps,{time,note}].sort((a,b)=>timeToSec(a.time)-timeToSec(b.time));
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',currentUser.id);
+  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
+  v.timestamps=newTs; setSyncStatus('ok'); showToast('구간이 추가됐습니다'); goDetail(vid);
+}
+
+async function deleteTimestamp(vid,idx) {
+  if (!confirm('이 구간을 삭제하시겠습니까?')) return;
+  const v=appData.videos.find(x=>x.id===vid); if(!v) return;
+  const newTs=v.timestamps.filter((_,i)=>i!==idx);
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',currentUser.id);
+  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
+  v.timestamps=newTs; setSyncStatus('ok'); goDetail(vid);
+}
+
+async function editVideoMemo(id) {
+  const v=appData.videos.find(x=>x.id===id); if(!v) return;
+  const memo=prompt('메모를 수정하세요:',v.memo); if(memo===null) return;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').update({memo}).eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
+  v.memo=memo; setSyncStatus('ok'); showToast('메모가 저장됐습니다'); goDetail(id);
+}
+
+async function deleteVideo(id) {
+  if (!confirm('이 영상을 삭제하시겠습니까?')) return;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('videos').delete().eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
+  appData.videos=appData.videos.filter(v=>v.id!==id);
+  setSyncStatus('ok'); showToast('영상이 삭제됐습니다'); goList();
+}
+
+// ════════════════════════════════════════════════════════
+// EQUIPMENT LIST
+// ════════════════════════════════════════════════════════
+function renderEquipList() {
+  const owned=appData.equipment.filter(e=>e.status==='owned');
+  const wish=appData.equipment.filter(e=>e.status==='wishlist');
+  const wishTotal=wish.reduce((a,e)=>{
+    const lp=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;
+    return a+(lp===Infinity?0:lp);
+  },0);
+  const renderCard=(e)=>{
+    const lp=e.links.length?e.links[e.links.length-1].price:e.purchasePrice;
+    return `<div class="card" onclick="goDetail('${e.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="card-title">${escHtml(e.name)}</div>
+          <div style="margin:4px 0">
+            <span class="badge ${e.status==='owned'?'badge-green':'badge-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
+            <span class="badge badge-blue">${escHtml(e.category)}</span>
+          </div>
+          ${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">${escHtml(e.memo)}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:0.75rem">
+          ${lp?`<div class="link-price">${fmtPrice(lp)}</div>`:''}
+          ${e.links.length?`<div style="font-size:0.72rem;color:var(--text-muted)">${e.links.length}개 링크</div>`:''}
+          ${renderPriceTrend(e)}
+        </div>
+      </div>
+    </div>`;
+  };
+  let cards=appData.equipment.length?appData.equipment.map(renderCard).join(''):`<div class="empty-state"><div class="empty-icon">🏌️</div>등록된 장비가 없습니다.</div>`;
+  return `
+  <div class="page">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">${owned.length}</div><div class="stat-label">보유 장비</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#e8a050">${wish.length}</div><div class="stat-label">관심 목록</div></div>
+      <div class="stat-card"><div class="stat-num" style="font-size:1rem;padding-top:6px">${wishTotal?fmtPrice(wishTotal):'—'}</div><div class="stat-label">관심 합계</div></div>
+    </div>
+    <div class="filter-bar">
+      <input type="text" placeholder="🔍 장비명 검색..." oninput="filterEquip(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esearch">
+      <select id="ecat" onchange="filterEquip(document.getElementById('esearch').value,this.value,document.getElementById('estat').value)">
+        <option value="">전체 분류</option>${EQUIP_CATS.map(c=>`<option>${c}</option>`).join('')}
+      </select>
+      <select id="estat" onchange="filterEquip(document.getElementById('esearch').value,document.getElementById('ecat').value,this.value)">
+        <option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option>
+      </select>
+    </div>
+    <div id="equip-cards">${cards}</div>
+    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="goAdd()">+ 장비 추가</button>
+  </div>`;
+}
+
+function renderPriceTrend(e) {
+  if (!e.priceHistory||e.priceHistory.length<2) return '';
+  const last=e.priceHistory[e.priceHistory.length-1].price;
+  const prev=e.priceHistory[e.priceHistory.length-2].price;
+  const diff=last-prev; if(diff===0) return '';
+  return `<div style="font-size:0.72rem;color:${diff<0?'var(--green2)':'var(--red2)'}">${diff<0?'↓':'↑'} ${Math.abs(diff).toLocaleString()}원</div>`;
+}
+
+function filterEquip(q,cat,status) {
+  const f=appData.equipment.filter(e=>{
+    return (!q||e.name.includes(q))&&(!cat||e.category===cat)&&(!status||e.status===status);
+  });
+  const c=document.getElementById('equip-cards'); if(!c) return;
+  c.innerHTML=f.length?f.map(e=>{
+    const lp=e.links.length?e.links[e.links.length-1].price:e.purchasePrice;
+    return `<div class="card" onclick="goDetail('${e.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="card-title">${escHtml(e.name)}</div>
+          <div style="margin:4px 0"><span class="badge ${e.status==='owned'?'badge-green':'badge-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge badge-blue">${escHtml(e.category)}</span></div>
+        </div>
+        ${lp?`<div class="link-price" style="flex-shrink:0;margin-left:0.75rem">${fmtPrice(lp)}</div>`:''}
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty-state"><div class="empty-icon">🔍</div>검색 결과가 없습니다.</div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// EQUIPMENT DETAIL
+// ════════════════════════════════════════════════════════
+function renderEquipDetail() {
+  const e=appData.equipment.find(x=>x.id===selectedId); if(!e) return '<div class="empty-state">장비를 찾을 수 없습니다.</div>';
+  const linksHtml=e.links.length?e.links.map((l,i)=>`
+    <div class="link-item">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <a href="${escAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escHtml(l.label)}</a>
+        ${l.price?`<span class="link-price">${fmtPrice(l.price)}</span>`:''}
+      </div>
+      <div class="link-date">확인일: ${l.checkedAt||'—'}
+        <button class="btn btn-secondary btn-sm" style="margin-left:0.5rem;padding:1px 8px;font-size:0.7rem" onclick="updateLinkPrice('${e.id}',${i})">가격 업데이트</button>
+      </div>
+    </div>`).join(''):'<div style="color:var(--text-muted);font-size:0.85rem">저장된 링크 없음</div>';
+  const histHtml=e.priceHistory&&e.priceHistory.length?`
+    <div class="section-label" style="margin-top:1rem">가격 동향</div>
+    <div class="price-history">${e.priceHistory.slice().reverse().map((h,i,arr)=>{
+      const prev=arr[i+1]; const diff=prev?h.price-prev.price:0;
+      const arrow=diff<0?`<span style="color:var(--green2)">↓${Math.abs(diff).toLocaleString()}원</span>`:diff>0?`<span style="color:var(--red2)">↑${diff.toLocaleString()}원</span>`:'';
+      return `<div class="price-entry"><span>${h.date}</span><span>${fmtPrice(h.price)} ${arrow}</span></div>`;
+    }).join('')}</div>`:'';
+  const lp=e.links.length?e.links[e.links.length-1].price:null;
+  return `
+  <div class="page">
+    <button class="back-btn" onclick="goList()">← 장비 목록</button>
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">${escHtml(e.name)}</div>
+        <div style="margin-top:6px"><span class="badge ${e.status==='owned'?'badge-green':'badge-amber'}">${e.status==='owned'?'✓ 보유 중':'★ 관심 목록'}</span><span class="badge badge-blue">${escHtml(e.category)}</span></div>
+      </div>
+      ${e.purchasePrice||lp?`<div class="price-big">${fmtPrice(e.purchasePrice||lp)}</div>`:''}
+    </div>
+    ${e.status==='owned'&&e.purchaseDate?`<div class="section-box" style="display:flex;gap:1.5rem">
+      <div><div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--gold)">${fmtPrice(e.purchasePrice)}</div></div>
+      <div><div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.purchaseDate}</div></div>
+    </div>`:''}
+    <div class="section-label">메모</div>
+    <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7;margin-bottom:1rem">${escHtml(e.memo)||'메모 없음'}</div>
+    <div class="section-label">인터넷 링크</div>
+    ${linksHtml}${histHtml}
+    <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap">
+      <input class="form-input" style="flex:2;min-width:120px" id="new-link-url" placeholder="https://...">
+      <input class="form-input" style="flex:1;min-width:80px" id="new-link-label" placeholder="쇼핑몰명">
+      <input class="form-input" style="width:110px;flex:none" id="new-link-price" type="number" placeholder="가격">
+      <button class="btn btn-primary btn-sm" onclick="addLink('${e.id}')">링크 추가</button>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+      <button class="btn btn-secondary btn-sm" onclick="editEquipMemo('${e.id}')">메모 편집</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteEquip('${e.id}')">삭제</button>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// EQUIPMENT ADD
+// ════════════════════════════════════════════════════════
+function renderEquipAdd() {
+  return `
+  <div class="page">
+    <button class="back-btn" onclick="goList()">← 장비 목록</button>
+    <div class="add-form">
+      <div class="add-form-title">장비 추가</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">장비명</label><input class="form-input" id="e-name" placeholder="예: Titleist TSR3 드라이버"></div>
+        <div class="form-group"><label class="form-label">분류</label>
+          <select class="form-select" id="e-cat"><option value="">선택...</option>${EQUIP_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">상태</label>
+        <div style="display:flex;gap:0.75rem">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.88rem"><input type="radio" name="e-status" value="wishlist" checked onchange="toggleOwnedFields(this.value)"> <span class="badge badge-amber">★ 관심 목록</span></label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.88rem"><input type="radio" name="e-status" value="owned" onchange="toggleOwnedFields(this.value)"> <span class="badge badge-green">✓ 보유 중</span></label>
+        </div>
+      </div>
+      <div id="owned-fields" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">구매가</label><input class="form-input" id="e-pprice" type="number" placeholder="원"></div>
+          <div class="form-group"><label class="form-label">구매일</label><input class="form-input" id="e-pdate" type="date" value="${today()}"></div>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">메모</label><textarea class="form-textarea" id="e-memo" placeholder="스펙, 특징, 느낀 점..."></textarea></div>
+      <div class="section-box">
+        <div class="form-label" style="margin-bottom:0.5rem">🔗 인터넷 링크 (선택)</div>
+        <input class="form-input" id="e-link" placeholder="https://..." style="margin-bottom:0.4rem">
+        <div class="form-row">
+          <input class="form-input" id="e-llabel" placeholder="쇼핑몰 이름 (예: 쿠팡)">
+          <input class="form-input" id="e-lprice" type="number" placeholder="현재 가격">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="e-save-btn" onclick="saveEquip()">저장</button>
+        <button class="btn btn-secondary" onclick="goList()">취소</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleOwnedFields(v) {
+  const el=document.getElementById('owned-fields'); if(el) el.style.display=v==='owned'?'block':'none';
+}
+
+// ════════════════════════════════════════════════════════
+// EQUIPMENT CRUD (Supabase)
+// ════════════════════════════════════════════════════════
+async function saveEquip() {
+  const name=document.getElementById('e-name').value.trim();
+  if (!name) { showToast('장비명을 입력하세요'); return; }
+  const statusEl=document.querySelector('input[name="e-status"]:checked');
+  const status=statusEl?statusEl.value:'wishlist';
+  const category=document.getElementById('e-cat').value;
+  const memo=document.getElementById('e-memo').value.trim();
+  const link=document.getElementById('e-link').value.trim();
+  const llabel=document.getElementById('e-llabel').value.trim();
+  const lprice=document.getElementById('e-lprice').value;
+  const pprice=document.getElementById('e-pprice')?.value;
+  const pdate=document.getElementById('e-pdate')?.value;
+  const links=link?[{url:link,label:llabel||'링크',price:lprice?Number(lprice):null,checkedAt:today()}]:[];
+  const priceHistory=(lprice&&link)?[{date:today(),price:Number(lprice)}]:[];
+  const btn=document.getElementById('e-save-btn'); btn.disabled=true; btn.textContent='저장 중...';
+  setSyncStatus('syncing');
+  const {error}=await sb.from('equipment').insert({
+    user_id:currentUser.id, name, category, status, memo, links, price_history:priceHistory,
+    purchase_price:pprice?Number(pprice):null, purchase_date:pdate||null
+  });
+  if (error) { showToast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
+  await loadAllData();
+  showToast('장비가 추가됐습니다'); goList();
+}
+
+async function addLink(id) {
+  const url=document.getElementById('new-link-url').value.trim();
+  const label=document.getElementById('new-link-label').value.trim();
+  const price=document.getElementById('new-link-price').value;
+  if (!url) { showToast('URL을 입력하세요'); return; }
+  const e=appData.equipment.find(x=>x.id===id); if(!e) return;
+  const priceNum=price?Number(price):null;
+  const newLinks=[...e.links,{url,label:label||'링크',price:priceNum,checkedAt:today()}];
+  const newHist=priceNum?[...e.priceHistory,{date:today(),price:priceNum}]:e.priceHistory;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('equipment').update({links:newLinks,price_history:newHist}).eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
+  e.links=newLinks; e.priceHistory=newHist; setSyncStatus('ok'); showToast('링크가 추가됐습니다'); goDetail(id);
+}
+
+async function updateLinkPrice(eid,lidx) {
+  const e=appData.equipment.find(x=>x.id===eid); if(!e) return;
+  const l=e.links[lidx];
+  const p=prompt(`새 가격 입력 (현재: ${fmtPrice(l.price)}):`,l.price||''); if(p===null) return;
+  const newPrice=Number(p);
+  const newLinks=e.links.map((lk,i)=>i===lidx?{...lk,price:newPrice,checkedAt:today()}:lk);
+  const newHist=[...e.priceHistory,{date:today(),price:newPrice}];
+  setSyncStatus('syncing');
+  const {error}=await sb.from('equipment').update({links:newLinks,price_history:newHist}).eq('id',eid).eq('user_id',currentUser.id);
+  if (error) { showToast('업데이트 실패'); setSyncStatus('error'); return; }
+  e.links=newLinks; e.priceHistory=newHist; setSyncStatus('ok'); showToast('가격이 업데이트됐습니다'); goDetail(eid);
+}
+
+async function editEquipMemo(id) {
+  const e=appData.equipment.find(x=>x.id===id); if(!e) return;
+  const memo=prompt('메모를 수정하세요:',e.memo); if(memo===null) return;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('equipment').update({memo}).eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('저장 실패'); setSyncStatus('error'); return; }
+  e.memo=memo; setSyncStatus('ok'); showToast('메모가 저장됐습니다'); goDetail(id);
+}
+
+async function deleteEquip(id) {
+  if (!confirm('이 장비를 삭제하시겠습니까?')) return;
+  setSyncStatus('syncing');
+  const {error}=await sb.from('equipment').delete().eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
+  appData.equipment=appData.equipment.filter(e=>e.id!==id);
+  setSyncStatus('ok'); showToast('장비가 삭제됐습니다'); goList();
+}
+
+// ════════════════════════════════════════════════════════
+// XSS 방지
+// ════════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ════════════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════════════
+initApp();
+</script>
+</body>
+</html>
