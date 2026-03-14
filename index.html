@@ -249,7 +249,7 @@ const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 const best=a=>a.length?Math.max(...a):null;
 const fn=(n,u='')=>n!=null?Math.round(n)+u:'—';
-const vidId=url=>{const m=url.match(/(?:v=|youtu\.be\/)([^&\s?]+)/);return m?m[1]:null};
+const vidId=url=>{const m=url.match(/(?:v=|youtu\.be\/|shorts\/)([^&\s?\/]+)/);return m?m[1]:null};
 const thumb=url=>{const id=vidId(url);return id?`https://img.youtube.com/vi/${id}/mqdefault.jpg`:''};
 const t2s=t=>{const p=t.split(':').map(Number);return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2]};
 const $=id=>document.getElementById(id);
