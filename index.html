@@ -624,61 +624,44 @@ async function gpsToAddress(lat, lon) {
   return null;
 }
 
-// ── CLAUDE VISION ANALYSIS ───────────────────────────
+// ── CLAUDE VISION ANALYSIS (Supabase Edge Function 경유) ─
 async function analyzeGDRImage(file, statusCallback) {
-  const key = getAnthropicKey();
-  if(!key) return null;
   statusCallback('busy');
   try {
     const b64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
-    const prompt = `이 이미지는 골프 GDR(Golf Data Record) 스크린샷입니다.
-화면에서 보이는 골프 샷 데이터를 정확히 추출해주세요.
 
-반드시 아래 JSON 형식으로만 응답하세요. 값이 보이지 않으면 null로 표기하세요:
-{
-  "club": "클럽명 (예: 드라이버, 7I, PW 등. 없으면 null)",
-  "carry": 캐리거리_숫자_또는_null,
-  "total": 총거리_숫자_또는_null,
-  "headSpeed": 헤드스피드_숫자_또는_null,
-  "ballSpeed": 볼스피드_숫자_또는_null,
-  "smashFactor": 스매시팩터_숫자_또는_null,
-  "launchAngle": 발사각_숫자_또는_null,
-  "spin": 스핀rpm_숫자_또는_null,
-  "direction": 방향편차_숫자_또는_null
-}
+    const resp = await fetch(
+      'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SB_KEY}`,
+        },
+        body: JSON.stringify({ imageBase64: b64, mediaType })
+      }
+    );
 
-주의사항:
-- direction: 오른쪽이면 양수(+), 왼쪽이면 음수(-)
-- 단위 제거하고 숫자만 입력 (예: "215m" → 215)
-- JSON 외 다른 텍스트 절대 포함하지 말 것`;
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('Edge Function 오류:', errText);
+      statusCallback('fail');
+      return null;
+    }
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5-20251101',
-        max_tokens: 512,
-        messages: [{
-          role: 'user',
-          content: [{
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: b64 }
-          }, {
-            type: 'text', text: prompt
-          }]
-        }]
-      })
-    });
     const data = await resp.json();
-    if(data.error) { statusCallback('fail'); return null; }
+    if (data.error) { statusCallback('fail'); return null; }
+
     const text = data.content?.[0]?.text || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) { statusCallback('fail'); return null; }
+    if (!jsonMatch) { statusCallback('fail'); return null; }
+
     const parsed = JSON.parse(jsonMatch[0]);
     statusCallback('done');
     return parsed;
   } catch(e) {
+    console.error('분석 오류:', e);
     statusCallback('fail');
     return null;
   }
@@ -710,12 +693,6 @@ window.handleMultiPhoto = async function(input) {
     multiFiles[i].preview = await fileToDataUrl(multiFiles[i].file);
   }
   renderPhotoStatus();
-
-  const key = getAnthropicKey();
-  if(!key) {
-    toast('API 키를 먼저 설정하세요 (계정 ▾ → API 키 설정)');
-    return;
-  }
 
   // EXIF + AI 분석 순차 실행
   let firstDate = null, firstLocation = null;
@@ -852,12 +829,11 @@ function pAdd() {
     <div class="fg"><label class="fl-label">연습장 / 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
 
     <div class="sec-label">GDR 화면 사진 (여러 장 동시 업로드 가능)</div>
-    <div class="img-upload" onclick="document.getElementById('pimg').click()">
+    ${`<div class="img-upload" onclick="document.getElementById('pimg').click()">
       <input type="file" id="pimg" accept="image/*" multiple onchange="handleMultiPhoto(this)">
       📷 사진을 탭하여 업로드 (여러 장 선택 가능)<br>
       <span style="font-size:.73rem;opacity:.7">사진 1장 = 샷 1개로 자동 분석됩니다</span>
-    </div>
-    ${!getAnthropicKey() ? `<div style="font-size:.78rem;color:var(--amber);padding:.5rem .75rem;background:rgba(200,130,40,.08);border:1px solid rgba(200,130,40,.2);border-radius:8px;margin-bottom:.75rem">⚠️ API 키 미설정 — 자동 분석이 비활성화됩니다. <a style="color:var(--gold);cursor:pointer;text-decoration:underline" onclick="openModal('settings-modal')">설정하기</a></div>` : ''}
+    </div>`}
 
     <div class="ai-status" id="photo-status" style="display:none"></div>
 
