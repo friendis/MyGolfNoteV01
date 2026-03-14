@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GolfNote 배포 도구</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0d1b2e;color:#dce8f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.box{background:#13243d;border:1px solid rgba(200,168,75,.35);border-radius:16px;padding:2rem;width:100%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+h1{font-size:1.3rem;color:#e6c76a;margin-bottom:.3rem}
+.sub{font-size:.78rem;color:#4a6a8a;margin-bottom:1.5rem;letter-spacing:.5px}
+.fg{margin-bottom:1rem}
+label{display:block;font-size:.7rem;font-weight:700;color:#4a6a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+input{width:100%;background:#0d1b2e;border:1px solid rgba(200,168,75,.18);color:#dce8f5;padding:.6rem .85rem;border-radius:8px;font-family:inherit;font-size:.88rem;outline:none}
+input:focus{border-color:rgba(200,168,75,.5)}
+input[type=password]{letter-spacing:2px}
+.btn{width:100%;padding:.7rem;border-radius:8px;border:none;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;transition:all .15s}
+.btn-p{background:linear-gradient(135deg,#8a7030,#c8a84b);color:#0d1b2e}
+.btn-p:hover:not(:disabled){background:linear-gradient(135deg,#c8a84b,#e6c76a)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed}
+.log{margin-top:1.25rem;background:#0d1b2e;border:1px solid rgba(200,168,75,.15);border-radius:8px;padding:.75rem 1rem;min-height:80px;font-size:.82rem;font-family:monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.ok{color:#52b870}.err{color:#c05050}.info{color:#7a9ab8}.gold{color:#e6c76a}
+.divider{height:1px;background:rgba(200,168,75,.15);margin:1.25rem 0}
+.note{font-size:.75rem;color:#4a6a8a;line-height:1.6;margin-top:.5rem}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>⛳ GolfNote 배포 도구</h1>
+  <div class="sub">GitHub Pages 자동 배포</div>
+
+  <div class="fg">
+    <label>GitHub 사용자명</label>
+    <input type="text" id="username" placeholder="예: hongildong">
+  </div>
+  <div class="fg">
+    <label>저장소 이름</label>
+    <input type="text" id="repo" placeholder="예: golfnote" value="golfnote">
+  </div>
+  <div class="fg">
+    <label>GitHub Personal Access Token</label>
+    <input type="password" id="token" placeholder="ghp_...">
+    <div class="note">토큰은 이 페이지 안에서만 사용되며 어디에도 저장되지 않습니다.</div>
+  </div>
+  <div class="fg">
+    <label>배포할 파일 선택</label>
+    <input type="file" id="file" accept=".html" style="color:#7a9ab8;border-style:dashed">
+    <div class="note">GolfNote-v3.html 파일을 선택하세요</div>
+  </div>
+
+  <button class="btn btn-p" id="deploy-btn" onclick="deploy()">🚀 GitHub에 배포</button>
+
+  <div class="divider"></div>
+  <div class="log" id="log">배포 로그가 여기 표시됩니다...</div>
+</div>
+
+<script>
+function log(msg, cls='info') {
+  const el = document.getElementById('log');
+  const time = new Date().toLocaleTimeString('ko-KR');
+  el.innerHTML += `<span class="${cls}">[${time}] ${msg}\n</span>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function deploy() {
+  const username = document.getElementById('username').value.trim();
+  const repo     = document.getElementById('repo').value.trim();
+  const token    = document.getElementById('token').value.trim();
+  const fileInput= document.getElementById('file');
+  const btn      = document.getElementById('deploy-btn');
+
+  if(!username || !repo || !token) { log('사용자명, 저장소, 토큰을 모두 입력하세요', 'err'); return; }
+  if(!fileInput.files[0]) { log('배포할 HTML 파일을 선택하세요', 'err'); return; }
+
+  btn.disabled = true; btn.textContent = '배포 중...';
+  document.getElementById('log').innerHTML = '';
+
+  try {
+    // 1. 파일 읽기
+    log('파일 읽는 중...');
+    const content = await readFile(fileInput.files[0]);
+    const b64 = btoa(unescape(encodeURIComponent(content)));
+    log(`파일 크기: ${(content.length/1024).toFixed(1)}KB`, 'ok');
+
+    // 2. 현재 index.html SHA 가져오기 (업데이트에 필요)
+    log('GitHub 저장소 확인 중...');
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
+
+    let sha = null;
+    const getRes = await fetch(`${apiBase}/contents/index.html`, { headers });
+    if(getRes.ok) {
+      const existing = await getRes.json();
+      sha = existing.sha;
+      log(`기존 index.html 발견 (SHA: ${sha.slice(0,7)}...)`, 'info');
+    } else if(getRes.status === 404) {
+      log('index.html 없음 — 새로 생성합니다', 'info');
+    } else {
+      const err = await getRes.json();
+      throw new Error(`저장소 접근 실패: ${err.message}`);
+    }
+
+    // 3. 파일 업로드
+    log('GitHub에 업로드 중...');
+    const body = {
+      message: `🚀 GolfNote 업데이트 ${new Date().toLocaleString('ko-KR')}`,
+      content: b64,
+      ...(sha ? { sha } : {})
+    };
+    const putRes = await fetch(`${apiBase}/contents/index.html`, {
+      method: 'PUT', headers, body: JSON.stringify(body)
+    });
+    if(!putRes.ok) {
+      const err = await putRes.json();
+      throw new Error(`업로드 실패: ${err.message}`);
+    }
+    const result = await putRes.json();
+    log('업로드 완료!', 'ok');
+    log(`커밋: ${result.commit?.sha?.slice(0,7)}`, 'ok');
+
+    // 4. Pages 상태 확인
+    log('GitHub Pages 배포 대기 중... (보통 1~2분)');
+    const siteUrl = `https://${username}.github.io/${repo}`;
+    log(`배포 완료! 잠시 후 아래 주소로 접속하세요:`, 'gold');
+    log(`👉 ${siteUrl}`, 'gold');
+    log('※ 반영까지 1~2분 소요될 수 있습니다', 'info');
+
+  } catch(e) {
+    log(`오류: ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 GitHub에 배포';
+  }
+}
+
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsText(file, 'UTF-8');
+  });
+}
+</script>
+</body>
+</html>
