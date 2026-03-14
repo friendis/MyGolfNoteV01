@@ -696,7 +696,7 @@ function fileToBase64(file) {
 // ── MULTI-PHOTO STATE ────────────────────────────────
 let multiFiles = []; // {file, preview, exif, gdrData, status}
 
-async function handleMultiPhoto(input) {
+window.handleMultiPhoto = async function(input) {
   const files = Array.from(input.files);
   if(!files.length) return;
 
