@@ -929,7 +929,8 @@ function collectShots() {
     shots.push({ carry, total, headSpeed:hs, ballSpeed:parseFloat(get('ballSpeed'))||0, smashFactor:parseFloat(get('smashFactor'))||0, launchAngle:parseFloat(get('launchAngle'))||0, spin:parseFloat(get('spin'))||0, direction:get('direction')!==''?parseFloat(get('direction')):null });
   });
   return shots;
-}if(!confirm('이 세션을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
+}
+window.delSession=async id=>{if(!confirm('이 세션을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
 (async()=>{
   try{
     const{data:{session}}=await sb.auth.getSession();
