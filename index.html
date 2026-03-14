@@ -263,9 +263,83 @@
   /* ── VIDEO THUMB ── */
   .video-thumb { width:90px; height:60px; object-fit:cover; border-radius:6px; flex-shrink:0; border:1px solid var(--border); }
 
+  /* ── 동의 체크박스 ── */
+  .agree-row {
+    display:flex; align-items:flex-start; gap:0.6rem;
+    margin:0.75rem 0 0; padding:0.75rem; border-radius:8px;
+    background:rgba(200,168,75,0.05); border:1px solid var(--border);
+    font-size:0.82rem; color:var(--text-dim); line-height:1.5;
+  }
+  .agree-row input[type=checkbox] { margin-top:2px; flex-shrink:0; accent-color:var(--gold); width:15px; height:15px; cursor:pointer; }
+  .agree-row a { color:var(--gold); text-decoration:underline; cursor:pointer; }
+
+  /* ── 모달 오버레이 ── */
+  .modal-overlay {
+    display:none; position:fixed; inset:0; z-index:500;
+    background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+    align-items:flex-start; justify-content:center;
+    padding:1rem; overflow-y:auto;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal-box {
+    background:var(--navy2); border:1px solid var(--border2);
+    border-radius:16px; width:100%; max-width:640px;
+    padding:1.8rem; margin:auto;
+    box-shadow:var(--shadow2);
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.3rem; font-weight:700; color:var(--gold2);
+    margin-bottom:1.2rem; padding-bottom:0.75rem;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-close {
+    float:right; background:none; border:none; color:var(--text-muted);
+    font-size:1.3rem; cursor:pointer; line-height:1; margin-top:-2px;
+    transition:color 0.15s;
+  }
+  .modal-close:hover { color:var(--text); }
+  .privacy-section { margin-bottom:1.25rem; }
+  .privacy-section h3 { font-size:0.88rem; font-weight:700; color:var(--cream); margin-bottom:0.4rem; }
+  .privacy-section p, .privacy-section li { font-size:0.83rem; color:var(--text-dim); line-height:1.7; }
+  .privacy-section ul { padding-left:1.2rem; }
+  .privacy-section li { margin-bottom:0.2rem; }
+  .privacy-date { font-size:0.75rem; color:var(--text-muted); margin-top:1rem; text-align:right; }
+
+  /* ── 계정 패널 (헤더 드롭다운) ── */
+  .account-panel {
+    display:none; position:absolute; top:68px; right:1rem;
+    background:var(--navy2); border:1px solid var(--border2);
+    border-radius:12px; padding:1rem; min-width:260px;
+    box-shadow:var(--shadow2); z-index:200;
+    animation: fadeIn 0.15s ease;
+  }
+  .account-panel.open { display:block; }
+  .account-panel-email { font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border); word-break:break-all; }
+  .account-panel-btn {
+    display:block; width:100%; text-align:left;
+    background:none; border:none; font-family:inherit;
+    font-size:0.85rem; padding:0.5rem 0.4rem; cursor:pointer;
+    border-radius:6px; color:var(--text-dim); transition:all 0.15s;
+    margin-bottom:2px;
+  }
+  .account-panel-btn:hover { background:rgba(255,255,255,0.05); color:var(--text); }
+  .account-panel-btn.danger { color:var(--red2); }
+  .account-panel-btn.danger:hover { background:rgba(140,50,50,0.15); }
+
+  /* ── 위험 구역 박스 ── */
+  .danger-zone {
+    margin-top:0.75rem; padding:0.75rem;
+    border:1px solid rgba(192,80,80,0.25);
+    border-radius:8px; background:rgba(140,50,50,0.06);
+  }
+  .danger-zone-title { font-size:0.72rem; font-weight:700; color:var(--red2); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:0.5rem; }
+
   @media (max-width:480px) {
     .stats-row { gap:0.4rem; } .stat-num { font-size:1.4rem; }
     .user-email { display:none; }
+    .account-panel { right:0.5rem; left:0.5rem; min-width:unset; }
   }
 </style>
 </head>
@@ -293,10 +367,88 @@
     </div>
     <div class="form-group">
       <label class="form-label">비밀번호</label>
-      <input class="form-input" type="password" id="auth-pw" placeholder="8자 이상" onkeydown="if(event.key==='Enter')authSubmit()">
+      <input class="form-input" type="password" id="auth-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')authSubmit()">
     </div>
 
-    <button class="btn btn-primary" id="auth-btn" onclick="authSubmit()" style="width:100%;margin-top:0.5rem">로그인</button>
+    <!-- 회원가입 시에만 표시되는 동의 영역 -->
+    <div id="signup-agree" style="display:none">
+      <div class="agree-row">
+        <input type="checkbox" id="agree-privacy">
+        <label for="agree-privacy">
+          <a onclick="openPrivacyModal()">개인정보 처리방침</a>을 읽었으며, 개인정보 수집 및 이용에 동의합니다. <span style="color:var(--red2)">(필수)</span>
+        </label>
+      </div>
+      <div class="agree-row">
+        <input type="checkbox" id="agree-terms">
+        <label for="agree-terms">
+          만 14세 이상이며, 서비스 이용약관에 동의합니다. <span style="color:var(--red2)">(필수)</span>
+        </label>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="auth-btn" onclick="authSubmit()" style="width:100%;margin-top:0.75rem">로그인</button>
+  </div>
+</div>
+
+<!-- ════ 개인정보 처리방침 모달 ════ -->
+<div class="modal-overlay" id="privacy-modal" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="modal-box">
+    <div class="modal-title">
+      개인정보 처리방침
+      <button class="modal-close" onclick="closePrivacyModal()">✕</button>
+    </div>
+
+    <div class="privacy-section">
+      <h3>1. 수집하는 개인정보 항목</h3>
+      <p>GolfNote는 서비스 제공을 위해 아래 정보를 수집합니다.</p>
+      <ul>
+        <li>필수: 이메일 주소, 비밀번호 (암호화 저장)</li>
+        <li>자동 수집: 서비스 이용 일시, 서비스 이용 기록</li>
+      </ul>
+    </div>
+
+    <div class="privacy-section">
+      <h3>2. 개인정보 수집 및 이용 목적</h3>
+      <ul>
+        <li>회원 식별 및 계정 관리</li>
+        <li>서비스 제공 (영상 아카이빙, 장비 관리 데이터 저장 및 동기화)</li>
+        <li>부정 이용 방지 및 보안</li>
+      </ul>
+    </div>
+
+    <div class="privacy-section">
+      <h3>3. 개인정보 보유 및 이용 기간</h3>
+      <p>회원 탈퇴 시까지 보유하며, 탈퇴 즉시 모든 개인정보 및 서비스 데이터를 파기합니다. 단, 관련 법령에 따라 보존이 필요한 경우 해당 기간 동안 보관합니다.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>4. 개인정보의 제3자 제공</h3>
+      <p>GolfNote는 원칙적으로 수집한 개인정보를 제3자에게 제공하지 않습니다. 단, 서비스 운영을 위해 아래 업체에 처리를 위탁합니다.</p>
+      <ul>
+        <li>Supabase Inc. — 데이터베이스 및 인증 서비스 (서버: 한국 서울 리전)</li>
+      </ul>
+    </div>
+
+    <div class="privacy-section">
+      <h3>5. 이용자의 권리</h3>
+      <p>이용자는 언제든지 아래 권리를 행사할 수 있습니다.</p>
+      <ul>
+        <li>개인정보 열람, 정정, 삭제 요청</li>
+        <li>개인정보 처리 정지 요청</li>
+        <li>회원 탈퇴 — 앱 내 계정 설정에서 직접 탈퇴 가능하며, 탈퇴 즉시 모든 데이터가 삭제됩니다</li>
+      </ul>
+    </div>
+
+    <div class="privacy-section">
+      <h3>6. 쿠키 및 자동 수집 장치</h3>
+      <p>로그인 상태 유지를 위해 브라우저의 로컬 스토리지를 사용합니다. 이는 브라우저 설정에서 삭제 가능합니다.</p>
+    </div>
+
+    <div class="privacy-date">시행일: 2025년 1월 1일 · 최종 수정: 2025년 1월 1일</div>
+
+    <div style="margin-top:1.25rem;text-align:right">
+      <button class="btn btn-primary" onclick="closePrivacyModal()">확인</button>
+    </div>
   </div>
 </div>
 
@@ -314,10 +466,47 @@
       <div class="header-actions">
         <span class="sync-dot" id="sync-dot" title="동기화 상태"></span>
         <span class="user-email" id="user-email"></span>
-        <button class="btn-icon danger" onclick="signOut()">로그아웃</button>
+        <button class="btn-icon" onclick="toggleAccountPanel()" id="account-btn">계정 ▾</button>
       </div>
     </div>
   </header>
+
+  <!-- 계정 패널 드롭다운 -->
+  <div class="account-panel" id="account-panel">
+    <div class="account-panel-email" id="panel-email"></div>
+    <button class="account-panel-btn" onclick="openPrivacyModal();closeAccountPanel()">📄 개인정보 처리방침</button>
+    <button class="account-panel-btn" onclick="openAccountSettings();closeAccountPanel()">⚙️ 계정 설정 / 회원탈퇴</button>
+    <div style="border-top:1px solid var(--border);margin:0.5rem 0"></div>
+    <button class="account-panel-btn danger" onclick="signOut();closeAccountPanel()">로그아웃</button>
+  </div>
+
+  <!-- 계정 설정 모달 -->
+  <div class="modal-overlay" id="account-modal" onclick="if(event.target===this)closeAccountSettings()">
+    <div class="modal-box">
+      <div class="modal-title">
+        계정 설정
+        <button class="modal-close" onclick="closeAccountSettings()">✕</button>
+      </div>
+
+      <div class="privacy-section">
+        <h3>내 계정 정보</h3>
+        <p id="modal-user-email" style="font-family:'DM Sans',monospace;color:var(--gold)"></p>
+      </div>
+
+      <div class="privacy-section">
+        <h3>데이터 현황</h3>
+        <p id="modal-data-count"></p>
+      </div>
+
+      <div class="danger-zone">
+        <div class="danger-zone-title">⚠ 위험 구역</div>
+        <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.75rem;line-height:1.6">
+          회원 탈퇴 시 저장된 모든 데이터(영상, 장비, 메모)가 즉시 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+        </p>
+        <button class="btn btn-danger" onclick="deleteAccount()" style="width:100%">회원 탈퇴 및 모든 데이터 삭제</button>
+      </div>
+    </div>
+  </div>
 
   <div class="tabs">
     <div class="tabs-inner">
@@ -383,6 +572,8 @@ function switchAuthTab(mode) {
   document.getElementById('auth-btn').textContent = mode==='login'?'로그인':'회원가입';
   document.getElementById('auth-err').style.display='none';
   document.getElementById('auth-ok').style.display='none';
+  // 회원가입 시에만 동의 항목 표시
+  document.getElementById('signup-agree').style.display = mode==='signup'?'block':'none';
 }
 
 function showAuthErr(msg) {
@@ -400,6 +591,16 @@ async function authSubmit() {
   const btn=document.getElementById('auth-btn');
   if (!email||!pw) { showAuthErr('이메일과 비밀번호를 입력하세요'); return; }
   if (pw.length<6) { showAuthErr('비밀번호는 6자 이상이어야 합니다'); return; }
+
+  if (authMode==='signup') {
+    // 필수 동의 항목 검증
+    if (!document.getElementById('agree-privacy').checked) {
+      showAuthErr('개인정보 처리방침에 동의해주세요'); return;
+    }
+    if (!document.getElementById('agree-terms').checked) {
+      showAuthErr('이용약관에 동의해주세요'); return;
+    }
+  }
 
   btn.disabled=true; btn.textContent='처리 중...';
 
@@ -424,6 +625,7 @@ async function signOut() {
   currentUser=null; appData={videos:[],equipment:[]};
   document.getElementById('app-screen').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
+  document.body.style.overflow='';
 }
 
 // ════════════════════════════════════════════════════════
@@ -449,12 +651,92 @@ async function onSignIn(user) {
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-email').textContent=user.email;
+  document.getElementById('panel-email').textContent=user.email;
 
-  // Load data
   showMainLoading();
   await loadAllData();
   setupRealtime();
   render();
+}
+
+// ════════════════════════════════════════════════════════
+// 개인정보 처리방침 모달
+// ════════════════════════════════════════════════════════
+function openPrivacyModal() {
+  document.getElementById('privacy-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closePrivacyModal() {
+  document.getElementById('privacy-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+// ════════════════════════════════════════════════════════
+// 계정 패널
+// ════════════════════════════════════════════════════════
+function toggleAccountPanel() {
+  document.getElementById('account-panel').classList.toggle('open');
+}
+function closeAccountPanel() {
+  document.getElementById('account-panel').classList.remove('open');
+}
+// 패널 바깥 클릭 시 닫기
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('account-panel');
+  const btn = document.getElementById('account-btn');
+  if (panel && !panel.contains(e.target) && e.target !== btn) {
+    panel.classList.remove('open');
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// 계정 설정 모달 (회원탈퇴)
+// ════════════════════════════════════════════════════════
+function openAccountSettings() {
+  document.getElementById('modal-user-email').textContent = currentUser?.email || '';
+  document.getElementById('modal-data-count').textContent =
+    `영상 ${appData.videos.length}개 · 장비 ${appData.equipment.length}개 저장됨`;
+  document.getElementById('account-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeAccountSettings() {
+  document.getElementById('account-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+async function deleteAccount() {
+  const confirmed = confirm(
+    '정말로 탈퇴하시겠습니까?\n\n' +
+    '· 저장된 영상 ' + appData.videos.length + '개\n' +
+    '· 저장된 장비 ' + appData.equipment.length + '개\n\n' +
+    '모든 데이터가 즉시 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.'
+  );
+  if (!confirmed) return;
+
+  // 재확인
+  const reconfirm = prompt('탈퇴를 확인하려면 아래에 "탈퇴합니다"를 입력하세요:');
+  if (reconfirm !== '탈퇴합니다') { showToast('탈퇴가 취소됐습니다'); return; }
+
+  setSyncStatus('syncing');
+  try {
+    // 1. 내 데이터 모두 삭제
+    await sb.from('videos').delete().eq('user_id', currentUser.id);
+    await sb.from('equipment').delete().eq('user_id', currentUser.id);
+
+    // 2. 로그아웃 (계정 삭제는 서버 함수 필요 — Supabase 무료 플랜에서는 관리자 API 필요)
+    if (realtimeChannel) sb.removeChannel(realtimeChannel);
+    await sb.auth.signOut();
+
+    // UI 초기화
+    currentUser=null; appData={videos:[],equipment:[]};
+    closeAccountSettings();
+    document.getElementById('app-screen').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
+    showToast('모든 데이터가 삭제됐습니다. 이용해주셔서 감사합니다.');
+  } catch(e) {
+    showToast('오류가 발생했습니다: ' + e.message);
+    setSyncStatus('error');
+  }
 }
 
 function showMainLoading() {
@@ -602,6 +884,7 @@ function filterVideos(q,cat) {
 function renderVideoDetail() {
   const v=appData.videos.find(x=>x.id===selectedId); if(!v) return '<div class="empty-state">영상을 찾을 수 없습니다.</div>';
   const vid=getVideoId(v.url);
+  const embedUrl = vid ? `https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1` : '';
   const tsHtml=v.timestamps.length?v.timestamps.map((ts,i)=>`
     <div class="ts-item">
       <span class="ts-time" onclick="playFrom('${ts.time}','${v.id}')" title="${ts.time}부터 재생">${ts.time}</span>
@@ -622,12 +905,21 @@ function renderVideoDetail() {
       <button class="btn btn-secondary btn-sm" style="flex-shrink:0" onclick="saveVideoUrl('${v.id}',document.getElementById('edit-url').value)">적용</button>
     </div>
     <div style="margin-bottom:0.75rem">${v.keywords.map(k=>`<span class="badge badge-gold">${escHtml(k)}</span>`).join('')}</div>
-    ${vid?`
-    <a class="yt-player" href="https://www.youtube.com/watch?v=${vid}" target="_blank" rel="noopener">
-      <img src="https://img.youtube.com/vi/${vid}/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/${vid}/mqdefault.jpg'" alt="">
-      <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
-      <div class="yt-label">▶ YouTube에서 열기 · 타임스탬프 클릭 시 해당 시간으로 이동</div>
-    </a>`:`<div style="padding:1rem;color:var(--text-muted);background:var(--navy);border-radius:8px;margin-bottom:1rem;font-size:0.88rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}
+    ${vid ? `
+    <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:0.5rem;border:1px solid var(--border);background:#000">
+      <iframe
+        id="yt-iframe"
+        src="${embedUrl}"
+        style="width:100%;height:100%;border:none;display:block"
+        allowfullscreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+      ></iframe>
+    </div>
+    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:1rem;text-align:right">
+      타임스탬프를 클릭하면 해당 구간부터 재생됩니다
+    </div>
+    ` : `<div style="padding:1rem;color:var(--text-muted);background:var(--navy);border-radius:8px;margin-bottom:1rem;font-size:0.88rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}
     <div class="section-label">메모</div>
     <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7;margin-bottom:1rem">${escHtml(v.memo)||'메모 없음'}</div>
     <div class="section-label">구간 타임스탬프</div>
@@ -645,10 +937,17 @@ function renderVideoDetail() {
   </div>`;
 }
 
-function playFrom(time,vid) {
+function playFrom(time, vid) {
   const v=appData.videos.find(x=>x.id===vid); if(!v) return;
   const videoId=getVideoId(v.url); if(!videoId) { showToast('유효한 YouTube URL이 없습니다'); return; }
-  window.open(`https://www.youtube.com/watch?v=${videoId}&t=${timeToSec(time)}s`,'_blank','noopener');
+  const sec=timeToSec(time);
+  const iframe=document.getElementById('yt-iframe');
+  if (iframe) {
+    // iframe src를 해당 시간으로 교체하여 즉시 재생
+    iframe.src=`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&start=${sec}&autoplay=1`;
+    // 플레이어로 부드럽게 스크롤
+    iframe.scrollIntoView({behavior:'smooth', block:'center'});
+  }
 }
 
 // ════════════════════════════════════════════════════════
