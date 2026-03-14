@@ -135,6 +135,22 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .img-upload{border:2px dashed var(--border2);border-radius:10px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
 .img-upload:hover{border-color:var(--gold);color:var(--gold)}
 .img-upload input{display:none}
+/* AI 분석 */
+.ai-status{background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:.9rem 1rem;margin-bottom:.75rem}
+.ai-status-title{font-size:.72rem;font-weight:700;color:var(--gold2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
+.ai-photo-list{display:flex;flex-direction:column;gap:.4rem}
+.ai-photo-item{display:flex;align-items:center;gap:.6rem;font-size:.82rem;padding:.35rem .5rem;border-radius:6px;background:var(--bg2)}
+.ai-photo-thumb{width:44px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid var(--border)}
+.ai-photo-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.ai-photo-status{font-size:.75rem;flex-shrink:0;font-weight:600}
+.ai-photo-status.wait{color:var(--muted)}
+.ai-photo-status.busy{color:var(--gold);animation:pulse 1s infinite}
+.ai-photo-status.done{color:var(--green)}
+.ai-photo-status.fail{color:var(--red)}
+.progress-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:.6rem;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--goldd),var(--gold2));border-radius:2px;transition:width .4s ease}
+/* 설정 모달 */
+.settings-info{font-size:.8rem;color:var(--dim);line-height:1.6;margin-bottom:.9rem;padding:.7rem;background:rgba(200,168,75,.05);border:1px solid var(--border);border-radius:8px}
 .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
 .modal-bg.on{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:620px;padding:1.6rem;margin:auto;box-shadow:0 8px 40px rgba(0,0,0,.5);animation:fadeUp .2s ease}
@@ -192,6 +208,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
     </div>
     <div class="acct-panel" id="acct-panel">
       <div class="acct-email" id="panel-email"></div>
+      <button class="acct-btn" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
       <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
       <button class="acct-btn" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정 / 회원탈퇴</button>
       <div class="acct-sep"></div>
@@ -204,6 +221,30 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
     <button class="tab" id="tab-practice" onclick="gotoTab('practice')">📊 연습</button>
   </div></div>
   <main id="main"></main>
+</div>
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="modal">
+    <div class="modal-title">🔑 API 키 설정 <button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
+    <div class="settings-info">
+      API 키는 이 기기의 브라우저에만 저장되며 외부로 전송되지 않습니다.<br>
+      GDR 사진 자동 분석에 사용됩니다.
+    </div>
+    <div class="fg">
+      <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 화면 분석)</label>
+      <input class="inp" type="password" id="set-anthropic" placeholder="sk-ant-api03-...">
+      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.anthropic.com → API Keys</div>
+    </div>
+    <div class="fg">
+      <label class="fl-label">Google Geocoding API 키 (GPS → 주소 변환, 선택)</label>
+      <input class="inp" type="password" id="set-google" placeholder="AIza...">
+      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.cloud.google.com → Geocoding API</div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-p" onclick="saveApiKeys()">저장</button>
+      <button class="btn btn-s" onclick="closeModal('settings-modal')">취소</button>
+    </div>
+  </div>
 </div>
 <div class="modal-bg" id="privacy-modal" onclick="if(event.target===this)closeModal('privacy-modal')">
   <div class="modal">
@@ -311,7 +352,7 @@ async function loadAll(){
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[]}));
-    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',shots:r.shots||[]}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[]}));
     sync('ok');
   }catch(e){sync('err');toast('로드 실패: '+e.message)}
 }
@@ -417,16 +458,479 @@ function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
   const st=ss(s);
   const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--gold2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--green)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">기록된 샷이 없습니다.</div>';
-  return`<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#f2ead6">${s.date||''}</div><div style="margin-top:5px;display:flex;gap:.45rem;align-items:center">${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}${s.loc?`<span style="font-size:.76rem;color:var(--muted)">📍 ${esc(s.loc)}</span>`:''}</div></div><div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:700;color:var(--gold2)">${s.shots.length}샷</div></div>${s.imgUrl?`<div class="sec-label">GDR 화면</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">`:''}<div class="sec-label">샷 데이터</div>${shotsH}${s.memo?`<div class="sec-label" style="margin-top:.9rem">메모</div><div style="font-size:.88rem;color:var(--dim);line-height:1.7">${esc(s.memo)}</div>`:''}<div class="divider"></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button></div></div>`;
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#f2ead6">${s.date||''}</div><div style="margin-top:5px;display:flex;gap:.45rem;align-items:center">${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}${s.loc?`<span style="font-size:.76rem;color:var(--muted)">📍 ${esc(s.loc)}</span>`:''}</div></div><div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:700;color:var(--gold2)">${s.shots.length}샷</div></div>
+  ${(s.imageUrls?.length > 1) ? `<div class="sec-label">GDR 화면 (${s.imageUrls.length}장)</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem;margin-bottom:.9rem">${s.imageUrls.map(url=>`<img src="${ea(url)}" onclick="window.open(this.src,'_blank')" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" alt="">`).join('')}</div>` : s.imgUrl ? `<div class="sec-label">GDR 화면</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">` : ''}
+  <div class="sec-label">샷 데이터</div>${shotsH}${s.memo?`<div class="sec-label" style="margin-top:.9rem">메모</div><div style="font-size:.88rem;color:var(--dim);line-height:1.7">${esc(s.memo)}</div>`:''}<div class="divider"></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button></div></div>`;
 }
 function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
 function pAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button><div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem"><div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">연습 세션 추가</div><div class="frow"><div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div><div class="fg"><label class="fl-label">클럽</label><select class="sel" id="pc"><option value="">선택...</option>${CLUBS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">연습장 / 장소</label><input class="inp" id="pl" placeholder="예: 강남 골프존"></div><div class="sec-label">GDR 화면 사진</div><div class="img-upload" onclick="document.getElementById('pimg').click()"><input type="file" id="pimg" accept="image/*" onchange="prevImg(this)"><div id="img-prev">📷 사진 탭하여 업로드<br><span style="font-size:.73rem;opacity:.7">GDR 화면 사진을 첨부하세요</span></div></div><div class="sec-label">샷 데이터 입력</div><div id="shots-wrap">${mkShotRow(0)}</div><button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 추가</button><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="오늘 연습 소감, 개선점..."></textarea></div><div class="brow"><button class="btn btn-p" id="psavebtn" onclick="saveSession()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
-window.addRow=()=>{const w=$('shots-wrap'),d=document.createElement('div');d.innerHTML=mkShotRow(shotCnt);w.appendChild(d.firstElementChild);shotCnt++};
-window.rmRow=idx=>{const e=$('sr-'+idx);if(e)e.remove()};
-window.prevImg=input=>{const f=input.files[0];if(!f)return;upFile=f;const r=new FileReader();r.onload=e=>{$('img-prev').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:6px" alt=""><br><span style="font-size:.72rem;opacity:.7">다시 탭하면 교체</span>`};r.readAsDataURL(f)};
-function collectShots(){const rows=document.querySelectorAll('[id^="sr-"]'),shots=[];rows.forEach(row=>{const idx=row.id.replace('sr-',''),get=k=>{const e=document.getElementById(`sh-${k}-${idx}`);return e?e.value:''},carry=parseFloat(get('carry'))||0,total=parseFloat(get('total'))||0,hs=parseFloat(get('headSpeed'))||0;if(!carry&&!total&&!hs)return;shots.push({carry,total,headSpeed:hs,ballSpeed:parseFloat(get('ballSpeed'))||0,smashFactor:parseFloat(get('smashFactor'))||0,launchAngle:parseFloat(get('launchAngle'))||0,spin:parseFloat(get('spin'))||0,direction:get('direction')!==''?parseFloat(get('direction')):null})});return shots}
-window.saveSession=async()=>{const date=$('pd').value;if(!date){toast('날짜를 입력하세요');return}const club=$('pc').value,loc=$('pl').value.trim(),memo=$('pm').value.trim(),shots=collectShots(),btn=$('psavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');let imageUrl='';if(upFile){const ext=upFile.name.split('.').pop(),path=`${user.id}/${Date.now()}.${ext}`,{error:ue}=await sb.storage.from('gdr-images').upload(path,upFile);if(ue){toast('이미지 업로드 실패: '+ue.message);btn.disabled=false;btn.textContent='저장';sync('err');return}const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path,60*60*24*365);imageUrl=sd?.signedUrl||''}const{error}=await sb.from('practice_sessions').insert({user_id:user.id,session_date:date,club,location:loc,memo,total_shots:shots.length,shots,image_url:imageUrl});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}upFile=null;shotCnt=1;await loadAll();toast('세션 저장됨');goList()};
-window.delSession=async id=>{if(!confirm('이 세션을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
+// ── API KEY MANAGEMENT ───────────────────────────────
+window.saveApiKeys = () => {
+  const a = $('set-anthropic').value.trim();
+  const g = $('set-google').value.trim();
+  if(a) localStorage.setItem('golfnote_anthropic', a);
+  if(g) localStorage.setItem('golfnote_google', g);
+  closeModal('settings-modal');
+  toast('API 키가 저장됐습니다');
+};
+window.openModal = id => {
+  $(id).classList.add('on');
+  document.body.style.overflow = 'hidden';
+  // 설정 모달 열 때 저장된 키 표시
+  if(id === 'settings-modal') {
+    const a = localStorage.getItem('golfnote_anthropic') || '';
+    const g = localStorage.getItem('golfnote_google') || '';
+    if(a) $('set-anthropic').value = a;
+    if(g) $('set-google').value = g;
+  }
+};
+const getAnthropicKey = () => localStorage.getItem('golfnote_anthropic') || '';
+const getGoogleKey   = () => localStorage.getItem('golfnote_google') || '';
+
+// ── EXIF PARSING ─────────────────────────────────────
+async function readExif(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const buf = e.target.result;
+        const view = new DataView(buf);
+        // JPEG 마커 확인
+        if(view.getUint16(0) !== 0xFFD8) { resolve({}); return; }
+        let offset = 2;
+        while(offset < buf.byteLength - 2) {
+          const marker = view.getUint16(offset);
+          if(marker === 0xFFE1) { // APP1 (EXIF)
+            const exif = parseExifSegment(view, offset + 4, buf);
+            resolve(exif); return;
+          }
+          if(marker === 0xFFDA) break; // SOS
+          const segLen = view.getUint16(offset + 2);
+          offset += 2 + segLen;
+        }
+        resolve({});
+      } catch(err) { resolve({}); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseExifSegment(view, start, buf) {
+  const result = {};
+  try {
+    // EXIF 헤더 확인
+    const header = String.fromCharCode(...new Uint8Array(buf, start, 4));
+    if(!header.startsWith('Exif')) return result;
+    const tiffStart = start + 6;
+    const byteOrder = view.getUint16(tiffStart);
+    const le = byteOrder === 0x4949; // little endian
+    const getU16 = o => view.getUint16(tiffStart + o, le);
+    const getU32 = o => view.getUint32(tiffStart + o, le);
+    const getStr = (o, len) => {
+      let s = '';
+      for(let i = 0; i < len && (tiffStart + o + i) < view.byteLength; i++) {
+        const c = view.getUint8(tiffStart + o + i);
+        if(c === 0) break;
+        s += String.fromCharCode(c);
+      }
+      return s;
+    };
+    const ifdOffset = getU32(4);
+    const numEntries = getU16(ifdOffset);
+    for(let i = 0; i < numEntries; i++) {
+      const entryOffset = ifdOffset + 2 + i * 12;
+      const tag = getU16(entryOffset);
+      const type = getU16(entryOffset + 2);
+      const count = getU32(entryOffset + 4);
+      const valOffset = entryOffset + 8;
+      // DateTimeOriginal = 0x9003, DateTime = 0x0132
+      if(tag === 0x9003 || tag === 0x0132) {
+        const strOffset = count <= 4 ? valOffset : getU32(valOffset);
+        result.dateTime = getStr(strOffset, count);
+      }
+      // SubExif IFD = 0x8769
+      if(tag === 0x8769) {
+        const subOffset = getU32(valOffset);
+        const subNum = getU16(subOffset);
+        for(let j = 0; j < subNum; j++) {
+          const se = subOffset + 2 + j * 12;
+          if(se + 12 > view.byteLength - tiffStart) continue;
+          const stag = getU16(se);
+          if(stag === 0x9003) {
+            const scount = getU32(se + 4);
+            const svoff = se + 8;
+            const sstroff = scount <= 4 ? svoff : getU32(svoff);
+            result.dateTime = getStr(sstroff, scount);
+          }
+        }
+      }
+      // GPS IFD = 0x8825
+      if(tag === 0x8825) {
+        const gpsOffset = getU32(valOffset);
+        result.gps = parseGpsIfd(view, tiffStart, gpsOffset, le);
+      }
+    }
+  } catch(e) {}
+  return result;
+}
+
+function parseGpsIfd(view, tiffStart, gpsOffset, le) {
+  const gps = {};
+  try {
+    const getU16 = o => view.getUint16(tiffStart + o, le);
+    const getU32 = o => view.getUint32(tiffStart + o, le);
+    const numEntries = getU16(gpsOffset);
+    for(let i = 0; i < numEntries; i++) {
+      const e = gpsOffset + 2 + i * 12;
+      if(e + 12 > view.byteLength - tiffStart) continue;
+      const tag = getU16(e);
+      const count = getU32(e + 4);
+      const voff = e + 8;
+      // GPSLatitudeRef=1, GPSLatitude=2, GPSLongitudeRef=3, GPSLongitude=4
+      if(tag === 1) gps.latRef = String.fromCharCode(view.getUint8(tiffStart + voff));
+      if(tag === 3) gps.lonRef = String.fromCharCode(view.getUint8(tiffStart + voff));
+      if(tag === 2 || tag === 4) {
+        const dataOff = getU32(voff);
+        const deg = getU32(dataOff) / getU32(dataOff + 4);
+        const min = getU32(dataOff + 8) / getU32(dataOff + 12);
+        const sec = getU32(dataOff + 16) / getU32(dataOff + 20);
+        const dd = deg + min / 60 + sec / 3600;
+        if(tag === 2) gps.lat = dd;
+        if(tag === 4) gps.lon = dd;
+      }
+    }
+  } catch(e) {}
+  return gps;
+}
+
+function exifDateToISO(dt) {
+  if(!dt) return null;
+  // "2024:03:15 14:30:00" → "2024-03-15"
+  const m = dt.match(/(\d{4}):(\d{2}):(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+async function gpsToAddress(lat, lon) {
+  const key = getGoogleKey();
+  if(!key || !lat || !lon) return null;
+  try {
+    const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=ko&key=${key}`);
+    const data = await r.json();
+    if(data.results && data.results.length > 0) {
+      // 골프장/시설명 우선, 없으면 주소
+      const place = data.results.find(r => r.types?.some(t => ['establishment','point_of_interest','premise'].includes(t)));
+      return place ? place.formatted_address : data.results[0].formatted_address;
+    }
+  } catch(e) {}
+  return null;
+}
+
+// ── CLAUDE VISION ANALYSIS ───────────────────────────
+async function analyzeGDRImage(file, statusCallback) {
+  const key = getAnthropicKey();
+  if(!key) return null;
+  statusCallback('busy');
+  try {
+    const b64 = await fileToBase64(file);
+    const mediaType = file.type || 'image/jpeg';
+    const prompt = `이 이미지는 골프 GDR(Golf Data Record) 스크린샷입니다.
+화면에서 보이는 골프 샷 데이터를 정확히 추출해주세요.
+
+반드시 아래 JSON 형식으로만 응답하세요. 값이 보이지 않으면 null로 표기하세요:
+{
+  "club": "클럽명 (예: 드라이버, 7I, PW 등. 없으면 null)",
+  "carry": 캐리거리_숫자_또는_null,
+  "total": 총거리_숫자_또는_null,
+  "headSpeed": 헤드스피드_숫자_또는_null,
+  "ballSpeed": 볼스피드_숫자_또는_null,
+  "smashFactor": 스매시팩터_숫자_또는_null,
+  "launchAngle": 발사각_숫자_또는_null,
+  "spin": 스핀rpm_숫자_또는_null,
+  "direction": 방향편차_숫자_또는_null
+}
+
+주의사항:
+- direction: 오른쪽이면 양수(+), 왼쪽이면 음수(-)
+- 단위 제거하고 숫자만 입력 (예: "215m" → 215)
+- JSON 외 다른 텍스트 절대 포함하지 말 것`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5-20251101',
+        max_tokens: 512,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType, data: b64 }
+          }, {
+            type: 'text', text: prompt
+          }]
+        }]
+      })
+    });
+    const data = await resp.json();
+    if(data.error) { statusCallback('fail'); return null; }
+    const text = data.content?.[0]?.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) { statusCallback('fail'); return null; }
+    const parsed = JSON.parse(jsonMatch[0]);
+    statusCallback('done');
+    return parsed;
+  } catch(e) {
+    statusCallback('fail');
+    return null;
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ── MULTI-PHOTO STATE ────────────────────────────────
+let multiFiles = []; // {file, preview, exif, gdrData, status}
+
+async function handleMultiPhoto(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+
+  // 파일 추가
+  multiFiles = [...multiFiles, ...files.map(f => ({file:f, preview:'', exif:null, gdrData:null, status:'wait'}))];
+  renderPhotoStatus();
+
+  // 썸네일 생성
+  for(let i = 0; i < multiFiles.length; i++) {
+    if(multiFiles[i].preview) continue;
+    multiFiles[i].preview = await fileToDataUrl(multiFiles[i].file);
+  }
+  renderPhotoStatus();
+
+  const key = getAnthropicKey();
+  if(!key) {
+    toast('API 키를 먼저 설정하세요 (계정 ▾ → API 키 설정)');
+    return;
+  }
+
+  // EXIF + AI 분석 순차 실행
+  let firstDate = null, firstLocation = null;
+  for(let i = 0; i < multiFiles.length; i++) {
+    const item = multiFiles[i];
+    if(item.status === 'done') continue;
+
+    // EXIF
+    const exif = await readExif(item.file);
+    item.exif = exif;
+    const dt = exifDateToISO(exif.dateTime);
+    if(dt && !firstDate) firstDate = dt;
+    // GPS → 주소
+    if(exif.gps?.lat && exif.gps?.lon && !firstLocation) {
+      const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
+      const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
+      firstLocation = await gpsToAddress(lat, lon);
+    }
+
+    // Claude 분석
+    item.status = 'busy';
+    renderPhotoStatus();
+    const gdrData = await analyzeGDRImage(item.file, s => { item.status = s; renderPhotoStatus(); });
+    item.gdrData = gdrData;
+    renderPhotoStatus();
+
+    // 날짜/장소 자동 입력
+    if(firstDate) { const pd = $('pd'); if(pd) pd.value = firstDate; }
+    if(firstLocation) { const pl = $('pl'); if(pl && !pl.value) pl.value = firstLocation; }
+
+    // 클럽 자동 선택
+    if(gdrData?.club) {
+      const pc = $('pc');
+      if(pc) {
+        const match = CLUBS.find(c => c.toLowerCase().includes(gdrData.club.toLowerCase()) || gdrData.club.toLowerCase().includes(c.toLowerCase()));
+        if(match) pc.value = match;
+      }
+    }
+
+    // 샷 행 자동 생성/업데이트
+    updateShotRows();
+  }
+  renderPhotoStatus();
+}
+
+function fileToDataUrl(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.readAsDataURL(file);
+  });
+}
+
+function renderPhotoStatus() {
+  const wrap = $('photo-status');
+  if(!wrap) return;
+  const done = multiFiles.filter(f => f.status === 'done').length;
+  const total = multiFiles.length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+
+  if(!multiFiles.length) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div class="ai-status-title">✨ AI 분석 ${done}/${total}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="ai-photo-list" style="margin-top:.5rem">
+      ${multiFiles.map((item, i) => `
+        <div class="ai-photo-item">
+          ${item.preview ? `<img class="ai-photo-thumb" src="${item.preview}" alt="">` : '<div class="ai-photo-thumb" style="background:var(--bg3)"></div>'}
+          <span class="ai-photo-name">${esc(item.file.name)}</span>
+          <span class="ai-photo-status ${item.status}">
+            ${item.status==='wait'?'대기중':item.status==='busy'?'분석중...':item.status==='done'?'✓ 완료':'✗ 실패'}
+          </span>
+          <button onclick="removePhoto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 3px">✕</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+window.removePhoto = idx => {
+  multiFiles.splice(idx, 1);
+  renderPhotoStatus();
+  updateShotRows();
+};
+
+function updateShotRows() {
+  const wrap = $('shots-wrap');
+  if(!wrap) return;
+  // 분석 완료된 것만 샷 행 생성
+  const analyzed = multiFiles.filter(f => f.gdrData);
+  if(!analyzed.length) return;
+
+  // 기존 행 모두 제거 후 재생성
+  wrap.innerHTML = '';
+  shotCnt = 0;
+  analyzed.forEach((item, i) => {
+    const rowHtml = mkShotRow(i);
+    const div = document.createElement('div');
+    div.innerHTML = rowHtml;
+    wrap.appendChild(div.firstElementChild);
+    shotCnt = i + 1;
+    // 값 채우기
+    const d = item.gdrData;
+    const fields = ['carry','total','headSpeed','ballSpeed','smashFactor','launchAngle','spin','direction'];
+    fields.forEach(k => {
+      const el = document.getElementById(`sh-${k}-${i}`);
+      if(el && d[k] != null) el.value = d[k];
+    });
+  });
+  // 미분석 항목도 수동 입력용 빈 행 추가
+  const pending = multiFiles.filter(f => !f.gdrData);
+  pending.forEach(() => {
+    const div = document.createElement('div');
+    div.innerHTML = mkShotRow(shotCnt);
+    wrap.appendChild(div.firstElementChild);
+    shotCnt++;
+  });
+}
+
+// ── REPLACED pAdd / saveSession ───────────────────────
+function pAdd() {
+  multiFiles = []; shotCnt = 1;
+  return `<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">연습 세션 추가</div>
+    <div class="frow">
+      <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
+      <div class="fg"><label class="fl-label">클럽</label>
+        <select class="sel" id="pc"><option value="">선택...</option>${CLUBS.map(c=>`<option>${c}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl-label">연습장 / 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
+
+    <div class="sec-label">GDR 화면 사진 (여러 장 동시 업로드 가능)</div>
+    <div class="img-upload" onclick="document.getElementById('pimg').click()">
+      <input type="file" id="pimg" accept="image/*" multiple onchange="handleMultiPhoto(this)">
+      📷 사진을 탭하여 업로드 (여러 장 선택 가능)<br>
+      <span style="font-size:.73rem;opacity:.7">사진 1장 = 샷 1개로 자동 분석됩니다</span>
+    </div>
+    ${!getAnthropicKey() ? `<div style="font-size:.78rem;color:var(--amber);padding:.5rem .75rem;background:rgba(200,130,40,.08);border:1px solid rgba(200,130,40,.2);border-radius:8px;margin-bottom:.75rem">⚠️ API 키 미설정 — 자동 분석이 비활성화됩니다. <a style="color:var(--gold);cursor:pointer;text-decoration:underline" onclick="openModal('settings-modal')">설정하기</a></div>` : ''}
+
+    <div class="ai-status" id="photo-status" style="display:none"></div>
+
+    <div class="sec-label">샷 데이터</div>
+    <div id="shots-wrap">${mkShotRow(0)}</div>
+    <button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 수동 추가</button>
+
+    <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="오늘 연습 소감, 개선점..."></textarea></div>
+    <div class="brow">
+      <button class="btn btn-p" id="psavebtn" onclick="saveSession()">저장</button>
+      <button class="btn btn-s" onclick="goList()">취소</button>
+    </div>
+  </div></div>`;
+}
+
+window.saveSession = async () => {
+  const date = $('pd').value; if(!date){ toast('날짜를 입력하세요'); return; }
+  const club = $('pc').value, loc = $('pl').value.trim(), memo = $('pm').value.trim();
+  const shots = collectShots();
+  const btn = $('psavebtn'); btn.disabled = true; btn.textContent = '저장 중...';
+  sync('busy');
+
+  // 사진들 Supabase에 업로드
+  const imageUrls = [];
+  for(const item of multiFiles) {
+    const ext = item.file.name.split('.').pop();
+    const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: ue } = await sb.storage.from('gdr-images').upload(path, item.file);
+    if(!ue) {
+      const { data: sd } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
+      if(sd?.signedUrl) imageUrls.push(sd.signedUrl);
+    }
+  }
+  // 레거시 단일 upFile 지원
+  if(!imageUrls.length && upFile) {
+    const ext = upFile.name.split('.').pop();
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error: ue } = await sb.storage.from('gdr-images').upload(path, upFile);
+    if(!ue) {
+      const { data: sd } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
+      if(sd?.signedUrl) imageUrls.push(sd.signedUrl);
+    }
+  }
+
+  const { error } = await sb.from('practice_sessions').insert({
+    user_id: user.id, session_date: date, club, location: loc, memo,
+    total_shots: shots.length, shots,
+    image_url: imageUrls[0] || '',           // 첫 번째 사진 (기존 호환)
+    image_urls: imageUrls,                    // 전체 사진 배열
+  });
+  if(error){ toast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; sync('err'); return; }
+  multiFiles = []; upFile = null; shotCnt = 1;
+  await loadAll(); toast('세션 저장됨'); goList();
+};
+window.addRow = () => {
+  const w = $('shots-wrap'), d = document.createElement('div');
+  d.innerHTML = mkShotRow(shotCnt);
+  w.appendChild(d.firstElementChild); shotCnt++;
+};
+window.rmRow = idx => { const e = $('sr-'+idx); if(e) e.remove(); };
+
+function collectShots() {
+  const rows = document.querySelectorAll('[id^="sr-"]'), shots = [];
+  rows.forEach(row => {
+    const idx = row.id.replace('sr-','');
+    const get = k => { const e = document.getElementById(`sh-${k}-${idx}`); return e ? e.value : ''; };
+    const carry = parseFloat(get('carry'))||0, total = parseFloat(get('total'))||0, hs = parseFloat(get('headSpeed'))||0;
+    if(!carry && !total && !hs) return;
+    shots.push({ carry, total, headSpeed:hs, ballSpeed:parseFloat(get('ballSpeed'))||0, smashFactor:parseFloat(get('smashFactor'))||0, launchAngle:parseFloat(get('launchAngle'))||0, spin:parseFloat(get('spin'))||0, direction:get('direction')!==''?parseFloat(get('direction')):null });
+  });
+  return shots;
+}if(!confirm('이 세션을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
 (async()=>{
   try{
     const{data:{session}}=await sb.auth.getSession();
