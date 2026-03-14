@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --navy: #0d1b2e; --navy2: #13243d; --navy3: #1a2f4a;
@@ -336,12 +337,72 @@
   }
   .danger-zone-title { font-size:0.72rem; font-weight:700; color:var(--red2); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:0.5rem; }
 
-  @media (max-width:480px) {
-    .stats-row { gap:0.4rem; } .stat-num { font-size:1.4rem; }
-    .user-email { display:none; }
-    .account-panel { right:0.5rem; left:0.5rem; min-width:unset; }
+  /* ── 연습 기록 ── */
+  .shot-row {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:0.5rem;
+    background:var(--navy); border:1px solid var(--border); border-radius:8px;
+    padding:0.75rem; margin-bottom:0.5rem; position:relative;
   }
-</style>
+  .shot-num {
+    position:absolute; top:0.5rem; left:0.6rem;
+    font-size:0.68rem; color:var(--text-muted); font-weight:700; letter-spacing:1px;
+  }
+  .shot-field { display:flex; flex-direction:column; gap:3px; }
+  .shot-field label { font-size:0.68rem; color:var(--text-muted); letter-spacing:0.5px; text-transform:uppercase; }
+  .shot-field input {
+    background:var(--navy2); border:1px solid var(--border); color:var(--text);
+    padding:0.35rem 0.5rem; border-radius:6px; font-size:0.85rem;
+    font-family:inherit; outline:none; width:100%;
+  }
+  .shot-field input:focus { border-color:var(--border2); }
+  .shot-del-btn {
+    position:absolute; top:0.4rem; right:0.5rem;
+    background:none; border:none; color:var(--text-muted);
+    cursor:pointer; font-size:0.9rem; transition:color 0.15s;
+  }
+  .shot-del-btn:hover { color:var(--red2); }
+
+  .stat-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+  .stat-table th { text-align:left; padding:0.5rem 0.6rem; font-size:0.72rem; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .stat-table td { padding:0.6rem 0.6rem; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--text-dim); }
+  .stat-table tr:hover td { background:rgba(255,255,255,0.02); }
+  .stat-table .val { font-family:'DM Sans',monospace; color:var(--text); font-weight:500; }
+  .stat-table .best { color:var(--gold2); font-weight:700; }
+
+  .chart-wrap { background:var(--navy2); border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem; }
+  .chart-title { font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:0.75rem; }
+
+  .session-card-meta { display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:6px; }
+  .session-stat { font-size:0.78rem; color:var(--text-muted); }
+  .session-stat span { color:var(--gold2); font-weight:700; font-family:'DM Sans',monospace; }
+
+  .img-preview { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:0.75rem; display:block; cursor:pointer; }
+  .img-upload-area {
+    border:2px dashed var(--border2); border-radius:10px; padding:1.5rem;
+    text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:0.75rem;
+    color:var(--text-muted); font-size:0.85rem;
+  }
+  .img-upload-area:hover { border-color:var(--gold); color:var(--gold); background:rgba(200,168,75,0.04); }
+  .img-upload-area input { display:none; }
+
+  .club-badge {
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    font-size:0.72rem; font-weight:700;
+    background:rgba(200,168,75,0.12); color:var(--gold2);
+    border:1px solid rgba(200,168,75,0.25);
+  }
+
+  .practice-tabs { display:flex; gap:0.5rem; margin-bottom:1.25rem; }
+  .practice-tab {
+    padding:0.45rem 1rem; border-radius:20px; border:1px solid var(--border);
+    background:none; color:var(--text-muted); font-family:inherit; font-size:0.82rem;
+    cursor:pointer; transition:all 0.15s;
+  }
+  .practice-tab.active { background:rgba(200,168,75,0.12); color:var(--gold2); border-color:var(--border2); }
+
+  @media(max-width:480px){
+    .shot-row { grid-template-columns:repeat(2,1fr); padding-top:1.6rem; }
+  }
 </head>
 <body>
 
@@ -510,8 +571,9 @@
 
   <div class="tabs">
     <div class="tabs-inner">
-      <button class="tab-btn active" id="tab-videos" onclick="switchTab('videos')">📹 영상 아카이브</button>
-      <button class="tab-btn" id="tab-equipment" onclick="switchTab('equipment')">🏌️ 장비 관리</button>
+      <button class="tab-btn active" id="tab-videos" onclick="switchTab('videos')">📹 영상</button>
+      <button class="tab-btn" id="tab-equipment" onclick="switchTab('equipment')">🏌️ 장비</button>
+      <button class="tab-btn" id="tab-practice" onclick="switchTab('practice')">📊 연습 기록</button>
     </div>
   </div>
 
@@ -530,14 +592,17 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // STATE
 // ════════════════════════════════════════════════════════
 let currentUser = null;
-let appData = { videos: [], equipment: [] };
+let appData = { videos: [], equipment: [], sessions: [] };
 let currentTab = 'videos';
 let currentView = 'list';
 let selectedId = null;
 let realtimeChannel = null;
+let practiceSubTab = 'sessions'; // sessions | stats
+let chartInstances = {};
 
 const VIDEO_CATS = ["드라이버","우드/하이브리드","아이언","웨지","퍼팅","숏게임","어프로치","멘탈","피트니스","코스매니지먼트","룰/에티켓","기타"];
 const EQUIP_CATS = ["드라이버","우드/유틸리티","아이언","웨지","퍼터","골프공","골프백","카트/트롤리","의류","신발","글러브","액세서리","레인기어","기타"];
+const CLUB_LIST = ["드라이버","3W","5W","유틸리티","2I","3I","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","퍼터"];
 
 // ════════════════════════════════════════════════════════
 // UTILS
@@ -695,48 +760,13 @@ document.addEventListener('click', function(e) {
 function openAccountSettings() {
   document.getElementById('modal-user-email').textContent = currentUser?.email || '';
   document.getElementById('modal-data-count').textContent =
-    `영상 ${appData.videos.length}개 · 장비 ${appData.equipment.length}개 저장됨`;
+    `영상 ${appData.videos.length}개 · 장비 ${appData.equipment.length}개 · 연습 세션 ${appData.sessions.length}개`;
   document.getElementById('account-modal').classList.add('open');
   document.body.style.overflow='hidden';
 }
 function closeAccountSettings() {
   document.getElementById('account-modal').classList.remove('open');
   document.body.style.overflow='';
-}
-
-async function deleteAccount() {
-  const confirmed = confirm(
-    '정말로 탈퇴하시겠습니까?\n\n' +
-    '· 저장된 영상 ' + appData.videos.length + '개\n' +
-    '· 저장된 장비 ' + appData.equipment.length + '개\n\n' +
-    '모든 데이터가 즉시 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.'
-  );
-  if (!confirmed) return;
-
-  // 재확인
-  const reconfirm = prompt('탈퇴를 확인하려면 아래에 "탈퇴합니다"를 입력하세요:');
-  if (reconfirm !== '탈퇴합니다') { showToast('탈퇴가 취소됐습니다'); return; }
-
-  setSyncStatus('syncing');
-  try {
-    // 1. 내 데이터 모두 삭제
-    await sb.from('videos').delete().eq('user_id', currentUser.id);
-    await sb.from('equipment').delete().eq('user_id', currentUser.id);
-
-    // 2. 로그아웃 (계정 삭제는 서버 함수 필요 — Supabase 무료 플랜에서는 관리자 API 필요)
-    if (realtimeChannel) sb.removeChannel(realtimeChannel);
-    await sb.auth.signOut();
-
-    // UI 초기화
-    currentUser=null; appData={videos:[],equipment:[]};
-    closeAccountSettings();
-    document.getElementById('app-screen').style.display='none';
-    document.getElementById('auth-screen').style.display='flex';
-    showToast('모든 데이터가 삭제됐습니다. 이용해주셔서 감사합니다.');
-  } catch(e) {
-    showToast('오류가 발생했습니다: ' + e.message);
-    setSyncStatus('error');
-  }
 }
 
 function showMainLoading() {
@@ -753,14 +783,17 @@ function showMainLoading() {
 async function loadAllData() {
   setSyncStatus('syncing');
   try {
-    const [vRes, eRes] = await Promise.all([
+    const [vRes, eRes, sRes] = await Promise.all([
       sb.from('videos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}),
       sb.from('equipment').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}),
+      sb.from('practice_sessions').select('*').eq('user_id',currentUser.id).order('session_date',{ascending:false}),
     ]);
     if (vRes.error) throw vRes.error;
     if (eRes.error) throw eRes.error;
+    if (sRes.error) throw sRes.error;
     appData.videos = vRes.data.map(dbToVideo);
     appData.equipment = eRes.data.map(dbToEquip);
+    appData.sessions = sRes.data.map(dbToSession);
     setSyncStatus('ok');
   } catch(e) {
     setSyncStatus('error');
@@ -774,6 +807,9 @@ function dbToVideo(r) {
 }
 function dbToEquip(r) {
   return { id:r.id, name:r.name, category:r.category||'', status:r.status||'wishlist', purchasePrice:r.purchase_price, purchaseDate:r.purchase_date, memo:r.memo||'', links:r.links||[], priceHistory:r.price_history||[] };
+}
+function dbToSession(r) {
+  return { id:r.id, date:r.session_date, location:r.location||'', club:r.club||'', totalShots:r.total_shots||0, memo:r.memo||'', imageUrl:r.image_url||'', shots:r.shots||[] };
 }
 
 // ════════════════════════════════════════════════════════
@@ -796,6 +832,9 @@ function switchTab(tab) {
   currentTab=tab; currentView='list'; selectedId=null;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
+  // 차트 인스턴스 정리
+  Object.values(chartInstances).forEach(c=>{ try{c.destroy();}catch(e){} });
+  chartInstances={};
   render();
 }
 function goList() { currentView='list'; selectedId=null; render(); }
@@ -808,10 +847,14 @@ function render() {
     if (currentView==='list') el.innerHTML=renderVideoList();
     else if (currentView==='detail') el.innerHTML=renderVideoDetail();
     else el.innerHTML=renderVideoAdd();
-  } else {
+  } else if (currentTab==='equipment') {
     if (currentView==='list') el.innerHTML=renderEquipList();
     else if (currentView==='detail') el.innerHTML=renderEquipDetail();
     else el.innerHTML=renderEquipAdd();
+  } else {
+    if (currentView==='list') { el.innerHTML=renderPracticeList(); initPracticeCharts(); }
+    else if (currentView==='detail') el.innerHTML=renderPracticeDetail();
+    else el.innerHTML=renderPracticeAdd();
   }
 }
 
@@ -1333,8 +1376,474 @@ async function deleteEquip(id) {
 }
 
 // ════════════════════════════════════════════════════════
-// XSS 방지
+// PRACTICE — 유틸
 // ════════════════════════════════════════════════════════
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+function best(arr) { return arr.length ? Math.max(...arr) : null; }
+function fmtNum(n, unit='') { return n!=null ? Math.round(n)+unit : '—'; }
+
+function getSessionStats(s) {
+  const shots = s.shots||[];
+  const carries = shots.map(x=>x.carry).filter(x=>x>0);
+  const totals  = shots.map(x=>x.total).filter(x=>x>0);
+  const hs      = shots.map(x=>x.headSpeed).filter(x=>x>0);
+  const bs      = shots.map(x=>x.ballSpeed).filter(x=>x>0);
+  const sf      = shots.map(x=>x.smashFactor).filter(x=>x>0);
+  const la      = shots.map(x=>x.launchAngle).filter(x=>x>0);
+  const spin    = shots.map(x=>x.spin).filter(x=>x>0);
+  const dirs    = shots.map(x=>x.direction).filter(x=>x!=null);
+  return { carries, totals, hs, bs, sf, la, spin, dirs,
+    avgCarry:avg(carries), bestCarry:best(carries),
+    avgTotal:avg(totals),  bestTotal:best(totals),
+    avgHs:avg(hs), bestHs:best(hs),
+    avgBs:avg(bs), avgSf:avg(sf),
+    avgLa:avg(la), avgSpin:avg(spin),
+    avgDir:avg(dirs)
+  };
+}
+
+// ════════════════════════════════════════════════════════
+// PRACTICE LIST
+// ════════════════════════════════════════════════════════
+function renderPracticeList() {
+  const sessions = appData.sessions;
+  const totalShots = sessions.reduce((a,s)=>(a + (s.shots?.length||0)),0);
+  const clubs = [...new Set(sessions.map(s=>s.club).filter(Boolean))];
+
+  const tabHtml = `
+    <div class="practice-tabs">
+      <button class="practice-tab ${practiceSubTab==='sessions'?'active':''}" onclick="setPracticeSubTab('sessions')">세션 목록</button>
+      <button class="practice-tab ${practiceSubTab==='stats'?'active':''}" onclick="setPracticeSubTab('stats')">통계 & 그래프</button>
+    </div>`;
+
+  if (practiceSubTab==='stats') return `
+  <div class="page">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">${sessions.length}</div><div class="stat-label">세션</div></div>
+      <div class="stat-card"><div class="stat-num">${totalShots}</div><div class="stat-label">총 샷</div></div>
+      <div class="stat-card"><div class="stat-num">${clubs.length}</div><div class="stat-label">클럽 종류</div></div>
+    </div>
+    ${tabHtml}
+    ${renderStatsPanel()}
+    <div class="chart-wrap"><div class="chart-title">비거리 추이 (캐리 평균)</div><div style="position:relative;height:200px"><canvas id="chart-carry"></canvas></div></div>
+    <div class="chart-wrap"><div class="chart-title">헤드스피드 추이</div><div style="position:relative;height:200px"><canvas id="chart-hs"></canvas></div></div>
+  </div>`;
+
+  // 세션 목록
+  let cards = sessions.length ? sessions.map(s=>{
+    const st=getSessionStats(s);
+    return `
+    <div class="card" onclick="goDetail('${s.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:4px">
+            <div class="card-title">${s.date||''}</div>
+            ${s.club?`<span class="club-badge">${escHtml(s.club)}</span>`:''}
+          </div>
+          ${s.location?`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">📍 ${escHtml(s.location)}</div>`:''}
+          <div class="session-card-meta">
+            <span class="session-stat">샷 <span>${s.shots?.length||0}개</span></span>
+            ${st.avgCarry?`<span class="session-stat">캐리 평균 <span>${fmtNum(st.avgCarry,'m')}</span></span>`:''}
+            ${st.bestCarry?`<span class="session-stat">베스트 <span>${fmtNum(st.bestCarry,'m')}</span></span>`:''}
+            ${st.avgHs?`<span class="session-stat">헤드스피드 <span>${fmtNum(st.avgHs)}</span></span>`:''}
+          </div>
+        </div>
+        ${s.imageUrl?`<img src="${escAttr(s.imageUrl)}" style="width:60px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border);margin-left:0.75rem;flex-shrink:0" alt="">`:''}
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-state"><div class="empty-icon">📊</div>아직 연습 기록이 없습니다.<br>첫 세션을 추가해보세요!</div>`;
+
+  return `
+  <div class="page">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">${sessions.length}</div><div class="stat-label">세션</div></div>
+      <div class="stat-card"><div class="stat-num">${totalShots}</div><div class="stat-label">총 샷</div></div>
+      <div class="stat-card"><div class="stat-num">${clubs.length}</div><div class="stat-label">클럽 종류</div></div>
+    </div>
+    ${tabHtml}
+    ${cards}
+    <button class="btn btn-primary" style="margin-top:0.5rem" onclick="goAdd()">+ 세션 추가</button>
+  </div>`;
+}
+
+function setPracticeSubTab(t) {
+  practiceSubTab=t;
+  Object.values(chartInstances).forEach(c=>{ try{c.destroy();}catch(e){} });
+  chartInstances={};
+  const el=document.getElementById('main-content');
+  el.innerHTML=renderPracticeList();
+  if(t==='stats') initPracticeCharts();
+}
+
+function renderStatsPanel() {
+  const sessions=[...appData.sessions].reverse(); // 오래된 순
+  if (!sessions.length) return '<div style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0">세션을 추가하면 통계가 표시됩니다.</div>';
+
+  // 클럽별 통계
+  const clubMap={};
+  sessions.forEach(s=>{
+    if(!s.club) return;
+    if(!clubMap[s.club]) clubMap[s.club]={carries:[],totals:[],hs:[],bs:[],sf:[]};
+    const st=getSessionStats(s);
+    if(st.avgCarry) clubMap[s.club].carries.push(st.avgCarry);
+    if(st.avgTotal) clubMap[s.club].totals.push(st.avgTotal);
+    if(st.avgHs) clubMap[s.club].hs.push(st.avgHs);
+    if(st.avgBs) clubMap[s.club].bs.push(st.avgBs);
+    if(st.avgSf) clubMap[s.club].sf.push(st.avgSf);
+  });
+
+  const clubRows = Object.entries(clubMap).map(([club, d])=>`
+    <tr>
+      <td><span class="club-badge">${escHtml(club)}</span></td>
+      <td class="val">${fmtNum(avg(d.carries),'m')}</td>
+      <td class="val best">${fmtNum(best(d.carries),'m')}</td>
+      <td class="val">${fmtNum(avg(d.hs))}</td>
+      <td class="val">${fmtNum(avg(d.bs))}</td>
+      <td class="val">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td>
+    </tr>`).join('');
+
+  return clubRows ? `
+    <div class="section-label">클럽별 통계</div>
+    <div style="overflow-x:auto;margin-bottom:1.25rem">
+      <table class="stat-table">
+        <thead><tr>
+          <th>클럽</th><th>캐리 평균</th><th>캐리 베스트</th><th>헤드스피드</th><th>볼스피드</th><th>스매시</th>
+        </tr></thead>
+        <tbody>${clubRows}</tbody>
+      </table>
+    </div>` : '';
+}
+
+function initPracticeCharts() {
+  const sessions=[...appData.sessions].reverse();
+  if (!sessions.length) return;
+
+  const labels = sessions.map(s=>s.date?.slice(5)||'');
+  const carryData = sessions.map(s=>{ const st=getSessionStats(s); return st.avgCarry?Math.round(st.avgCarry):null; });
+  const hsData    = sessions.map(s=>{ const st=getSessionStats(s); return st.avgHs?Math.round(st.avgHs):null; });
+
+  const chartOpts = (label, color) => ({
+    type:'line',
+    data:{ labels, datasets:[{ label, data:carryData, borderColor:color, backgroundColor:color+'22',
+      tension:0.35, fill:true, pointBackgroundColor:color, pointRadius:4, spanGaps:true }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{color:'#4a6a8a',font:{size:11}}, grid:{color:'rgba(255,255,255,0.04)'} },
+        y:{ ticks:{color:'#4a6a8a',font:{size:11}}, grid:{color:'rgba(255,255,255,0.06)'} }
+      }
+    }
+  });
+
+  const cc = document.getElementById('chart-carry');
+  const ch = document.getElementById('chart-hs');
+  if (cc) {
+    const cfg = chartOpts('캐리 평균(m)','#c8a84b');
+    cfg.data.datasets[0].data = carryData;
+    chartInstances['carry'] = new Chart(cc, cfg);
+  }
+  if (ch) {
+    const cfg = chartOpts('헤드스피드','#52b870');
+    cfg.data.datasets[0].data = hsData;
+    cfg.data.datasets[0].borderColor='#52b870';
+    cfg.data.datasets[0].backgroundColor='#52b87022';
+    cfg.data.datasets[0].pointBackgroundColor='#52b870';
+    chartInstances['hs'] = new Chart(ch, cfg);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// PRACTICE DETAIL
+// ════════════════════════════════════════════════════════
+function renderPracticeDetail() {
+  const s=appData.sessions.find(x=>x.id===selectedId);
+  if(!s) return '<div class="empty-state">세션을 찾을 수 없습니다.</div>';
+  const st=getSessionStats(s);
+  const shots=s.shots||[];
+
+  const shotsHtml = shots.length ? `
+    <div style="overflow-x:auto">
+      <table class="stat-table">
+        <thead><tr>
+          <th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th>
+        </tr></thead>
+        <tbody>
+          ${shots.map((sh,i)=>`<tr>
+            <td style="color:var(--text-muted)">${i+1}</td>
+            <td class="val">${sh.carry||'—'}</td>
+            <td class="val">${sh.total||'—'}</td>
+            <td class="val">${sh.headSpeed||'—'}</td>
+            <td class="val">${sh.ballSpeed||'—'}</td>
+            <td class="val">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td>
+            <td class="val">${sh.launchAngle||'—'}</td>
+            <td class="val">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td>
+            <td class="val" style="color:${sh.direction>0?'#e8a050':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':sh.direction<0?'L':'0')+Math.abs(sh.direction||0):'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stats-row" style="margin-top:1rem">
+      ${st.avgCarry!=null?`<div class="stat-card"><div class="stat-num" style="font-size:1.3rem">${fmtNum(st.avgCarry,'m')}</div><div class="stat-label">캐리 평균</div></div>`:''}
+      ${st.bestCarry!=null?`<div class="stat-card"><div class="stat-num" style="font-size:1.3rem;color:var(--gold2)">${fmtNum(st.bestCarry,'m')}</div><div class="stat-label">캐리 베스트</div></div>`:''}
+      ${st.avgHs!=null?`<div class="stat-card"><div class="stat-num" style="font-size:1.3rem;color:var(--green2)">${fmtNum(st.avgHs)}</div><div class="stat-label">헤드스피드 평균</div></div>`:''}
+    </div>` : '<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem 0">기록된 샷이 없습니다.</div>';
+
+  return `
+  <div class="page">
+    <button class="back-btn" onclick="goList()">← 연습 목록</button>
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">${s.date||''}</div>
+        <div style="margin-top:6px;display:flex;gap:0.5rem;align-items:center">
+          ${s.club?`<span class="club-badge">${escHtml(s.club)}</span>`:''}
+          ${s.location?`<span style="font-size:0.78rem;color:var(--text-muted)">📍 ${escHtml(s.location)}</span>`:''}
+        </div>
+      </div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:var(--gold2)">${shots.length}샷</div>
+    </div>
+
+    ${s.imageUrl?`
+    <div class="section-label">GDR 화면</div>
+    <img src="${escAttr(s.imageUrl)}" class="img-preview" onclick="window.open(this.src,'_blank')" alt="GDR 화면" style="max-height:300px;object-fit:contain;background:#000">
+    `:''}
+
+    <div class="section-label">샷 데이터</div>
+    ${shotsHtml}
+
+    ${s.memo?`<div class="section-label" style="margin-top:1rem">메모</div>
+    <div style="font-size:0.9rem;color:var(--text-dim);line-height:1.7">${escHtml(s.memo)}</div>`:''}
+
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+      <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">세션 삭제</button>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// PRACTICE ADD
+// ════════════════════════════════════════════════════════
+let practiceShots = [];
+let practiceImageFile = null;
+
+function renderPracticeAdd() {
+  practiceShots = [{}];
+  return `
+  <div class="page">
+    <button class="back-btn" onclick="goList()">← 연습 목록</button>
+    <div class="add-form">
+      <div class="add-form-title">연습 세션 추가</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">날짜</label>
+          <input class="form-input" type="date" id="p-date" value="${today()}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">클럽</label>
+          <select class="form-select" id="p-club">
+            <option value="">선택...</option>
+            ${CLUB_LIST.map(c=>`<option>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">연습장 / 장소</label>
+        <input class="form-input" id="p-location" placeholder="예: 강남 골프존">
+      </div>
+
+      <div class="section-label" style="margin-top:0.5rem">GDR 화면 사진</div>
+      <div class="img-upload-area" onclick="document.getElementById('p-img-input').click()">
+        <input type="file" id="p-img-input" accept="image/*" onchange="previewPracticeImg(this)">
+        <div id="p-img-preview-wrap">
+          📷 사진을 탭하여 업로드<br>
+          <span style="font-size:0.75rem;opacity:0.7">GDR 화면을 찍은 사진을 첨부하세요</span>
+        </div>
+      </div>
+
+      <div class="section-label">샷 데이터 입력</div>
+      <div id="shots-container">${renderShotRow(0)}</div>
+      <button class="btn btn-secondary btn-sm" onclick="addShotRow()" style="margin-bottom:1rem">+ 샷 추가</button>
+
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea class="form-textarea" id="p-memo" placeholder="오늘 연습 소감, 개선점, 코치 피드백 등..."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="p-save-btn" onclick="saveSession()">저장</button>
+        <button class="btn btn-secondary" onclick="goList()">취소</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderShotRow(idx) {
+  return `
+  <div class="shot-row" id="shot-row-${idx}">
+    <span class="shot-num">SHOT ${idx+1}</span>
+    <button class="shot-del-btn" onclick="removeShotRow(${idx})" title="삭제">✕</button>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>캐리(m)</label><input type="number" id="sh-carry-${idx}" placeholder="예: 215">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>총거리(m)</label><input type="number" id="sh-total-${idx}" placeholder="예: 235">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>헤드속도</label><input type="number" id="sh-hs-${idx}" placeholder="예: 43.2" step="0.1">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>볼속도</label><input type="number" id="sh-bs-${idx}" placeholder="예: 64.5" step="0.1">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>스매시팩터</label><input type="number" id="sh-sf-${idx}" placeholder="예: 1.49" step="0.01">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>발사각(°)</label><input type="number" id="sh-la-${idx}" placeholder="예: 12.5" step="0.1">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>스핀(rpm)</label><input type="number" id="sh-spin-${idx}" placeholder="예: 2800">
+    </div>
+    <div class="shot-field" style="margin-top:0.5rem">
+      <label>방향(R+/L-)</label><input type="number" id="sh-dir-${idx}" placeholder="예: +5 또는 -3" step="0.1">
+    </div>
+  </div>`;
+}
+
+let shotCount = 1;
+function addShotRow() {
+  const container = document.getElementById('shots-container');
+  const div = document.createElement('div');
+  div.innerHTML = renderShotRow(shotCount);
+  container.appendChild(div.firstElementChild);
+  shotCount++;
+}
+function removeShotRow(idx) {
+  const el = document.getElementById('shot-row-'+idx);
+  if (el) el.remove();
+}
+
+function previewPracticeImg(input) {
+  const file = input.files[0]; if(!file) return;
+  practiceImageFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('p-img-preview-wrap').innerHTML =
+      `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:6px;margin-bottom:0.5rem" alt="미리보기"><br>
+       <span style="font-size:0.75rem;opacity:0.7">다른 사진으로 교체하려면 다시 탭하세요</span>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function collectShots() {
+  const rows = document.querySelectorAll('[id^="shot-row-"]');
+  const shots = [];
+  rows.forEach(row => {
+    const idx = row.id.replace('shot-row-','');
+    const carry     = parseFloat(document.getElementById('sh-carry-'+idx)?.value)||0;
+    const total     = parseFloat(document.getElementById('sh-total-'+idx)?.value)||0;
+    const headSpeed = parseFloat(document.getElementById('sh-hs-'+idx)?.value)||0;
+    const ballSpeed = parseFloat(document.getElementById('sh-bs-'+idx)?.value)||0;
+    const smashFactor= parseFloat(document.getElementById('sh-sf-'+idx)?.value)||0;
+    const launchAngle= parseFloat(document.getElementById('sh-la-'+idx)?.value)||0;
+    const spin      = parseFloat(document.getElementById('sh-spin-'+idx)?.value)||0;
+    const direction = document.getElementById('sh-dir-'+idx)?.value !== ''
+      ? parseFloat(document.getElementById('sh-dir-'+idx)?.value) : null;
+    // 아무것도 없으면 skip
+    if (!carry && !total && !headSpeed) return;
+    shots.push({ carry, total, headSpeed, ballSpeed, smashFactor, launchAngle, spin, direction });
+  });
+  return shots;
+}
+
+// ════════════════════════════════════════════════════════
+// PRACTICE CRUD
+// ════════════════════════════════════════════════════════
+async function saveSession() {
+  const date     = document.getElementById('p-date').value;
+  const club     = document.getElementById('p-club').value;
+  const location = document.getElementById('p-location').value.trim();
+  const memo     = document.getElementById('p-memo').value.trim();
+  const shots    = collectShots();
+
+  if (!date) { showToast('날짜를 입력하세요'); return; }
+
+  const btn = document.getElementById('p-save-btn');
+  btn.disabled=true; btn.textContent='저장 중...';
+  setSyncStatus('syncing');
+
+  // 이미지 업로드 (있을 때)
+  let imageUrl = '';
+  if (practiceImageFile) {
+    const ext = practiceImageFile.name.split('.').pop();
+    const path = `${currentUser.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from('gdr-images').upload(path, practiceImageFile);
+    if (upErr) { showToast('이미지 업로드 실패: '+upErr.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
+    const { data: urlData } = sb.storage.from('gdr-images').getPublicUrl(path);
+    // 공개 URL 대신 signed URL 사용 (private bucket)
+    const { data: signed } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
+    imageUrl = signed?.signedUrl || '';
+  }
+
+  const { error } = await sb.from('practice_sessions').insert({
+    user_id: currentUser.id,
+    session_date: date,
+    club, location, memo,
+    total_shots: shots.length,
+    shots,
+    image_url: imageUrl,
+  });
+
+  if (error) { showToast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; setSyncStatus('error'); return; }
+
+  practiceImageFile = null; shotCount = 1;
+  await loadAllData();
+  showToast('세션이 저장됐습니다');
+  goList();
+}
+
+async function deleteSession(id) {
+  if (!confirm('이 세션을 삭제하시겠습니까?')) return;
+  setSyncStatus('syncing');
+  const { error } = await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',currentUser.id);
+  if (error) { showToast('삭제 실패'); setSyncStatus('error'); return; }
+  appData.sessions = appData.sessions.filter(s=>s.id!==id);
+  setSyncStatus('ok'); showToast('세션이 삭제됐습니다'); goList();
+}
+
+// ════════════════════════════════════════════════════════
+// 회원탈퇴 시 세션도 삭제하도록 deleteAccount 업데이트
+// ════════════════════════════════════════════════════════
+async function deleteAccount() {
+  const confirmed = confirm(
+    '정말로 탈퇴하시겠습니까?\n\n' +
+    '· 저장된 영상 ' + appData.videos.length + '개\n' +
+    '· 저장된 장비 ' + appData.equipment.length + '개\n' +
+    '· 연습 세션 ' + appData.sessions.length + '개\n\n' +
+    '모든 데이터가 즉시 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.'
+  );
+  if (!confirmed) return;
+  const reconfirm = prompt('탈퇴를 확인하려면 아래에 "탈퇴합니다"를 입력하세요:');
+  if (reconfirm !== '탈퇴합니다') { showToast('탈퇴가 취소됐습니다'); return; }
+  setSyncStatus('syncing');
+  try {
+    await sb.from('videos').delete().eq('user_id', currentUser.id);
+    await sb.from('equipment').delete().eq('user_id', currentUser.id);
+    await sb.from('practice_sessions').delete().eq('user_id', currentUser.id);
+    if (realtimeChannel) sb.removeChannel(realtimeChannel);
+    await sb.auth.signOut();
+    currentUser=null; appData={videos:[],equipment:[],sessions:[]};
+    closeAccountSettings();
+    document.getElementById('app-screen').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
+    showToast('모든 데이터가 삭제됐습니다. 이용해주셔서 감사합니다.');
+  } catch(e) {
+    showToast('오류가 발생했습니다: ' + e.message);
+    setSyncStatus('error');
+  }
+}
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
