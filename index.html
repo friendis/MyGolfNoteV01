@@ -3,91 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Birdyard — 새들의 마당</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,700;1,400;1,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Birdyard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Birdyard brand palette */
-  /* Night sky — primary surface */
-  --night:    #0D1117;
-  --dusk:     #161C26;
-  --dusk2:    #1E2736;
-  --dusk3:    #263040;
-  /* Wing amber — eagle/premium accent */
-  --wing:     #C8893A;
-  --wing2:    #E4A855;
-  --wing-d:   #8A5A1C;
-  --feather:  #F0CC88;
-  /* Sky — birdie/community accent */
-  --sky:      #4A8FA8;
-  --sky2:     #6AAFCC;
-  --horizon:  #B8D8E8;
-  /* Grass — par/neutral */
-  --grass:    #2A6644;
-  --grass2:   #3D8860;
-  --turf:     #7ABFA0;
-  /* Base */
-  --chalk:    #F0EDE6;
-  --fog:      #C8C4BC;
-  --stone:    #7A7870;
-  /* App aliases */
+  --night:#0D1117;--dusk:#161C26;--dusk2:#1E2736;--dusk3:#263040;
+  --wing:#C8893A;--wing2:#E4A855;--wing-d:#8A5A1C;--feather:#F0CC88;
+  --sky:#4A8FA8;--sky2:#6AAFCC;
+  --turf:#7ABFA0;
+  --chalk:#F0EDE6;
   --bg:var(--night);--bg2:var(--dusk);--bg3:var(--dusk2);
-  --text:var(--chalk);--dim:rgba(240,237,230,0.65);--muted:rgba(240,237,230,0.35);
+  --text:var(--chalk);--dim:rgba(240,237,230,.65);--muted:rgba(240,237,230,.35);
   --green:var(--turf);--red:#C17A6A;--amber:var(--wing2);
-  --gold:var(--wing);--gold2:var(--wing2);--goldd:var(--wing-d);
-  --border:rgba(240,237,230,0.08);--border2:rgba(200,137,58,0.35);
-  /* Typography */
+  --border:rgba(240,237,230,.08);--border2:rgba(200,137,58,.35);
   --serif:'Cormorant',Georgia,serif;
   --sans:'DM Sans',system-ui,sans-serif;
   --mono:'DM Mono','Courier New',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--night);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
-/* Noise texture */
-body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:0.4}
+
+/* LOADING */
 #loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
-.spinner{width:28px;height:28px;border:1.5px solid rgba(200,137,58,0.15);border-top-color:var(--wing2);border-radius:50%;animation:spin .9s linear infinite}
+.spinner{width:28px;height:28px;border:1.5px solid rgba(200,137,58,.15);border-top-color:var(--wing2);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-logo{font-family:var(--serif);font-size:1.8rem;font-weight:700;color:var(--chalk);letter-spacing:0.05em}
+.loading-logo{font-family:var(--serif);font-size:1.8rem;font-weight:700;color:var(--chalk);letter-spacing:.05em}
+
+/* AUTH */
 #auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem;background:var(--night)}
-.auth-box{background:rgba(30,39,54,0.9);border:1px solid rgba(200,137,58,0.18);border-radius:4px;padding:2.5rem 2rem;width:100%;max-width:360px;backdrop-filter:blur(10px)}
-.auth-logo{font-family:var(--serif);font-size:2.2rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:0.06em}
+.auth-box{background:var(--dusk);border:1px solid var(--border2);border-radius:4px;padding:2.5rem 2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.auth-logo{font-family:var(--serif);font-size:2.2rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:10px}
 .auth-sub{font-size:.67rem;color:var(--wing2);text-align:center;letter-spacing:.3em;text-transform:uppercase;margin-bottom:2rem}
 .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
 .auth-tab{flex:1;padding:.65rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:400;letter-spacing:.1em;cursor:pointer;transition:all .2s;text-transform:uppercase}
 .auth-tab.on{color:var(--wing2);border-bottom-color:var(--wing2)}
 .msg{font-size:.82rem;padding:.6rem .8rem;border-radius:2px;margin-bottom:.9rem;display:none}
 .msg.err{background:rgba(193,123,106,.1);border:1px solid rgba(193,123,106,.25);color:#e8a898}
-.msg.ok{background:rgba(122,174,120,.1);border:1px solid rgba(122,174,120,.25);color:var(--turf)}
+.msg.ok{background:rgba(122,191,160,.1);border:1px solid rgba(122,191,160,.25);color:var(--turf)}
 .agree-row{display:flex;align-items:flex-start;gap:.6rem;margin:.6rem 0;padding:.7rem;border-radius:2px;background:rgba(200,137,58,.04);border:1px solid var(--border);font-size:.82rem;color:var(--dim);line-height:1.5}
 .agree-row input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:var(--wing2);width:14px;height:14px;cursor:pointer}
 .agree-row a{color:var(--wing2);text-decoration:underline;cursor:pointer}
+
+/* APP */
 #app{display:none;flex-direction:column;min-height:100vh}
-header{background:var(--dusk);border-bottom:1px solid rgba(200,137,58,0.12);padding:0 1.5rem;position:sticky;top:0;z-index:100}
+
+/* HEADER */
+header{background:var(--dusk);border-bottom:1px solid rgba(200,137,58,.12);padding:0 1.5rem;position:sticky;top:0;z-index:100}
 .hdr{display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto;height:58px}
-.logo{font-family:var(--serif);font-size:1.4rem;font-weight:700;color:var(--chalk);letter-spacing:0.06em;display:flex;align-items:center;gap:9px}
-.logo-icon{display:inline-block;width:22px;height:22px;flex-shrink:0}
-.hdr-right{display:flex;align-items:center;gap:.6rem}
+.logo{font-family:var(--serif);font-size:1.4rem;font-weight:700;color:var(--chalk);letter-spacing:.06em;display:flex;align-items:center;gap:9px}
+.hdr-right{display:flex;align-items:center;gap:.6rem;position:relative}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--turf);flex-shrink:0}
 .sync-dot.busy{background:var(--wing);animation:pulse 1s infinite}
 .sync-dot.err{background:var(--red)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .email-lbl{font-size:.7rem;color:var(--muted);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.04em}
-.tabs{background:var(--dusk2);border-bottom:1px solid rgba(200,137,58,0.1);position:sticky;top:58px;z-index:99}
+
+/* TABS */
+.tabs{background:var(--dusk2);border-bottom:1px solid rgba(200,137,58,.1);position:sticky;top:58px;z-index:99}
 .tabs-inner{display:flex;max-width:900px;margin:0 auto}
 .tab{flex:1;padding:.75rem .5rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .tab.on{color:var(--wing2);border-bottom-color:var(--wing2)}
+
+/* MAIN */
 main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .page{animation:fadeUp .2s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* FORMS */
 .fl-label{display:block;font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px}
-.inp,.sel,.ta{width:100%;background:rgba(28,43,26,0.6);border:1px solid var(--border);color:var(--text);padding:.6rem .9rem;border-radius:2px;font-family:var(--sans);font-size:.88rem;outline:none;transition:border-color .15s}
-.inp:focus,.sel:focus,.ta:focus{border-color:rgba(184,151,58,0.5)}
+.inp,.sel,.ta{width:100%;background:rgba(13,17,23,.8);border:1px solid var(--border);color:var(--text);padding:.6rem .9rem;border-radius:2px;font-family:var(--sans);font-size:.88rem;outline:none;transition:border-color .15s}
+.inp:focus,.sel:focus,.ta:focus{border-color:rgba(200,137,58,.4);box-shadow:0 0 0 1px rgba(200,137,58,.15)}
 .sel{background-color:var(--dusk)}
 .ta{resize:vertical;min-height:76px;line-height:1.65}
 .fg{margin-bottom:.85rem}
 .frow{display:flex;gap:.6rem}
 .frow>.fg{flex:1}
+
+/* BUTTONS */
 .btn{padding:.55rem 1.2rem;border-radius:2px;border:none;font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-p{background:var(--wing);color:var(--night)}
@@ -98,39 +90,55 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .btn-d:hover{background:rgba(193,123,106,.22)}
 .btn-sm{padding:.32rem .75rem;font-size:.72rem}
 .brow{display:flex;gap:.5rem;margin-top:.9rem}
+
+/* CARDS */
 .card{background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.9rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--wing);opacity:0;transition:opacity .18s}
-.card:hover{border-color:rgba(200,137,58,0.28);background:var(--dusk2);transform:translateX(2px)}
+.card:hover{border-color:rgba(200,137,58,.28);background:var(--dusk2);transform:translateX(2px)}
 .card:hover::before{opacity:1}
 .card-title{font-weight:500;font-size:.93rem;margin-bottom:4px;color:var(--chalk);letter-spacing:-.01em}
 .card-meta{font-size:.72rem;color:var(--muted);margin-top:4px;letter-spacing:.04em}
+
+/* BADGES */
 .badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-right:3px;margin-bottom:2px}
 .b-gold{background:rgba(200,137,58,.12);color:var(--wing2);border:1px solid rgba(200,137,58,.25)}
 .b-green{background:rgba(122,191,160,.1);color:var(--turf);border:1px solid rgba(122,191,160,.2)}
 .b-blue{background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.2)}
 .b-amber{background:rgba(228,168,85,.12);color:var(--wing2);border:1px solid rgba(228,168,85,.22)}
+
+/* MISC */
 .sec-label{font-size:.67rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
 .sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
 .divider{height:1px;background:var(--border);margin:.9rem 0}
 .back-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--wing2);font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:1.1rem;transition:color .15s}
-.back-btn:hover{color:var(--wing2)}
+.back-btn:hover{color:var(--feather)}
+
+/* STATS */
 .stats-row{display:flex;gap:.6rem;margin-bottom:1.25rem}
 .stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.85rem;text-align:center;position:relative;overflow:hidden}
 .stat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--wing),transparent);opacity:.35}
 .stat-n{font-family:var(--mono);font-size:1.6rem;font-weight:500;color:var(--wing2);line-height:1;margin-bottom:4px}
 .stat-l{font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+
+/* FILTER */
 .filter-bar{display:flex;gap:.5rem;margin-bottom:1.1rem;flex-wrap:wrap}
 .filter-bar .inp{flex:1;min-width:130px}
 .filter-bar .sel{min-width:100px;width:auto}
+
+/* EMPTY */
 .empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.88rem}
 .empty-icon{font-size:2rem;margin-bottom:.7rem;opacity:.4}
-.toast-el{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--dusk2);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.6rem 1.4rem;border-radius:2px;font-size:.82rem;font-weight:500;letter-spacing:.06em;z-index:9999;pointer-events:none;animation:tin .3s ease,tout .3s ease 2.2s forwards}
+
+/* TOAST */
+.toast-el{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--dusk2);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.6rem 1.4rem;border-radius:2px;font-size:.82rem;font-weight:500;letter-spacing:.06em;z-index:9999;pointer-events:none;animation:tin .3s ease,tout .3s ease 2.2s forwards;white-space:nowrap}
 @keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @keyframes tout{to{opacity:0}}
+
+/* VIDEO */
 .v-thumb{width:88px;height:58px;object-fit:cover;border-radius:2px;flex-shrink:0;border:1px solid var(--border)}
 .yt-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:2px;overflow:hidden;margin-bottom:.5rem;background:#000;border:1px solid var(--border)}
 .yt-wrap iframe{width:100%;height:100%;border:none;display:block}
-.inline-edit{display:flex;gap:.5rem;align-items:center;background:rgba(13,17,23,.6);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.5rem .7rem;margin-bottom:.65rem}
+.inline-edit{display:flex;gap:.5rem;align-items:center;background:rgba(13,17,23,.6);border:1px solid rgba(200,137,58,.18);border-radius:2px;padding:.5rem .7rem;margin-bottom:.65rem}
 .inline-edit .e-label{font-size:.65rem;color:var(--muted);white-space:nowrap;letter-spacing:.12em;text-transform:uppercase}
 .inline-edit input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:.85rem;outline:none}
 .ts-item{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.5rem .7rem;margin-bottom:.3rem;display:flex;align-items:flex-start;gap:.6rem}
@@ -142,14 +150,18 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .kw-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .kw-pill{padding:3px 9px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(184,151,58,.06);border:1px solid rgba(184,151,58,.18);color:var(--wing2);cursor:pointer;transition:all .12s}
 .kw-pill:hover{background:rgba(184,151,58,.16)}
+
+/* EQUIPMENT */
 .link-item{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.6rem .85rem;margin-bottom:.3rem}
 .link-item a{color:var(--wing2);text-decoration:none;font-size:.87rem}
-.link-item a:hover{color:var(--wing2)}
+.link-item a:hover{color:var(--feather)}
 .link-price{font-family:var(--mono);font-weight:500;color:var(--wing2);font-size:.9rem}
 .link-date{font-size:.68rem;color:var(--muted);margin-top:2px;letter-spacing:.04em}
 .price-entry{display:flex;justify-content:space-between;font-size:.79rem;padding:4px 0;border-bottom:1px solid rgba(245,240,232,.04);color:var(--dim)}
 .sec-box{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.85rem 1rem;margin-bottom:.8rem}
 .price-big{font-family:var(--mono);font-size:1.3rem;font-weight:500;color:var(--wing2)}
+
+/* PRACTICE */
 .p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
 .p-tab{padding:.4rem 1rem;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
 .p-tab.on{background:rgba(200,137,58,.1);color:var(--wing2);border-color:rgba(200,137,58,.3)}
@@ -158,7 +170,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .shot-field{display:flex;flex-direction:column;gap:3px;margin-top:.2rem}
 .shot-field label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .shot-field input{background:rgba(13,17,23,.8);border:1px solid var(--border);color:var(--text);padding:.3rem .5rem;border-radius:2px;font-size:.84rem;font-family:var(--mono);outline:none;width:100%}
-.shot-field input:focus{border-color:rgba(184,151,58,.4)}
+.shot-field input:focus{border-color:rgba(200,137,58,.35)}
 .shot-del{position:absolute;top:.38rem;right:.5rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;transition:color .15s}
 .shot-del:hover{color:var(--red)}
 .stbl{width:100%;border-collapse:collapse;font-size:.82rem}
@@ -171,9 +183,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .chart-title{font-size:.65rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem}
 .club-badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.22)}
 .img-upload{border:1px dashed rgba(184,151,58,.3);border-radius:2px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
-.img-upload:hover{border-color:var(--wing2);color:var(--wing)
+.img-upload:hover{border-color:var(--wing2);color:var(--wing)}
 .img-upload input{display:none}
-/* AI 분석 */
+
+/* AI STATUS */
 .ai-status{background:rgba(13,17,23,.5);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.9rem 1rem;margin-bottom:.75rem}
 .ai-status-title{font-size:.68rem;font-weight:500;color:var(--wing2);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
 .ai-photo-list{display:flex;flex-direction:column;gap:.4rem}
@@ -187,8 +200,11 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .ai-photo-status.fail{color:var(--red)}
 .progress-bar{height:3px;background:rgba(245,240,232,.08);border-radius:2px;margin-top:.6rem;overflow:hidden}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--wing),var(--wing2));border-radius:2px;transition:width .4s ease}
-/* 설정 모달 */
+
+/* SETTINGS */
 .settings-info{font-size:.8rem;color:var(--dim);line-height:1.65;margin-bottom:.9rem;padding:.7rem;background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:2px}
+
+/* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
 .modal-bg.on{display:flex}
 .modal{background:var(--dusk2);border:1px solid rgba(200,137,58,.18);border-radius:2px;width:100%;max-width:600px;padding:1.6rem;margin:auto;animation:fadeUp .2s ease}
@@ -200,7 +216,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .privacy ul{padding-left:1.1rem}
 .danger-zone{margin-top:.75rem;padding:.75rem;border:1px solid rgba(193,123,106,.2);border-radius:2px;background:rgba(193,123,106,.05)}
 .danger-title{font-size:.67rem;font-weight:500;color:var(--red);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.45rem}
-.acct-panel{display:none;position:absolute;top:62px;right:1rem;background:var(--dusk);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.85rem;min-width:230px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:200;animation:fadeUp .15s ease}
+
+/* ACCOUNT PANEL */
+.acct-panel{display:none;position:absolute;top:62px;right:0;background:var(--dusk);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.85rem;min-width:230px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:200;animation:fadeUp .15s ease}
 .acct-panel.on{display:block}
 .acct-email{font-size:.75rem;color:var(--muted);margin-bottom:.7rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);word-break:break-all;letter-spacing:.03em}
 .acct-btn{display:block;width:100%;text-align:left;background:none;border:none;font-family:var(--sans);font-size:.82rem;padding:.42rem .4rem;cursor:pointer;border-radius:2px;color:var(--dim);transition:all .15s;margin-bottom:2px;letter-spacing:.02em}
@@ -210,28 +228,39 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .acct-sep{height:1px;background:var(--border);margin:.42rem 0}
 .icon-btn{background:rgba(200,137,58,.08);border:1px solid rgba(184,151,58,.2);color:var(--wing2);padding:.36rem .85rem;border-radius:2px;font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;font-family:var(--sans)}
 .icon-btn:hover{background:rgba(200,137,58,.15);border-color:rgba(184,151,58,.35)}
-@media(max-width:480px){.stats-row{gap:.4rem}.stat-n{font-size:1.3rem}.email-lbl,.sync-dot{display:none}.shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}.acct-panel{right:.5rem;left:.5rem;min-width:unset}}
-/* Birdyard tier system */
-.tier-eagle{background:rgba(200,137,58,.15);color:#F0CC88;border:1px solid rgba(200,137,58,.35);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase}
-.tier-birdie{background:rgba(106,175,204,.1);color:var(--sky2);border:1px solid rgba(106,175,204,.25);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase}
-.tier-par{background:rgba(240,237,230,.06);color:var(--muted);border:1px solid var(--border);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase}
-/* Sky accent for community/mentor elements */
-.mentor-tag{background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.22);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
-/* Wing-glow on focused inputs */
-.inp:focus,.sel:focus,.ta:focus{box-shadow:0 0 0 1px rgba(200,137,58,.2)}
-/* Scrollbar */
+
+/* SCROLLBAR */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:var(--night)}
 ::-webkit-scrollbar-thumb{background:var(--dusk3);border-radius:2px}
 ::-webkit-scrollbar-thumb:hover{background:var(--wing)}
+
+@media(max-width:480px){
+  .stats-row{gap:.4rem}.stat-n{font-size:1.3rem}
+  .email-lbl,.sync-dot{display:none}
+  .shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}
+  .acct-panel{right:.5rem;left:.5rem;min-width:unset}
+}
 </style>
 </head>
 <body>
-<div id="loading"><div class="spinner"></div><div class="loading-logo" style="display:flex;align-items:center;gap:10px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/><path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/><circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/></svg>BIRDYARD</div></div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-logo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+      <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
+      <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
+      <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
+    </svg>
+    BIRDYARD
+  </div>
+</div>
+
 <div id="auth">
   <div class="auth-box">
-    <div class="auth-logo" style="display:flex;align-items:center;justify-content:center;gap:10px">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+    <div class="auth-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
         <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
         <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
         <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
@@ -245,20 +274,33 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
     </div>
     <div class="msg err" id="auth-err"></div>
     <div class="msg ok" id="auth-ok"></div>
-    <div class="fg"><label class="fl-label">이메일</label><input class="inp" type="email" id="a-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')doAuth()"></div>
-    <div class="fg"><label class="fl-label">비밀번호</label><input class="inp" type="password" id="a-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div class="fg">
+      <label class="fl-label">이메일</label>
+      <input class="inp" type="email" id="a-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')doAuth()">
+    </div>
+    <div class="fg">
+      <label class="fl-label">비밀번호</label>
+      <input class="inp" type="password" id="a-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')doAuth()">
+    </div>
     <div id="agree-wrap" style="display:none">
-      <div class="agree-row"><input type="checkbox" id="ag1"><label for="ag1"><a onclick="openModal('privacy-modal')">개인정보 처리방침</a>에 동의합니다 <span style="color:var(--red)">(필수)</span></label></div>
-      <div class="agree-row"><input type="checkbox" id="ag2"><label for="ag2">만 14세 이상이며 이용약관에 동의합니다 <span style="color:var(--red)">(필수)</span></label></div>
+      <div class="agree-row">
+        <input type="checkbox" id="ag1">
+        <label for="ag1"><a onclick="openModal('privacy-modal')">개인정보 처리방침</a>에 동의합니다 <span style="color:var(--red)">(필수)</span></label>
+      </div>
+      <div class="agree-row">
+        <input type="checkbox" id="ag2">
+        <label for="ag2">만 14세 이상이며 이용약관에 동의합니다 <span style="color:var(--red)">(필수)</span></label>
+      </div>
     </div>
     <button class="btn btn-p" id="auth-btn" onclick="doAuth()" style="width:100%;margin-top:.75rem">로그인</button>
   </div>
 </div>
+
 <div id="app">
-  <header style="position:relative">
+  <header>
     <div class="hdr">
       <div class="logo">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
           <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
           <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
@@ -269,38 +311,35 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
         <div class="sync-dot" id="sync-dot"></div>
         <span class="email-lbl" id="hdr-email"></span>
         <button class="icon-btn" id="acct-toggle" onclick="toggleAcctPanel()">계정 ▾</button>
+        <div class="acct-panel" id="acct-panel">
+          <div class="acct-email" id="panel-email"></div>
+          <button class="acct-btn" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
+          <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
+          <button class="acct-btn" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정</button>
+          <div class="acct-sep"></div>
+          <button class="acct-btn red" onclick="doSignOut()">로그아웃</button>
+        </div>
       </div>
     </div>
-    <div class="acct-panel" id="acct-panel">
-      <div class="acct-email" id="panel-email"></div>
-      <button class="acct-btn" onclick="openModal('settings-modal');closeAcctPanel()">API 키 설정</button>
-      <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">개인정보 처리방침</button>
-      <button class="acct-btn" onclick="openAcctSettings();closeAcctPanel()">계정 설정</button>
-      <div class="acct-sep"></div>
-      <button class="acct-btn red" onclick="doSignOut()">로그아웃</button>
-    </div>
   </header>
-  <div class="tabs"><div class="tabs-inner">
-    <button class="tab on" id="tab-videos" onclick="gotoTab('videos')">노트 학습</button>
-    <button class="tab" id="tab-equipment" onclick="gotoTab('equipment')">장비 창고</button>
-    <button class="tab" id="tab-practice" onclick="gotoTab('practice')">비행 기록</button>
-    <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;padding-right:.75rem;gap:.4rem">
-      <span style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,237,230,.25)">내 등급</span>
-      <span id="user-tier" style="font-size:.65rem;font-weight:500;padding:2px 8px;border-radius:2px;background:rgba(200,137,58,.12);color:#E4A855;border:1px solid rgba(200,137,58,.25);letter-spacing:.06em">BIRDIE</span>
+
+  <div class="tabs">
+    <div class="tabs-inner">
+      <button class="tab on" id="tab-videos" onclick="gotoTab('videos')">노트 학습</button>
+      <button class="tab" id="tab-equipment" onclick="gotoTab('equipment')">장비 창고</button>
+      <button class="tab" id="tab-practice" onclick="gotoTab('practice')">비행 기록</button>
     </div>
-  </div></div>
+  </div>
+
   <main id="main"></main>
 
   <!-- SETTINGS MODAL -->
   <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
     <div class="modal">
       <div class="modal-title">API 키 설정 <button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
-      <div class="settings-info">
-        API 키는 이 기기에만 저장되며 외부로 전송되지 않습니다.<br>
-        GDR 사진 자동 분석에 사용됩니다.
-      </div>
+      <div class="settings-info">API 키는 이 기기에만 저장되며 외부로 전송되지 않습니다. GDR 사진 자동 분석에 사용됩니다.</div>
       <div class="fg">
-        <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 데이터 분석)</label>
+        <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 분석)</label>
         <input class="inp" type="password" id="set-anthropic" placeholder="sk-ant-api03-...">
         <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.anthropic.com → API Keys</div>
       </div>
@@ -321,8 +360,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
     <div class="modal">
       <div class="modal-title">계정 설정 <button class="modal-close" onclick="closeModal('acct-modal')">✕</button></div>
       <div class="privacy">
-        <h3>내 계정</h3><p id="acct-email-disp" style="color:var(--wing2);font-size:.9rem"></p>
-        <h3 style="margin-top:.75rem">저장된 데이터</h3><p id="acct-data-cnt"></p>
+        <h3>내 계정</h3>
+        <p id="acct-email-disp" style="color:var(--wing2);font-size:.9rem"></p>
+        <h3 style="margin-top:.75rem">저장된 데이터</h3>
+        <p id="acct-data-cnt"></p>
       </div>
       <div class="danger-zone" style="margin-top:1rem">
         <div class="danger-title">⚠ 위험 구역</div>
@@ -331,10 +372,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- PRIVACY MODAL (body 레벨 — 로그인 화면에서도 접근 가능) -->
+<!-- PRIVACY MODAL (로그인 화면에서도 접근 가능) -->
 <div class="modal-bg" id="privacy-modal" onclick="if(event.target===this)closeModal('privacy-modal')" style="z-index:600">
   <div class="modal">
     <div class="modal-title">개인정보 처리방침 <button class="modal-close" onclick="closeModal('privacy-modal')">✕</button></div>
@@ -345,9 +385,12 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
       <h3>4. 제3자 위탁</h3><p>Supabase Inc.(데이터베이스·인증, 서울 리전)에 처리를 위탁합니다.</p>
       <h3>5. 이용자 권리</h3><ul><li>개인정보 열람·정정·삭제 요청 가능</li><li>앱 내 계정 설정에서 탈퇴 시 즉시 전체 삭제</li></ul>
     </div>
-    <div style="text-align:right;margin-top:1.1rem"><button class="btn btn-p" onclick="closeModal('privacy-modal')">확인</button></div>
+    <div style="text-align:right;margin-top:1.1rem">
+      <button class="btn btn-p" onclick="closeModal('privacy-modal')">확인</button>
+    </div>
   </div>
 </div>
+
 <script type="module">
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import Chart from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
