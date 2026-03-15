@@ -3,184 +3,242 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GolfNote</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+<title>Birdyard — 새들의 마당</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,700;1,400;1,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d1b2e;--bg2:#13243d;--bg3:#1a2f4a;--gold:#c8a84b;--gold2:#e6c76a;--goldd:#8a7030;--text:#dce8f5;--dim:#7a9ab8;--muted:#4a6a8a;--green:#52b870;--red:#c05050;--amber:#e8a050;--border:rgba(200,168,75,.18);--border2:rgba(200,168,75,.35)}
+:root{
+  /* Birdyard brand palette */
+  /* Night sky — primary surface */
+  --night:    #0D1117;
+  --dusk:     #161C26;
+  --dusk2:    #1E2736;
+  --dusk3:    #263040;
+  /* Wing amber — eagle/premium accent */
+  --wing:     #C8893A;
+  --wing2:    #E4A855;
+  --wing-d:   #8A5A1C;
+  --feather:  #F0CC88;
+  /* Sky — birdie/community accent */
+  --sky:      #4A8FA8;
+  --sky2:     #6AAFCC;
+  --horizon:  #B8D8E8;
+  /* Grass — par/neutral */
+  --grass:    #2A6644;
+  --grass2:   #3D8860;
+  --turf:     #7ABFA0;
+  /* Base */
+  --chalk:    #F0EDE6;
+  --fog:      #C8C4BC;
+  --stone:    #7A7870;
+  /* App aliases */
+  --bg:var(--night);--bg2:var(--dusk);--bg3:var(--dusk2);
+  --text:var(--chalk);--dim:rgba(240,237,230,0.65);--muted:rgba(240,237,230,0.35);
+  --green:var(--turf);--red:#C17A6A;--amber:var(--wing2);
+  --gold:var(--wing);--gold2:var(--wing2);--goldd:var(--wing-d);
+  --border:rgba(240,237,230,0.08);--border2:rgba(200,137,58,0.35);
+  /* Typography */
+  --serif:'Cormorant',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono','Courier New',monospace;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1rem}
-.spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+body{font-family:var(--sans);background:var(--night);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+/* Noise texture */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:0.4}
+#loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
+.spinner{width:28px;height:28px;border:1.5px solid rgba(200,137,58,0.15);border-top-color:var(--wing2)border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold2)}
-#auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem}
-.auth-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
-.auth-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--gold2);text-align:center;margin-bottom:.25rem}
-.auth-sub{font-size:.68rem;color:var(--muted);text-align:center;letter-spacing:3px;text-transform:uppercase;margin-bottom:2rem}
+.loading-logo{font-family:var(--serif);font-size:1.8rem;font-weight:700;color:var(--chalk);letter-spacing:0.05em}
+#auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem;background:var(--night)}
+.auth-box{background:rgba(30,39,54,0.9);border:1px solid rgba(200,137,58,0.18);border-radius:4px;padding:2.5rem 2rem;width:100%;max-width:360px;backdrop-filter:blur(10px)}
+.auth-logo{font-family:var(--serif);font-size:2.2rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:0.06em}
+.auth-sub{font-size:.67rem;color:var(--wing2)text-align:center;letter-spacing:.3em;text-transform:uppercase;margin-bottom:2rem}
 .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
-.auth-tab{flex:1;padding:.6rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:inherit;font-size:.88rem;cursor:pointer;transition:all .2s}
-.auth-tab.on{color:var(--gold2);border-bottom-color:var(--gold)}
-.msg{font-size:.82rem;padding:.6rem .8rem;border-radius:8px;margin-bottom:.9rem;display:none}
-.msg.err{background:rgba(192,80,80,.12);border:1px solid rgba(192,80,80,.25);color:#f0a0a0}
-.msg.ok{background:rgba(82,184,112,.12);border:1px solid rgba(82,184,112,.25);color:#90e0a0}
-.agree-row{display:flex;align-items:flex-start;gap:.6rem;margin:.6rem 0;padding:.7rem;border-radius:8px;background:rgba(200,168,75,.05);border:1px solid var(--border);font-size:.82rem;color:var(--dim);line-height:1.5}
-.agree-row input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:var(--gold);width:15px;height:15px;cursor:pointer}
-.agree-row a{color:var(--gold);text-decoration:underline;cursor:pointer}
+.auth-tab{flex:1;padding:.65rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:400;letter-spacing:.1em;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.auth-tab.on{color:var(--wing2);border-bottom-color:var(--wing2)
+.msg{font-size:.82rem;padding:.6rem .8rem;border-radius:2px;margin-bottom:.9rem;display:none}
+.msg.err{background:rgba(193,123,106,.1);border:1px solid rgba(193,123,106,.25);color:#e8a898}
+.msg.ok{background:rgba(122,174,120,.1);border:1px solid rgba(122,174,120,.25);color:var(--mint)}
+.agree-row{display:flex;align-items:flex-start;gap:.6rem;margin:.6rem 0;padding:.7rem;border-radius:2px;background:rgba(200,137,58,.04);border:1px solid var(--border);font-size:.82rem;color:var(--dim);line-height:1.5}
+.agree-row input[type=checkbox]{margin-top:2px;flex-shrink:0;accent-color:var(--wing2)idth:14px;height:14px;cursor:pointer}
+.agree-row a{color:var(--wing2)ext-decoration:underline;cursor:pointer}
 #app{display:none;flex-direction:column;min-height:100vh}
-header{background:linear-gradient(180deg,#0a1520,var(--bg2));border-bottom:1px solid var(--border2);padding:0 1.25rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,.5)}
-.hdr{display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto;height:60px}
-.logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--gold2)}
-.hdr-right{display:flex;align-items:center;gap:.5rem}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
-.sync-dot.busy{background:var(--gold);animation:pulse 1s infinite}
+header{background:var(--dusk);border-bottom:1px solid rgba(200,137,58,0.12);padding:0 1.5rem;position:sticky;top:0;z-index:100}
+.hdr{display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto;height:58px}
+.logo{font-family:var(--serif);font-size:1.4rem;font-weight:700;color:var(--chalk);letter-spacing:0.06em;display:flex;align-items:center;gap:9px}
+.logo-icon{display:inline-block;width:22px;height:22px;flex-shrink:0}
+.hdr-right{display:flex;align-items:center;gap:.6rem}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--turf);flex-shrink:0}
+.sync-dot.busy{background:var(--wing);animation:pulse 1s infinite}
 .sync-dot.err{background:var(--red)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.email-lbl{font-size:.72rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tabs{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:99}
+.email-lbl{font-size:.7rem;color:var(--muted);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.04em}
+.tabs{background:var(--dusk2);border-bottom:1px solid rgba(200,137,58,0.1);position:sticky;top:58px;z-index:99}
 .tabs-inner{display:flex;max-width:900px;margin:0 auto}
-.tab{flex:1;padding:.8rem .5rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:inherit;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s}
-.tab.on{color:var(--gold2);border-bottom-color:var(--gold)}
+.tab{flex:1;padding:.75rem .5rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.tab.on{color:var(--wing2);border-bottom-color:var(--wing2)
 main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .page{animation:fadeUp .2s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.fl-label{display:block;font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.inp,.sel,.ta{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.6rem .85rem;border-radius:8px;font-family:inherit;font-size:.88rem;outline:none;transition:border-color .15s}
-.inp:focus,.sel:focus,.ta:focus{border-color:var(--border2)}
-.sel{background-color:var(--bg)}
-.ta{resize:vertical;min-height:76px;line-height:1.6}
-.fg{margin-bottom:.8rem}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fl-label{display:block;font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px}
+.inp,.sel,.ta{width:100%;background:rgba(28,43,26,0.6);border:1px solid var(--border);color:var(--text);padding:.6rem .9rem;border-radius:2px;font-family:var(--sans);font-size:.88rem;outline:none;transition:border-color .15s}
+.inp:focus,.sel:focus,.ta:focus{border-color:rgba(184,151,58,0.5)}
+.sel{background-color:var(--dusk)}
+.ta{resize:vertical;min-height:76px;line-height:1.65}
+.fg{margin-bottom:.85rem}
 .frow{display:flex;gap:.6rem}
 .frow>.fg{flex:1}
-.btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-p{background:linear-gradient(135deg,var(--goldd),var(--gold));color:var(--bg)}
-.btn-p:hover:not(:disabled){background:linear-gradient(135deg,var(--gold),var(--gold2))}
-.btn-s{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--dim)}
-.btn-s:hover{background:rgba(255,255,255,.08)}
-.btn-d{background:rgba(140,50,50,.2);border:1px solid rgba(140,50,50,.3);color:var(--red)}
-.btn-d:hover{background:rgba(140,50,50,.3)}
-.btn-sm{padding:.3rem .7rem;font-size:.78rem}
+.btn{padding:.55rem 1.2rem;border-radius:2px;border:none;font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--wing);color:var(--night)}
+.btn-p:hover:not(:disabled){background:var(--wing2);transform:translateY(-1px)}
+.btn-s{background:rgba(240,237,230,.05);border:1px solid var(--border);color:var(--dim)}
+.btn-s:hover{background:rgba(240,237,230,.09)}
+.btn-d{background:rgba(193,123,106,.12);border:1px solid rgba(193,123,106,.25);color:#e8a898}
+.btn-d:hover{background:rgba(193,123,106,.22)}
+.btn-sm{padding:.32rem .75rem;font-size:.72rem}
 .brow{display:flex;gap:.5rem;margin-top:.9rem}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;margin-bottom:.6rem;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold),transparent);opacity:0;transition:opacity .18s}
-.card:hover{border-color:var(--border2);background:var(--bg3);transform:translateX(2px)}
+.card{background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.9rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--wing);opacity:0;transition:opacity .18s}
+.card:hover{border-color:rgba(200,137,58,0.28);background:var(--dusk2);transform:translateX(2px)}
 .card:hover::before{opacity:1}
-.card-title{font-weight:700;font-size:.95rem;margin-bottom:4px;color:#f2ead6}
-.card-meta{font-size:.74rem;color:var(--muted);margin-top:4px}
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;margin-right:3px;margin-bottom:2px}
-.b-gold{background:rgba(200,168,75,.15);color:var(--gold2);border:1px solid rgba(200,168,75,.3)}
-.b-green{background:rgba(61,138,90,.15);color:var(--green);border:1px solid rgba(61,138,90,.3)}
-.b-blue{background:rgba(70,120,200,.15);color:#7ab0e8;border:1px solid rgba(70,120,200,.25)}
-.b-amber{background:rgba(200,130,40,.15);color:var(--amber);border:1px solid rgba(200,130,40,.3)}
-.sec-label{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.card-title{font-weight:500;font-size:.93rem;margin-bottom:4px;color:var(--chalk);letter-spacing:-.01em}
+.card-meta{font-size:.72rem;color:var(--muted);margin-top:4px;letter-spacing:.04em}
+.badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-right:3px;margin-bottom:2px}
+.b-gold{background:rgba(200,137,58,.12);color:var(--wing2);border:1px solid rgba(200,137,58,.25)}
+.b-green{background:rgba(122,191,160,.1);color:var(--turf);border:1px solid rgba(122,191,160,.2)}
+.b-blue{background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.2)}
+.b-amber{background:rgba(228,168,85,.12);color:var(--wing2);border:1px solid rgba(228,168,85,.22)}
+.sec-label{font-size:.67rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
 .sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
 .divider{height:1px;background:var(--border);margin:.9rem 0}
-.back-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--gold);font-family:inherit;font-size:.82rem;cursor:pointer;padding:0;margin-bottom:1.1rem;transition:color .15s}
-.back-btn:hover{color:var(--gold2)}
-.stats-row{display:flex;gap:.65rem;margin-bottom:1.25rem}
-.stat{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.8rem;text-align:center}
-.stat-n{font-family:'Cormorant Garamond',serif;font-size:1.7rem;font-weight:700;color:var(--gold2);line-height:1;margin-bottom:3px}
-.stat-l{font-size:.7rem;color:var(--muted)}
+.back-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--wing2)font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:1.1rem;transition:color .15s}
+.back-btn:hover{color:var(--wing2)}
+.stats-row{display:flex;gap:.6rem;margin-bottom:1.25rem}
+.stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.85rem;text-align:center;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--wing),transparent);opacity:.35}
+.stat-n{font-family:var(--mono);font-size:1.6rem;font-weight:500;color:var(--wing2);line-height:1;margin-bottom:4px}
+.stat-l{font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
 .filter-bar{display:flex;gap:.5rem;margin-bottom:1.1rem;flex-wrap:wrap}
 .filter-bar .inp{flex:1;min-width:130px}
 .filter-bar .sel{min-width:100px;width:auto}
-.empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.9rem}
-.empty-icon{font-size:2.2rem;margin-bottom:.7rem;opacity:.5}
-.toast-el{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);color:var(--gold2);padding:.65rem 1.4rem;border-radius:30px;font-size:.85rem;font-weight:500;z-index:9999;pointer-events:none;animation:tin .3s ease,tout .3s ease 2.2s forwards}
+.empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.88rem}
+.empty-icon{font-size:2rem;margin-bottom:.7rem;opacity:.4}
+.toast-el{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--dusk2);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.6rem 1.4rem;border-radius:2px;font-size:.82rem;font-weight:500;letter-spacing:.06em;z-index:9999;pointer-events:none;animation:tin .3s ease,tout .3s ease 2.2s forwards}
 @keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @keyframes tout{to{opacity:0}}
-.v-thumb{width:88px;height:58px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--border)}
-.yt-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:.5rem;background:#000;border:1px solid var(--border)}
+.v-thumb{width:88px;height:58px;object-fit:cover;border-radius:2px;flex-shrink:0;border:1px solid var(--border)}
+.yt-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:2px;overflow:hidden;margin-bottom:.5rem;background:#000;border:1px solid var(--border)}
 .yt-wrap iframe{width:100%;height:100%;border:none;display:block}
-.inline-edit{display:flex;gap:.5rem;align-items:center;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:.5rem .7rem;margin-bottom:.65rem}
-.inline-edit .e-label{font-size:.68rem;color:var(--muted);white-space:nowrap;letter-spacing:1px;text-transform:uppercase}
-.inline-edit input{flex:1;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:.85rem;outline:none}
-.ts-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.55rem .75rem;margin-bottom:.35rem;display:flex;align-items:flex-start;gap:.6rem}
-.ts-time{background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold2);padding:2px 9px;border-radius:6px;font-size:.76rem;font-weight:700;white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0}
-.ts-time:hover{background:rgba(200,168,75,.25)}
-.ts-note{flex:1;font-size:.84rem;color:var(--dim);line-height:1.5}
+.inline-edit{display:flex;gap:.5rem;align-items:center;background:rgba(13,17,23,.6);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.5rem .7rem;margin-bottom:.65rem}
+.inline-edit .e-label{font-size:.65rem;color:var(--muted);white-space:nowrap;letter-spacing:.12em;text-transform:uppercase}
+.inline-edit input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:.85rem;outline:none}
+.ts-item{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.5rem .7rem;margin-bottom:.3rem;display:flex;align-items:flex-start;gap:.6rem}
+.ts-time{background:rgba(184,151,58,.1);border:1px solid rgba(184,151,58,.2);color:var(--wing2);padding:2px 8px;border-radius:2px;font-family:var(--mono);font-size:.73rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0}
+.ts-time:hover{background:rgba(184,151,58,.22)}
+.ts-note{flex:1;font-size:.83rem;color:var(--dim);line-height:1.5}
 .ts-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 2px;transition:color .15s;flex-shrink:0}
 .ts-del:hover{color:var(--red)}
 .kw-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.kw-pill{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:500;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.2);color:var(--gold);cursor:pointer;transition:all .12s}
-.kw-pill:hover{background:rgba(200,168,75,.18)}
-.link-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.65rem .85rem;margin-bottom:.35rem}
-.link-item a{color:var(--gold);text-decoration:none;font-size:.87rem}
-.link-item a:hover{color:var(--gold2)}
-.link-price{font-weight:700;color:#e8c87a;font-size:.9rem}
-.link-date{font-size:.7rem;color:var(--muted);margin-top:2px}
-.price-entry{display:flex;justify-content:space-between;font-size:.79rem;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);color:var(--dim)}
-.sec-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;margin-bottom:.8rem}
-.price-big{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:700;color:#e8c87a}
+.kw-pill{padding:3px 9px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(184,151,58,.06);border:1px solid rgba(184,151,58,.18);color:var(--wing2)ursor:pointer;transition:all .12s}
+.kw-pill:hover{background:rgba(184,151,58,.16)}
+.link-item{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.6rem .85rem;margin-bottom:.3rem}
+.link-item a{color:var(--wing2)ext-decoration:none;font-size:.87rem}
+.link-item a:hover{color:var(--wing2)}
+.link-price{font-family:var(--mono);font-weight:500;color:var(--wing2);font-size:.9rem}
+.link-date{font-size:.68rem;color:var(--muted);margin-top:2px;letter-spacing:.04em}
+.price-entry{display:flex;justify-content:space-between;font-size:.79rem;padding:4px 0;border-bottom:1px solid rgba(245,240,232,.04);color:var(--dim)}
+.sec-box{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.85rem 1rem;margin-bottom:.8rem}
+.price-big{font-family:var(--mono);font-size:1.3rem;font-weight:500;color:var(--wing2)}
 .p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
-.p-tab{padding:.4rem 1rem;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);font-family:inherit;font-size:.82rem;cursor:pointer;transition:all .15s}
-.p-tab.on{background:rgba(200,168,75,.12);color:var(--gold2);border-color:var(--border2)}
-.shot-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.45rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.7rem;margin-bottom:.45rem;position:relative}
-.shot-num{position:absolute;top:.45rem;left:.6rem;font-size:.66rem;color:var(--muted);font-weight:700;letter-spacing:1px}
+.p-tab{padding:.4rem 1rem;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.p-tab.on{background:rgba(200,137,58,.1);color:var(--wing2);border-color:rgba(200,137,58,.3)}
+.shot-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.45rem;background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.7rem;margin-bottom:.4rem;position:relative}
+.shot-num{position:absolute;top:.45rem;left:.6rem;font-size:.62rem;color:var(--muted);font-weight:500;letter-spacing:.12em;text-transform:uppercase}
 .shot-field{display:flex;flex-direction:column;gap:3px;margin-top:.2rem}
-.shot-field label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.shot-field input{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:.32rem .5rem;border-radius:6px;font-size:.84rem;font-family:inherit;outline:none;width:100%}
-.shot-field input:focus{border-color:var(--border2)}
+.shot-field label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.shot-field input{background:rgba(13,17,23,.8);border:1px solid var(--border);color:var(--text);padding:.3rem .5rem;border-radius:2px;font-size:.84rem;font-family:var(--mono);outline:none;width:100%}
+.shot-field input:focus{border-color:rgba(184,151,58,.4)}
 .shot-del{position:absolute;top:.38rem;right:.5rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;transition:color .15s}
 .shot-del:hover{color:var(--red)}
-.stbl{width:100%;border-collapse:collapse;font-size:.83rem}
-.stbl th{text-align:left;padding:.45rem .55rem;font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border)}
-.stbl td{padding:.55rem .55rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--dim)}
-.stbl tr:hover td{background:rgba(255,255,255,.02)}
-.stbl .vl{font-family:monospace;color:var(--text);font-weight:500}
-.stbl .best{color:var(--gold2);font-weight:700}
-.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:.9rem}
-.chart-title{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.7rem}
-.club-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(200,168,75,.12);color:var(--gold2);border:1px solid rgba(200,168,75,.25)}
-.img-upload{border:2px dashed var(--border2);border-radius:10px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
-.img-upload:hover{border-color:var(--gold);color:var(--gold)}
+.stbl{width:100%;border-collapse:collapse;font-size:.82rem}
+.stbl th{text-align:left;padding:.45rem .55rem;font-size:.65rem;font-weight:500;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.stbl td{padding:.52rem .55rem;border-bottom:1px solid rgba(245,240,232,.04);color:var(--dim)}
+.stbl tr:hover td{background:rgba(245,240,232,.02)}
+.stbl .vl{font-family:var(--mono);color:var(--text);font-weight:400}
+.stbl .best{color:var(--wing2);font-weight:500}
+.chart-wrap{background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:1rem;margin-bottom:.9rem}
+.chart-title{font-size:.65rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem}
+.club-badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.22)}
+.img-upload{border:1px dashed rgba(184,151,58,.3);border-radius:2px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
+.img-upload:hover{border-color:var(--wing2)olor:var(--wing)
 .img-upload input{display:none}
 /* AI 분석 */
-.ai-status{background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:.9rem 1rem;margin-bottom:.75rem}
-.ai-status-title{font-size:.72rem;font-weight:700;color:var(--gold2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
+.ai-status{background:rgba(13,17,23,.5);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.9rem 1rem;margin-bottom:.75rem}
+.ai-status-title{font-size:.68rem;font-weight:500;color:var(--wing2);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
 .ai-photo-list{display:flex;flex-direction:column;gap:.4rem}
-.ai-photo-item{display:flex;align-items:center;gap:.6rem;font-size:.82rem;padding:.35rem .5rem;border-radius:6px;background:var(--bg2)}
-.ai-photo-thumb{width:44px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid var(--border)}
+.ai-photo-item{display:flex;align-items:center;gap:.6rem;font-size:.82rem;padding:.35rem .5rem;border-radius:2px;background:rgba(13,17,23,.5)}
+.ai-photo-thumb{width:44px;height:32px;object-fit:cover;border-radius:2px;flex-shrink:0;border:1px solid var(--border)}
 .ai-photo-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
-.ai-photo-status{font-size:.75rem;flex-shrink:0;font-weight:600}
+.ai-photo-status{font-size:.73rem;flex-shrink:0;font-weight:500}
 .ai-photo-status.wait{color:var(--muted)}
-.ai-photo-status.busy{color:var(--gold);animation:pulse 1s infinite}
-.ai-photo-status.done{color:var(--green)}
+.ai-photo-status.busy{color:var(--wing2)nimation:pulse 1s infinite}
+.ai-photo-status.done{color:var(--mint)}
 .ai-photo-status.fail{color:var(--red)}
-.progress-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:.6rem;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--goldd),var(--gold2));border-radius:2px;transition:width .4s ease}
+.progress-bar{height:3px;background:rgba(245,240,232,.08);border-radius:2px;margin-top:.6rem;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--wing),var(--wing2));border-radius:2px;transition:width .4s ease}
 /* 설정 모달 */
-.settings-info{font-size:.8rem;color:var(--dim);line-height:1.6;margin-bottom:.9rem;padding:.7rem;background:rgba(200,168,75,.05);border:1px solid var(--border);border-radius:8px}
-.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.settings-info{font-size:.8rem;color:var(--dim);line-height:1.65;margin-bottom:.9rem;padding:.7rem;background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:2px}
+.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
 .modal-bg.on{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:620px;padding:1.6rem;margin:auto;box-shadow:0 8px 40px rgba(0,0,0,.5);animation:fadeUp .2s ease}
-.modal-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1.1rem;padding-bottom:.7rem;border-bottom:1px solid var(--border)}
-.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;transition:color .15s;line-height:1}
+.modal{background:var(--dusk2);border:1px solid rgba(200,137,58,.18);border-radius:2px;width:100%;max-width:600px;padding:1.6rem;margin:auto;animation:fadeUp .2s ease}
+.modal-title{font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--chalk);margin-bottom:1.1rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);letter-spacing:-.01em}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;transition:color .15s;line-height:1}
 .modal-close:hover{color:var(--text)}
-.privacy h3{font-size:.87rem;font-weight:700;color:#f2ead6;margin-bottom:.35rem;margin-top:1rem}
+.privacy h3{font-size:.85rem;font-weight:500;color:var(--chalk);margin-bottom:.35rem;margin-top:1rem;letter-spacing:.02em}
 .privacy p,.privacy li{font-size:.82rem;color:var(--dim);line-height:1.7}
 .privacy ul{padding-left:1.1rem}
-.danger-zone{margin-top:.75rem;padding:.75rem;border:1px solid rgba(192,80,80,.25);border-radius:8px;background:rgba(140,50,50,.06)}
-.danger-title{font-size:.7rem;font-weight:700;color:var(--red);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.45rem}
-.acct-panel{display:none;position:absolute;top:64px;right:1rem;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:.9rem;min-width:240px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:200;animation:fadeUp .15s ease}
+.danger-zone{margin-top:.75rem;padding:.75rem;border:1px solid rgba(193,123,106,.2);border-radius:2px;background:rgba(193,123,106,.05)}
+.danger-title{font-size:.67rem;font-weight:500;color:var(--red);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.45rem}
+.acct-panel{display:none;position:absolute;top:62px;right:1rem;background:var(--dusk);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.85rem;min-width:230px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:200;animation:fadeUp .15s ease}
 .acct-panel.on{display:block}
-.acct-email{font-size:.78rem;color:var(--muted);margin-bottom:.7rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);word-break:break-all}
-.acct-btn{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:.84rem;padding:.45rem .4rem;cursor:pointer;border-radius:6px;color:var(--dim);transition:all .15s;margin-bottom:2px}
-.acct-btn:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.acct-email{font-size:.75rem;color:var(--muted);margin-bottom:.7rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);word-break:break-all;letter-spacing:.03em}
+.acct-btn{display:block;width:100%;text-align:left;background:none;border:none;font-family:var(--sans);font-size:.82rem;padding:.42rem .4rem;cursor:pointer;border-radius:2px;color:var(--dim);transition:all .15s;margin-bottom:2px;letter-spacing:.02em}
+.acct-btn:hover{background:rgba(240,237,230,.05);color:var(--text)}
 .acct-btn.red{color:var(--red)}
-.acct-btn.red:hover{background:rgba(140,50,50,.15)}
-.acct-sep{height:1px;background:var(--border);margin:.45rem 0}
-.icon-btn{background:rgba(200,168,75,.08);border:1px solid var(--border);color:var(--gold);padding:.38rem .85rem;border-radius:6px;font-size:.74rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
-.icon-btn:hover{background:rgba(200,168,75,.16);border-color:var(--border2)}
-@media(max-width:480px){.stats-row{gap:.4rem}.stat-n{font-size:1.35rem}.email-lbl,.sync-dot{display:none}.shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}.acct-panel{right:.5rem;left:.5rem;min-width:unset}}
+.acct-btn.red:hover{background:rgba(193,123,106,.1)}
+.acct-sep{height:1px;background:var(--border);margin:.42rem 0}
+.icon-btn{background:rgba(200,137,58,.08);border:1px solid rgba(184,151,58,.2);color:var(--wing2)adding:.36rem .85rem;border-radius:2px;font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.icon-btn:hover{background:rgba(200,137,58,.15);border-color:rgba(184,151,58,.35)}
+@media(max-width:480px){.stats-row{gap:.4rem}.stat-n{font-size:1.3rem}.email-lbl,.sync-dot{display:none}.shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}.acct-panel{right:.5rem;left:.5rem;min-width:unset}}
+/* Birdyard tier system */
+.tier-eagle{background:rgba(200,137,58,.15);color:#F0CC88;border:1px solid rgba(200,137,58,.35);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase}
+.tier-birdie{background:rgba(106,175,204,.1);color:var(--sky2);border:1px solid rgba(106,175,204,.25);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase}
+.tier-par{background:rgba(240,237,230,.06);color:var(--muted);border:1px solid var(--border);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase}
+/* Sky accent for community/mentor elements */
+.mentor-tag{background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.22);font-size:.62rem;font-weight:500;padding:2px 7px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
+/* Wing-glow on focused inputs */
+.inp:focus,.sel:focus,.ta:focus{box-shadow:0 0 0 1px rgba(200,137,58,.2)}
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--night)}
+::-webkit-scrollbar-thumb{background:var(--dusk3);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--wing)}
 </style>
 </head>
 <body>
-<div id="loading"><div class="spinner"></div><div class="loading-logo">⛳ GolfNote</div></div>
+<div id="loading"><div class="spinner"></div><div class="loading-logo" style="display:flex;align-items:center;gap:10px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/><path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/><circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/></svg>BIRDYARD</div></div>
 <div id="auth">
   <div class="auth-box">
-    <div class="auth-logo">⛳ GolfNote</div>
-    <div class="auth-sub">Golf Learning Manager</div>
+    <div class="auth-logo" style="display:flex;align-items:center;justify-content:center;gap:10px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
+        <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
+        <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
+      </svg>
+      BIRDYARD
+    </div>
+    <div class="auth-sub">새들의 마당 · 함께 날아오르다</div>
     <div class="auth-tabs">
       <button class="auth-tab on" id="atab-login" onclick="setAuthMode('login')">로그인</button>
       <button class="auth-tab" id="atab-signup" onclick="setAuthMode('signup')">회원가입</button>
@@ -199,7 +257,14 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 <div id="app">
   <header style="position:relative">
     <div class="hdr">
-      <div class="logo">⛳ GolfNote</div>
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
+          <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
+        </svg>
+        BIRDYARD
+      </div>
       <div class="hdr-right">
         <div class="sync-dot" id="sync-dot"></div>
         <span class="email-lbl" id="hdr-email"></span>
@@ -208,30 +273,34 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
     </div>
     <div class="acct-panel" id="acct-panel">
       <div class="acct-email" id="panel-email"></div>
-      <button class="acct-btn" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
-      <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
-      <button class="acct-btn" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정 / 회원탈퇴</button>
+      <button class="acct-btn" onclick="openModal('settings-modal');closeAcctPanel()">API 키 설정</button>
+      <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">개인정보 처리방침</button>
+      <button class="acct-btn" onclick="openAcctSettings();closeAcctPanel()">계정 설정</button>
       <div class="acct-sep"></div>
       <button class="acct-btn red" onclick="doSignOut()">로그아웃</button>
     </div>
   </header>
   <div class="tabs"><div class="tabs-inner">
-    <button class="tab on" id="tab-videos" onclick="gotoTab('videos')">📹 영상</button>
-    <button class="tab" id="tab-equipment" onclick="gotoTab('equipment')">🏌️ 장비</button>
-    <button class="tab" id="tab-practice" onclick="gotoTab('practice')">📊 연습</button>
+    <button class="tab on" id="tab-videos" onclick="gotoTab('videos')">노트 학습</button>
+    <button class="tab" id="tab-equipment" onclick="gotoTab('equipment')">장비 창고</button>
+    <button class="tab" id="tab-practice" onclick="gotoTab('practice')">비행 기록</button>
+    <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;padding-right:.75rem;gap:.4rem">
+      <span style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,237,230,.25)">내 등급</span>
+      <span id="user-tier" style="font-size:.65rem;font-weight:500;padding:2px 8px;border-radius:2px;background:rgba(200,137,58,.12);color:#E4A855;border:1px solid rgba(200,137,58,.25);letter-spacing:.06em">BIRDIE</span>
+    </div>
   </div></div>
   <main id="main"></main>
 </div>
 <!-- SETTINGS MODAL -->
 <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
   <div class="modal">
-    <div class="modal-title">🔑 API 키 설정 <button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
+    <div class="modal-title">API 키 설정 <button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
     <div class="settings-info">
-      API 키는 이 기기의 브라우저에만 저장되며 외부로 전송되지 않습니다.<br>
+      API 키는 이 기기에만 저장되며 외부로 전송되지 않습니다.<br>
       GDR 사진 자동 분석에 사용됩니다.
     </div>
     <div class="fg">
-      <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 화면 분석)</label>
+      <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 데이터 분석)</label>
       <input class="inp" type="password" id="set-anthropic" placeholder="sk-ant-api03-...">
       <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.anthropic.com → API Keys</div>
     </div>
@@ -263,7 +332,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
   <div class="modal">
     <div class="modal-title">계정 설정 <button class="modal-close" onclick="closeModal('acct-modal')">✕</button></div>
     <div class="privacy">
-      <h3>내 계정</h3><p id="acct-email-disp" style="color:var(--gold);font-size:.9rem"></p>
+      <h3>내 계정</h3><p id="acct-email-disp" style="color:var(--wing2)ont-size:.9rem"></p>
       <h3 style="margin-top:.75rem">저장된 데이터</h3><p id="acct-data-cnt"></p>
     </div>
     <div class="danger-zone" style="margin-top:1rem">
@@ -387,19 +456,19 @@ function render(){
 }
 function vList(){
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
-  const cards=D.videos.length?D.videos.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div><div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">🎬</div>저장된 영상이 없습니다.</div>`;
-  return `<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select></div><div id="vcards">${cards}</div><button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 영상 추가</button></div>`;
+  const cards=D.videos.length?D.videos.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div><div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>저장된 노트가 없습니다.</div>`;
+  return `<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select></div><div id="vcards">${cards}</div><button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 노트 추가</button></div>`;
 }
 window.filterV=(q,cat)=>{
   const f=D.videos.filter(v=>(!q||v.title.includes(q)||v.kw.some(k=>k.includes(q)))&&(!cat||v.kw.includes(cat)));
   const c=$('vcards');if(!c)return;
-  c.innerHTML=f.length?f.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon">🔍</div>검색 결과 없음</div>`;
+  c.innerHTML=f.length?f.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`;
 };
 function vDetail(){
-  const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">영상을 찾을 수 없습니다.</div>';
+  const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
   const vid=vidId(v.url),embed=vid?`https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1`:'';
   const tsH=v.ts.length?v.ts.map((t,i)=>`<div class="ts-item"><span class="ts-time" onclick="playFrom('${t.time}','${v.id}')">${t.time}</span><span class="ts-note">${esc(t.note)}</span><button class="ts-del" onclick="delTs('${v.id}',${i})">✕</button></div>`).join(''):`<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">저장된 구간이 없습니다.</div>`;
-  return `<div class="page"><button class="back-btn" onclick="goList()">← 영상 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div style="margin-bottom:.65rem">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div>${vid?`<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`:`<div style="padding:.9rem;background:var(--bg);border-radius:8px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">영상 삭제</button></div></div>`;
+  return `<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div style="margin-bottom:.65rem">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div>${vid?`<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`:`<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
 window.addTs=async vid=>{const t=$('ts-t').value.trim(),n=$('ts-n').value.trim();if(!t||!n){toast('시간과 내용을 입력하세요');return}const v=D.videos.find(x=>x.id===vid);if(!v)return;const newTs=[...v.ts,{time:t,note:n}].sort((a,b)=>t2s(a.time)-t2s(b.time));sync('busy');const{error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.ts=newTs;sync('ok');toast('구간 추가됨');goDetail(vid)};
@@ -408,58 +477,58 @@ window.saveVTitle=async(id,val)=>{const v=D.videos.find(x=>x.id===id);if(!v||!va
 window.saveVUrl=async(id,val)=>{const v=D.videos.find(x=>x.id===id);if(!v||!val.trim()||val.trim()===v.url)return;sync('busy');const{error}=await sb.from('videos').update({url:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.url=val.trim();sync('ok');toast('URL 저장됨');goDetail(id)};
 window.editVMemo=async id=>{const v=D.videos.find(x=>x.id===id);if(!v)return;const m=prompt('메모 수정:',v.memo);if(m===null)return;sync('busy');const{error}=await sb.from('videos').update({memo:m}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.memo=m;sync('ok');toast('저장됨');goDetail(id)};
 window.delVideo=async id=>{if(!confirm('영상을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('videos').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.videos=D.videos.filter(v=>v.id!==id);sync('ok');toast('삭제됨');goList()};
-function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 영상 목록</button><div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem"><div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">새 영상 추가</div><div class="fg"><label class="fl-label">YouTube URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:6px;display:none;border:1px solid var(--border)" src="" alt=""></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 팁..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.prevThumb=()=>{const t=thumb($('vu').value),img=$('vthumb');if(t){img.src=t;img.style.display='block'}else img.style.display='none'};
 window.addKw=c=>{const e=$('vk');e.value=e.value.trim()?(e.value.trim()+', '+c):c};
-window.saveVideo=async()=>{const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim(),btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps:[],added_at:today()});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}await loadAll();toast('영상 추가됨');goList()};
+window.saveVideo=async()=>{const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim(),btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps:[],added_at:today()});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}await loadAll();toast('노트 추가됨');goList()};
 function eList(){
   const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
-  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:.7rem">${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon">🏌️</div>등록된 장비가 없습니다.</div>`;
+  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:.7rem">${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
   return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value)"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value)"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select></div><div id="ecards">${cards}</div><button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 장비 추가</button></div>`;
 }
-window.filterE=(q,cat,st)=>{const f=D.equip.filter(e=>(!q||e.name.includes(q))&&(!cat||e.cat===cat)&&(!st||e.status===st));const c=$('ecards');if(!c)return;c.innerHTML=f.length?f.map(e=>`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between"><div><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${(e.links.length?e.links[e.links.length-1].price:e.buyPrice)?`<div class="link-price">${fmtP(e.links.length?e.links[e.links.length-1].price:e.buyPrice)}</div>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-icon">🔍</div>검색 결과 없음</div>`};
+window.filterE=(q,cat,st)=>{const f=D.equip.filter(e=>(!q||e.name.includes(q))&&(!cat||e.cat===cat)&&(!st||e.status===st));const c=$('ecards');if(!c)return;c.innerHTML=f.length?f.map(e=>`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between"><div><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${(e.links.length?e.links[e.links.length-1].price:e.buyPrice)?`<div class="link-price">${fmtP(e.links.length?e.links[e.links.length-1].price:e.buyPrice)}</div>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`};
 function eDetail(){
   const e=D.equip.find(x=>x.id===selId);if(!e)return'<div class="empty">장비를 찾을 수 없습니다.</div>';
   const lp=e.links.length?e.links[e.links.length-1].price:null;
   const linksH=e.links.length?e.links.map((l,i)=>`<div class="link-item"><div style="display:flex;justify-content:space-between;align-items:center"><a href="${ea(l.url)}" target="_blank" rel="noopener">🔗 ${esc(l.label)}</a>${l.price?`<span class="link-price">${fmtP(l.price)}</span>`:''}</div><div class="link-date">확인일: ${l.checkedAt||'—'} <button class="btn btn-s btn-sm" style="margin-left:.5rem;padding:1px 7px;font-size:.7rem" onclick="updLinkP('${e.id}',${i})">가격 업데이트</button></div></div>`).join(''):'<div style="color:var(--muted);font-size:.84rem">저장된 링크 없음</div>';
   const histH=e.priceH.length?`<div class="sec-label" style="margin-top:.9rem">가격 동향</div><div>${e.priceH.slice().reverse().map((h,i,a)=>{const d=a[i+1]?h.price-a[i+1].price:0;return`<div class="price-entry"><span>${h.date}</span><span>${fmtP(h.price)} ${d?`<span style="color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</span>`:''}</span></div>`}).join('')}</div>`:'';
-  return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#f2ead6">${esc(e.name)}</div><div style="margin-top:5px"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${e.buyPrice||lp?`<div class="price-big">${fmtP(e.buyPrice||lp)}</div>`:''}</div>${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--gold)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(e.memo)||'메모 없음'}</div><div class="sec-label">인터넷 링크</div>${linksH}${histH}<div style="display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap"><input class="inp" style="flex:2;min-width:110px" id="nl-url" placeholder="https://..."><input class="inp" style="flex:1;min-width:70px" id="nl-label" placeholder="쇼핑몰"><input class="inp" style="width:100px;flex:none" type="number" id="nl-price" placeholder="가격"><button class="btn btn-p btn-sm" onclick="addLink('${e.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editEMemo('${e.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button></div></div>`;
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk)">${esc(e.name)}</div><div style="margin-top:5px"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${e.buyPrice||lp?`<div class="price-big">${fmtP(e.buyPrice||lp)}</div>`:''}</div>${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--wing2)${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(e.memo)||'메모 없음'}</div><div class="sec-label">인터넷 링크</div>${linksH}${histH}<div style="display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap"><input class="inp" style="flex:2;min-width:110px" id="nl-url" placeholder="https://..."><input class="inp" style="flex:1;min-width:70px" id="nl-label" placeholder="쇼핑몰"><input class="inp" style="width:100px;flex:none" type="number" id="nl-price" placeholder="가격"><button class="btn btn-p btn-sm" onclick="addLink('${e.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editEMemo('${e.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button></div></div>`;
 }
 window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
 window.updLinkP=async(eid,idx)=>{const e=D.equip.find(x=>x.id===eid);if(!e)return;const p=prompt(`새 가격 (현재: ${fmtP(e.links[idx].price)}):`,e.links[idx].price||'');if(p===null)return;const np=Number(p),newLinks=e.links.map((l,i)=>i===idx?{...l,price:np,checkedAt:today()}:l),newH=[...e.priceH,{date:today(),price:np}];sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',eid).eq('user_id',user.id);if(error){toast('업데이트 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('업데이트됨');goDetail(eid)};
 window.editEMemo=async id=>{const e=D.equip.find(x=>x.id===id);if(!e)return;const m=prompt('메모 수정:',e.memo);if(m===null)return;sync('busy');const{error}=await sb.from('equipment').update({memo:m}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.memo=m;sync('ok');toast('저장됨');goDetail(id)};
 window.delEquip=async id=>{if(!confirm('삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('equipment').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.equip=D.equip.filter(e=>e.id!==id);sync('ok');toast('삭제됨');goList()};
-function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem"><div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3 드라이버"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
 window.saveEquip=async()=>{const name=$('en').value.trim();if(!name){toast('장비명을 입력하세요');return}const status=(document.querySelector('input[name="est"]:checked')||{}).value||'wishlist',cat=$('ec').value,memo=$('em').value.trim(),link=$('el').value.trim(),lbl=$('ell').value.trim(),lpr=$('elp').value,pp=$('ep')?.value,pd=$('ed')?.value,links=link?[{url:link,label:lbl||'링크',price:lpr?Number(lpr):null,checkedAt:today()}]:[],priceH=(lpr&&link)?[{date:today(),price:Number(lpr)}]:[],btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';sync('busy');const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null});if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}await loadAll();toast('장비 추가됨');goList()};
 const ss=s=>{const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null),carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');return{carries,totals,hs,bs,sf,avgCarry:avg(carries),bestCarry:best(carries),avgTotal:avg(totals),avgHs:avg(hs),bestHs:best(hs),avgBs:avg(bs),avgSf:avg(sf)}};
 function pList(){
   const totalShots=D.sessions.reduce((a,s)=>a+(s.shots?.length||0),0),clubs=[...new Set(D.sessions.map(s=>s.club).filter(Boolean))];
-  const ptabs=`<div class="p-tabs"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">세션 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">통계 & 그래프</button></div>`;
+  const ptabs=`<div class="p-tabs"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button></div>`;
   const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
   if(pSub==='stats'){
     const cm={};D.sessions.forEach(s=>{if(!s.club)return;if(!cm[s.club])cm[s.club]={c:[],h:[],b:[],sf:[]};const st=ss(s);if(st.avgCarry)cm[s.club].c.push(st.avgCarry);if(st.avgHs)cm[s.club].h.push(st.avgHs);if(st.avgBs)cm[s.club].b.push(st.avgBs);if(st.avgSf)cm[s.club].sf.push(st.avgSf)});
     const rows=Object.entries(cm).map(([club,d])=>`<tr><td><span class="club-badge">${esc(club)}</span></td><td class="vl">${fn(avg(d.c),'m')}</td><td class="vl best">${fn(best(d.c),'m')}</td><td class="vl">${fn(avg(d.h))}</td><td class="vl">${fn(avg(d.b))}</td><td class="vl">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td></tr>`).join('');
-    return`<div class="page">${srow}${ptabs}${rows?`<div class="sec-label">클럽별 통계</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}<div class="chart-wrap"><div class="chart-title">비거리 추이 (캐리 평균)</div><div style="position:relative;height:190px"><canvas id="chart-carry"></canvas></div></div><div class="chart-wrap"><div class="chart-title">헤드스피드 추이</div><div style="position:relative;height:190px"><canvas id="chart-hs"></canvas></div></div></div>`;
+    return`<div class="page">${srow}${ptabs}${rows?`<div class="sec-label">클럽별 분석</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}<div class="chart-wrap"><div class="chart-title">비거리 추이</div><div style="position:relative;height:190px"><canvas id="chart-carry"></canvas></div></div><div class="chart-wrap"><div class="chart-title">헤드 스피드</div><div style="position:relative;height:190px"><canvas id="chart-hs"></canvas></div></div></div>`;
   }
-  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--gold2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--gold2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--gold2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--green);font-weight:700">${fn(st.avgHs)}</span></span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon">📊</div>연습 기록이 없습니다.</div>`;
-  return`<div class="page">${srow}${ptabs}${cards}<button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 세션 추가</button></div>`;
+  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
+  return`<div class="page">${srow}${ptabs}${cards}<button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 기록 추가</button></div>`;
 }
 window.setPSub=t=>{pSub=t;Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};const m=$('main');m.innerHTML=pList();if(t==='stats')initCharts()};
 function initCharts(){
   const sessions=[...D.sessions].reverse();if(!sessions.length)return;
   const labels=sessions.map(s=>s.date?.slice(5)||''),carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null}),hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs):null});
-  const mk=(id,data,color,label)=>{const c=$(id);if(!c)return;charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{label,data,borderColor:color,backgroundColor:color+'22',tension:.35,fill:true,pointBackgroundColor:color,pointRadius:4,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a6a8a',font:{size:11}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4a6a8a',font:{size:11}},grid:{color:'rgba(255,255,255,.06)'}}}}})};
-  mk('chart-carry',carryD,'#c8a84b','캐리 평균(m)');mk('chart-hs',hsD,'#52b870','헤드스피드');
+  const mk=(id,data,color,label)=>{const c=$(id);if(!c)return;charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{label,data,borderColor:color,backgroundColor:color+'22',tension:.35,fill:true,pointBackgroundColor:color,pointRadius:4,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5A7A8A',font:{size:11}},grid:{color:'rgba(240,237,230,.04)'}},y:{ticks:{color:'#5A7A8A',font:{size:11}},grid:{color:'rgba(240,237,230,.06)'}}}}})};
+  mk('chart-carry',carryD,'var(--wing)','캐리 평균(m)');mk('chart-hs',hsD,'var(--turf)','헤드스피드');
 }
 function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
   const st=ss(s);
-  const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--gold2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--green)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">기록된 샷이 없습니다.</div>';
-  return`<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#f2ead6">${s.date||''}</div><div style="margin-top:5px;display:flex;gap:.45rem;align-items:center">${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}${s.loc?`<span style="font-size:.76rem;color:var(--muted)">📍 ${esc(s.loc)}</span>`:''}</div></div><div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:700;color:var(--gold2)">${s.shots.length}샷</div></div>
-  ${(s.imageUrls?.length > 1) ? `<div class="sec-label">GDR 화면 (${s.imageUrls.length}장)</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem;margin-bottom:.9rem">${s.imageUrls.map(url=>`<img src="${ea(url)}" onclick="window.open(this.src,'_blank')" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer" alt="">`).join('')}</div>` : s.imgUrl ? `<div class="sec-label">GDR 화면</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">` : ''}
+  const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--wing2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--turf)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">샷 데이터가 없습니다.</div>';
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 비행 기록 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk)">${s.date||''}</div><div style="margin-top:5px;display:flex;gap:.45rem;align-items:center">${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}${s.loc?`<span style="font-size:.76rem;color:var(--muted)">📍 ${esc(s.loc)}</span>`:''}</div></div><div style="font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--wing2)">${s.shots.length}샷</div></div>
+  ${(s.imageUrls?.length > 1) ? `<div class="sec-label">GDR 데이터 (${s.imageUrls.length}장)</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem;margin-bottom:.9rem">${s.imageUrls.map(url=>`<img src="${ea(url)}" onclick="window.open(this.src,'_blank')" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:pointer" alt="">`).join('')}</div>` : s.imgUrl ? `<div class="sec-label">GDR 데이터</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">` : ''}
   <div class="sec-label">샷 데이터</div>${shotsH}${s.memo?`<div class="sec-label" style="margin-top:.9rem">메모</div><div style="font-size:.88rem;color:var(--dim);line-height:1.7">${esc(s.memo)}</div>`:''}<div class="divider"></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button></div></div>`;
 }
 function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
@@ -764,7 +833,7 @@ function renderPhotoStatus() {
     <div class="ai-photo-list" style="margin-top:.5rem">
       ${multiFiles.map((item, i) => `
         <div class="ai-photo-item">
-          ${item.preview ? `<img class="ai-photo-thumb" src="${item.preview}" alt="">` : '<div class="ai-photo-thumb" style="background:var(--bg3)"></div>'}
+          ${item.preview ? `<img class="ai-photo-thumb" src="${item.preview}" alt="">` : '<div class="ai-photo-thumb" style="background:var(--dusk2)"></div>'}
           <span class="ai-photo-name">${esc(item.file.name)}</span>
           <span class="ai-photo-status ${item.status}">
             ${item.status==='wait'?'대기중':item.status==='busy'?'분석중...':item.status==='done'?'✓ 완료':'✗ 실패'}
@@ -817,18 +886,18 @@ function updateShotRows() {
 // ── REPLACED pAdd / saveSession ───────────────────────
 function pAdd() {
   multiFiles = []; shotCnt = 1;
-  return `<div class="page"><button class="back-btn" onclick="goList()">← 연습 목록</button>
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.2rem">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);margin-bottom:1rem">연습 세션 추가</div>
+  return `<div class="page"><button class="back-btn" onclick="goList()">← 비행 기록 목록</button>
+  <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem">
+    <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">비행 기록 추가</div>
     <div class="frow">
       <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
       <div class="fg"><label class="fl-label">클럽</label>
         <select class="sel" id="pc"><option value="">선택...</option>${CLUBS.map(c=>`<option>${c}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="fg"><label class="fl-label">연습장 / 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
+    <div class="fg"><label class="fl-label">연습장 · 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
 
-    <div class="sec-label">GDR 화면 사진 (여러 장 동시 업로드 가능)</div>
+    <div class="sec-label">GDR 데이터 사진 — 여러 장 동시 업로드</div>
     ${`<div class="img-upload" onclick="document.getElementById('pimg').click()">
       <input type="file" id="pimg" accept="image/*" multiple onchange="handleMultiPhoto(this)">
       📷 사진을 탭하여 업로드 (여러 장 선택 가능)<br>
@@ -841,7 +910,7 @@ function pAdd() {
     <div id="shots-wrap">${mkShotRow(0)}</div>
     <button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 수동 추가</button>
 
-    <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="오늘 연습 소감, 개선점..."></textarea></div>
+    <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
     <div class="brow">
       <button class="btn btn-p" id="psavebtn" onclick="saveSession()">저장</button>
       <button class="btn btn-s" onclick="goList()">취소</button>
@@ -850,7 +919,7 @@ function pAdd() {
 }
 
 window.saveSession = async () => {
-  const date = $('pd').value; if(!date){ toast('날짜를 입력하세요'); return; }
+  const date = $('pd').value; if(!date){ toast('날짜를 선택하세요'); return; }
   const club = $('pc').value, loc = $('pl').value.trim(), memo = $('pm').value.trim();
   const shots = collectShots();
   const btn = $('psavebtn'); btn.disabled = true; btn.textContent = '저장 중...';
@@ -886,7 +955,7 @@ window.saveSession = async () => {
   });
   if(error){ toast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; sync('err'); return; }
   multiFiles = []; upFile = null; shotCnt = 1;
-  await loadAll(); toast('세션 저장됨'); goList();
+  await loadAll(); toast('기록 저장됨'); goList();
 };
 window.addRow = () => {
   const w = $('shots-wrap'), d = document.createElement('div');
@@ -906,7 +975,7 @@ function collectShots() {
   });
   return shots;
 }
-window.delSession=async id=>{if(!confirm('이 세션을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
+window.delSession=async id=>{if(!confirm('이 기록을 삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('practice_sessions').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.sessions=D.sessions.filter(s=>s.id!==id);sync('ok');toast('삭제됨');goList()};
 (async()=>{
   try{
     const{data:{session}}=await sb.auth.getSession();
