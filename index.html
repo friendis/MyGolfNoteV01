@@ -290,32 +290,52 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
     </div>
   </div></div>
   <main id="main"></main>
-</div>
-<!-- SETTINGS MODAL -->
-<div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
-  <div class="modal">
-    <div class="modal-title">API 키 설정 <button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
-    <div class="settings-info">
-      API 키는 이 기기에만 저장되며 외부로 전송되지 않습니다.<br>
-      GDR 사진 자동 분석에 사용됩니다.
-    </div>
-    <div class="fg">
-      <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 데이터 분석)</label>
-      <input class="inp" type="password" id="set-anthropic" placeholder="sk-ant-api03-...">
-      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.anthropic.com → API Keys</div>
-    </div>
-    <div class="fg">
-      <label class="fl-label">Google Geocoding API 키 (GPS → 주소 변환, 선택)</label>
-      <input class="inp" type="password" id="set-google" placeholder="AIza...">
-      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.cloud.google.com → Geocoding API</div>
-    </div>
-    <div class="brow">
-      <button class="btn btn-p" onclick="saveApiKeys()">저장</button>
-      <button class="btn btn-s" onclick="closeModal('settings-modal')">취소</button>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+    <div class="modal">
+      <div class="modal-title">API 키 설정 <button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
+      <div class="settings-info">
+        API 키는 이 기기에만 저장되며 외부로 전송되지 않습니다.<br>
+        GDR 사진 자동 분석에 사용됩니다.
+      </div>
+      <div class="fg">
+        <label class="fl-label">Anthropic API 키 (Claude Vision — GDR 데이터 분석)</label>
+        <input class="inp" type="password" id="set-anthropic" placeholder="sk-ant-api03-...">
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.anthropic.com → API Keys</div>
+      </div>
+      <div class="fg">
+        <label class="fl-label">Google Geocoding API 키 (GPS → 주소 변환, 선택)</label>
+        <input class="inp" type="password" id="set-google" placeholder="AIza...">
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">console.cloud.google.com → Geocoding API</div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-p" onclick="saveApiKeys()">저장</button>
+        <button class="btn btn-s" onclick="closeModal('settings-modal')">취소</button>
+      </div>
     </div>
   </div>
+
+  <!-- ACCOUNT MODAL -->
+  <div class="modal-bg" id="acct-modal" onclick="if(event.target===this)closeModal('acct-modal')">
+    <div class="modal">
+      <div class="modal-title">계정 설정 <button class="modal-close" onclick="closeModal('acct-modal')">✕</button></div>
+      <div class="privacy">
+        <h3>내 계정</h3><p id="acct-email-disp" style="color:var(--wing2);font-size:.9rem"></p>
+        <h3 style="margin-top:.75rem">저장된 데이터</h3><p id="acct-data-cnt"></p>
+      </div>
+      <div class="danger-zone" style="margin-top:1rem">
+        <div class="danger-title">⚠ 위험 구역</div>
+        <p style="font-size:.81rem;color:var(--dim);margin-bottom:.7rem;line-height:1.6">회원 탈퇴 시 모든 데이터가 즉시 영구 삭제됩니다.</p>
+        <button class="btn btn-d" style="width:100%" onclick="doDeleteAccount()">회원 탈퇴 및 모든 데이터 삭제</button>
+      </div>
+    </div>
+  </div>
+
 </div>
-<div class="modal-bg" id="privacy-modal" onclick="if(event.target===this)closeModal('privacy-modal')">
+
+<!-- PRIVACY MODAL (body 레벨 — 로그인 화면에서도 접근 가능) -->
+<div class="modal-bg" id="privacy-modal" onclick="if(event.target===this)closeModal('privacy-modal')" style="z-index:600">
   <div class="modal">
     <div class="modal-title">개인정보 처리방침 <button class="modal-close" onclick="closeModal('privacy-modal')">✕</button></div>
     <div class="privacy">
@@ -326,20 +346,6 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
       <h3>5. 이용자 권리</h3><ul><li>개인정보 열람·정정·삭제 요청 가능</li><li>앱 내 계정 설정에서 탈퇴 시 즉시 전체 삭제</li></ul>
     </div>
     <div style="text-align:right;margin-top:1.1rem"><button class="btn btn-p" onclick="closeModal('privacy-modal')">확인</button></div>
-  </div>
-</div>
-<div class="modal-bg" id="acct-modal" onclick="if(event.target===this)closeModal('acct-modal')">
-  <div class="modal">
-    <div class="modal-title">계정 설정 <button class="modal-close" onclick="closeModal('acct-modal')">✕</button></div>
-    <div class="privacy">
-      <h3>내 계정</h3><p id="acct-email-disp" style="color:var(--wing2);font-size:.9rem"></p>
-      <h3 style="margin-top:.75rem">저장된 데이터</h3><p id="acct-data-cnt"></p>
-    </div>
-    <div class="danger-zone" style="margin-top:1rem">
-      <div class="danger-title">⚠ 위험 구역</div>
-      <p style="font-size:.81rem;color:var(--dim);margin-bottom:.7rem;line-height:1.6">회원 탈퇴 시 모든 데이터가 즉시 영구 삭제됩니다.</p>
-      <button class="btn btn-d" style="width:100%" onclick="doDeleteAccount()">회원 탈퇴 및 모든 데이터 삭제</button>
-    </div>
   </div>
 </div>
 <script type="module">
