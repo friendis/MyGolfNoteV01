@@ -229,7 +229,17 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .icon-btn{background:rgba(200,137,58,.08);border:1px solid rgba(184,151,58,.2);color:var(--wing2);padding:.36rem .85rem;border-radius:2px;font-size:.72rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;font-family:var(--sans)}
 .icon-btn:hover{background:rgba(200,137,58,.15);border-color:rgba(184,151,58,.35)}
 
-/* SCROLLBAR */
+/* TAG EDITOR */
+.tag-editor{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:.55rem .7rem;background:rgba(13,17,23,.6);border:1px solid rgba(200,137,58,.18);border-radius:2px;min-height:38px;cursor:text}
+.tag-editor:focus-within{border-color:rgba(200,137,58,.4)}
+.tag-item{display:inline-flex;align-items:center;gap:4px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:2px 6px 2px 8px;border-radius:2px;font-size:.72rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.tag-item.editable{cursor:pointer}
+.tag-item input.tag-rename{background:transparent;border:none;color:var(--wing2);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;outline:none;width:60px;min-width:30px}
+.tag-del{background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;font-size:.8rem;padding:0;line-height:1;transition:color .15s}
+.tag-del:hover{color:var(--red)}
+.tag-add-inp{background:transparent;border:none;color:var(--text);font-family:var(--sans);font-size:.78rem;outline:none;min-width:80px;flex:1}
+.tag-add-inp::placeholder{color:var(--muted)}
+.tag-hint{font-size:.68rem;color:var(--muted);margin-top:4px;letter-spacing:.04em}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:var(--night)}
 ::-webkit-scrollbar-thumb{background:var(--dusk3);border-radius:2px}
@@ -469,7 +479,7 @@ async function loadAll(){
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
-    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[]}));
+    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:r.tags||[]}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[]}));
     sync('ok');
   }catch(e){sync('err');toast('로드 실패: '+e.message)}
@@ -517,9 +527,52 @@ function vDetail(){
   const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
   const vid=vidId(v.url),embed=vid?`https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1`:'';
   const tsH=v.ts.length?v.ts.map((t,i)=>`<div class="ts-item"><span class="ts-time" onclick="playFrom('${t.time}','${v.id}')">${t.time}</span><span class="ts-note">${esc(t.note)}</span><button class="ts-del" onclick="delTs('${v.id}',${i})">✕</button></div>`).join(''):`<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">저장된 구간이 없습니다.</div>`;
-  return `<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div style="margin-bottom:.65rem">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div>${vid?`<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`:`<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
+  const tagsH=`
+    <div style="margin-bottom:.65rem">
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:28px" id="vtag-list">
+        ${v.kw.map((k,i)=>`<span class="badge b-gold" style="cursor:default">${esc(k)}<button onclick="delVTag('${v.id}',${i})" style="background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="삭제">✕</button></span>`).join('')}
+      </div>
+      <div style="display:flex;gap:.4rem;margin-top:6px">
+        <input class="inp" id="vtag-input" placeholder="태그 추가..." style="flex:1;padding:.35rem .7rem;font-size:.8rem" onkeydown="if(event.key==='Enter'){addVTag('${v.id}');event.preventDefault()}">
+        <button class="btn btn-s btn-sm" onclick="addVTag('${v.id}')">+ 추가</button>
+      </div>
+      <div class="kw-pills" style="margin-top:5px">${VCATS.map(c=>`<span class="kw-pill" style="font-size:.62rem" onclick="quickAddVTag('${v.id}','${c}')">${c}</span>`).join('')}</div>
+    </div>`;
+  return `<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${vid?`<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`:`<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
+
+// 영상 태그 추가
+window.addVTag=async id=>{
+  const input=$('vtag-input');if(!input)return;
+  const tag=input.value.trim();if(!tag){toast('태그를 입력하세요');return}
+  const v=D.videos.find(x=>x.id===id);if(!v)return;
+  if(v.kw.includes(tag)){toast('이미 있는 태그입니다');return}
+  const newKw=[...v.kw,tag];
+  sync('busy');
+  const{error}=await sb.from('videos').update({keywords:newKw}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  v.kw=newKw;sync('ok');input.value='';goDetail(id);
+};
+// 프리셋 태그 빠른 추가
+window.quickAddVTag=async(id,tag)=>{
+  const v=D.videos.find(x=>x.id===id);if(!v)return;
+  if(v.kw.includes(tag)){toast('이미 있는 태그입니다');return}
+  const newKw=[...v.kw,tag];
+  sync('busy');
+  const{error}=await sb.from('videos').update({keywords:newKw}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  v.kw=newKw;sync('ok');goDetail(id);
+};
+// 영상 태그 삭제
+window.delVTag=async(id,idx)=>{
+  const v=D.videos.find(x=>x.id===id);if(!v)return;
+  const newKw=v.kw.filter((_,i)=>i!==idx);
+  sync('busy');
+  const{error}=await sb.from('videos').update({keywords:newKw}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('삭제 실패');sync('err');return}
+  v.kw=newKw;sync('ok');goDetail(id);
+};
 window.addTs=async vid=>{const t=$('ts-t').value.trim(),n=$('ts-n').value.trim();if(!t||!n){toast('시간과 내용을 입력하세요');return}const v=D.videos.find(x=>x.id===vid);if(!v)return;const newTs=[...v.ts,{time:t,note:n}].sort((a,b)=>t2s(a.time)-t2s(b.time));sync('busy');const{error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.ts=newTs;sync('ok');toast('구간 추가됨');goDetail(vid)};
 window.delTs=async(vid,idx)=>{if(!confirm('삭제하시겠습니까?'))return;const v=D.videos.find(x=>x.id===vid);if(!v)return;const newTs=v.ts.filter((_,i)=>i!==idx);sync('busy');const{error}=await sb.from('videos').update({timestamps:newTs}).eq('id',vid).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}v.ts=newTs;sync('ok');goDetail(vid)};
 window.saveVTitle=async(id,val)=>{const v=D.videos.find(x=>x.id===id);if(!v||!val.trim()||val.trim()===v.title)return;sync('busy');const{error}=await sb.from('videos').update({title:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.title=val.trim();sync('ok');toast('제목 저장됨')};
@@ -543,11 +596,117 @@ function eDetail(){
   const lp=e.links.length?e.links[e.links.length-1].price:null;
   const linksH=e.links.length?e.links.map((l,i)=>`<div class="link-item"><div style="display:flex;justify-content:space-between;align-items:center"><a href="${ea(l.url)}" target="_blank" rel="noopener">🔗 ${esc(l.label)}</a>${l.price?`<span class="link-price">${fmtP(l.price)}</span>`:''}</div><div class="link-date">확인일: ${l.checkedAt||'—'} <button class="btn btn-s btn-sm" style="margin-left:.5rem;padding:1px 7px;font-size:.7rem" onclick="updLinkP('${e.id}',${i})">가격 업데이트</button></div></div>`).join(''):'<div style="color:var(--muted);font-size:.84rem">저장된 링크 없음</div>';
   const histH=e.priceH.length?`<div class="sec-label" style="margin-top:.9rem">가격 동향</div><div>${e.priceH.slice().reverse().map((h,i,a)=>{const d=a[i+1]?h.price-a[i+1].price:0;return`<div class="price-entry"><span>${h.date}</span><span>${fmtP(h.price)} ${d?`<span style="color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</span>`:''}</span></div>`}).join('')}</div>`:'';
-  return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk)">${esc(e.name)}</div><div style="margin-top:5px"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${e.buyPrice||lp?`<div class="price-big">${fmtP(e.buyPrice||lp)}</div>`:''}</div>${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--wing2)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(e.memo)||'메모 없음'}</div><div class="sec-label">인터넷 링크</div>${linksH}${histH}<div style="display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap"><input class="inp" style="flex:2;min-width:110px" id="nl-url" placeholder="https://..."><input class="inp" style="flex:1;min-width:70px" id="nl-label" placeholder="쇼핑몰"><input class="inp" style="width:100px;flex:none" type="number" id="nl-price" placeholder="가격"><button class="btn btn-p btn-sm" onclick="addLink('${e.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editEMemo('${e.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button></div></div>`;
+
+  // 태그 (category + 커스텀 tags)
+  const tags = e.tags || [];
+  const tagsH = `
+    <div style="margin-bottom:.9rem">
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:28px" id="etag-list">
+        <span class="badge b-blue" style="cursor:default">
+          ${esc(e.cat)||'분류 없음'}
+          <button onclick="editECat('${e.id}')" style="background:none;border:none;color:rgba(106,175,204,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="분류 변경">✎</button>
+        </span>
+        <span class="badge ${e.status==='owned'?'b-green':'b-amber'}" style="cursor:default">
+          ${e.status==='owned'?'✓ 보유':'★ 관심'}
+          <button onclick="toggleEStatus('${e.id}')" style="background:none;border:none;color:rgba(122,191,160,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="상태 전환">⇄</button>
+        </span>
+        ${tags.map((t,i)=>`<span class="badge b-gold" style="cursor:default">${esc(t)}<button onclick="delETag('${e.id}',${i})" style="background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="삭제">✕</button></span>`).join('')}
+      </div>
+      <div style="display:flex;gap:.4rem;margin-top:6px">
+        <input class="inp" id="etag-input" placeholder="태그 추가..." style="flex:1;padding:.35rem .7rem;font-size:.8rem" onkeydown="if(event.key==='Enter'){addETag('${e.id}');event.preventDefault()}">
+        <button class="btn btn-s btn-sm" onclick="addETag('${e.id}')">+ 추가</button>
+      </div>
+      <div class="kw-pills" style="margin-top:5px">${ECATS.map(c=>`<span class="kw-pill" style="font-size:.62rem" onclick="quickAddETag('${e.id}','${c}')">${c}</span>`).join('')}</div>
+    </div>`;
+
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
+    <div class="inline-edit" style="flex:1;margin-bottom:0;margin-right:.5rem">
+      <span class="e-label">장비명</span>
+      <input id="ename-input" value="${ea(e.name)}" onblur="saveEName('${e.id}',this.value)">
+      <span style="font-size:.72rem;color:var(--muted)">✎</span>
+    </div>
+    ${e.buyPrice||lp?`<div class="price-big" style="flex-shrink:0">${fmtP(e.buyPrice||lp)}</div>`:''}
+  </div>
+  <div class="sec-label">태그</div>
+  ${tagsH}
+  ${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem;margin-bottom:.9rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--wing2)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}
+  <div class="sec-label">메모</div>
+  <div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(e.memo)||'메모 없음'}</div>
+  <div class="sec-label">인터넷 링크</div>
+  ${linksH}${histH}
+  <div style="display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap">
+    <input class="inp" style="flex:2;min-width:110px" id="nl-url" placeholder="https://...">
+    <input class="inp" style="flex:1;min-width:70px" id="nl-label" placeholder="쇼핑몰">
+    <input class="inp" style="width:100px;flex:none" type="number" id="nl-price" placeholder="가격">
+    <button class="btn btn-p btn-sm" onclick="addLink('${e.id}')">추가</button>
+  </div>
+  <div class="divider"></div>
+  <div style="display:flex;justify-content:flex-end;gap:.45rem">
+    <button class="btn btn-s btn-sm" onclick="editEMemo('${e.id}')">메모 편집</button>
+    <button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button>
+  </div></div>`;
 }
 window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
 window.updLinkP=async(eid,idx)=>{const e=D.equip.find(x=>x.id===eid);if(!e)return;const p=prompt(`새 가격 (현재: ${fmtP(e.links[idx].price)}):`,e.links[idx].price||'');if(p===null)return;const np=Number(p),newLinks=e.links.map((l,i)=>i===idx?{...l,price:np,checkedAt:today()}:l),newH=[...e.priceH,{date:today(),price:np}];sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',eid).eq('user_id',user.id);if(error){toast('업데이트 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('업데이트됨');goDetail(eid)};
 window.editEMemo=async id=>{const e=D.equip.find(x=>x.id===id);if(!e)return;const m=prompt('메모 수정:',e.memo);if(m===null)return;sync('busy');const{error}=await sb.from('equipment').update({memo:m}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.memo=m;sync('ok');toast('저장됨');goDetail(id)};
+// 장비명 저장
+window.saveEName=async(id,val)=>{const e=D.equip.find(x=>x.id===id);if(!e||!val.trim()||val.trim()===e.name)return;sync('busy');const{error}=await sb.from('equipment').update({name:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.name=val.trim();sync('ok');toast('장비명 저장됨')};
+// 분류 변경
+window.editECat=async id=>{
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  const opts=ECATS.map((c,i)=>`${i+1}. ${c}`).join('\n');
+  const input=prompt(`분류를 선택하거나 직접 입력하세요:\n\n${opts}\n\n현재: ${e.cat||'없음'}`, e.cat||'');
+  if(input===null)return;
+  // 번호 입력 처리
+  const num=parseInt(input);
+  const newCat=(!isNaN(num)&&num>=1&&num<=ECATS.length)?ECATS[num-1]:input.trim();
+  if(!newCat)return;
+  sync('busy');
+  const{error}=await sb.from('equipment').update({category:newCat}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  e.cat=newCat;sync('ok');toast('분류 변경됨');goDetail(id);
+};
+// 보유/관심 상태 전환
+window.toggleEStatus=async id=>{
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  const newStatus=e.status==='owned'?'wishlist':'owned';
+  sync('busy');
+  const{error}=await sb.from('equipment').update({status:newStatus}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  e.status=newStatus;sync('ok');toast(newStatus==='owned'?'보유로 변경됨':'관심으로 변경됨');goDetail(id);
+};
+// 장비 커스텀 태그 추가
+window.addETag=async id=>{
+  const input=$('etag-input');if(!input)return;
+  const tag=input.value.trim();if(!tag){toast('태그를 입력하세요');return}
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  const tags=e.tags||[];
+  if(tags.includes(tag)){toast('이미 있는 태그입니다');return}
+  const newTags=[...tags,tag];
+  sync('busy');
+  const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  e.tags=newTags;sync('ok');input.value='';goDetail(id);
+};
+window.quickAddETag=async(id,tag)=>{
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  const tags=e.tags||[];
+  if(tags.includes(tag)){toast('이미 있는 태그입니다');return}
+  const newTags=[...tags,tag];
+  sync('busy');
+  const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  e.tags=newTags;sync('ok');goDetail(id);
+};
+window.delETag=async(id,idx)=>{
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  const newTags=(e.tags||[]).filter((_,i)=>i!==idx);
+  sync('busy');
+  const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('삭제 실패');sync('err');return}
+  e.tags=newTags;sync('ok');goDetail(id);
+};
 window.delEquip=async id=>{if(!confirm('삭제하시겠습니까?'))return;sync('busy');const{error}=await sb.from('equipment').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.equip=D.equip.filter(e=>e.id!==id);sync('ok');toast('삭제됨');goList()};
 function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
