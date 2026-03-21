@@ -253,7 +253,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 /* SWING ANALYSIS */
 .analysis-box{background:rgba(74,143,168,.06);border:1px solid rgba(74,143,168,.2);border-radius:4px;padding:1rem 1.1rem;margin-top:.9rem}
 .analysis-box-title{font-size:.68rem;font-weight:500;color:var(--sky2);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem}
-.analysis-content{font-size:.87rem;color:var(--dim);line-height:1.85;white-space:pre-wrap}
+.analysis-content{font-size:.87rem;color:var(--dim);line-height:1.85;white-space:pre-wrap;max-height:420px;overflow-y:auto;padding-right:.4rem}
+.analysis-content::-webkit-scrollbar{width:3px}
+.analysis-content::-webkit-scrollbar-track{background:transparent}
+.analysis-content::-webkit-scrollbar-thumb{background:rgba(74,143,168,.3);border-radius:2px}
 .analysis-content strong{color:var(--chalk);font-weight:600}
 .analysis-loading{display:flex;align-items:center;gap:.6rem;color:var(--muted);font-size:.84rem;padding:.4rem 0}
 .btn-analyze{background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.25);color:var(--sky2);padding:.4rem 1rem;border-radius:2px;font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
@@ -546,7 +549,7 @@ async function loadAll(){
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:r.tags||[]}));
-    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[]}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||''}));
     sync('ok');
   }catch(e){sync('err');toast('로드 실패: '+e.message)}
 }
@@ -874,11 +877,16 @@ function pDetail(){
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
     <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
-      ✦ AI 스윙 분석
+      ${s.aiAnalysis ? '✦ 다시 분석' : '✦ AI 스윙 분석'}
     </button>
     <button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button>
   </div>
-  <div id="analysis-result-${s.id}"></div>
+  <div id="analysis-result-${s.id}">${s.aiAnalysis ? `
+    <div class="analysis-box">
+      <div class="analysis-box-title">✦ AI 스윙 분석</div>
+      <div class="analysis-content">${s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+      <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash · 저장된 분석</div>
+    </div>` : ''}</div>
   </div>`;
 }
 function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
@@ -944,6 +952,16 @@ ${shotSummary}
 
     const text = data.content?.[0]?.text || data.text || '';
     if(!text) throw new Error('응답이 비어있습니다');
+
+    // DB에 저장 (게스트 모드 제외)
+    if(!isGuest) {
+      await sb.from('practice_sessions')
+        .update({ ai_analysis: text })
+        .eq('id', sid).eq('user_id', user.id);
+    }
+    // 메모리에도 반영
+    const sObj = D.sessions.find(x => x.id === sid);
+    if(sObj) sObj.aiAnalysis = text;
 
     // 마크다운 굵은 글씨 처리
     const formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
