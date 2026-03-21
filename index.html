@@ -871,9 +871,37 @@ function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
   const st=ss(s);
   const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--wing2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--turf)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">샷 데이터가 없습니다.</div>';
-  return`<div class="page"><button class="back-btn" onclick="goList()">← 비행 기록 목록</button><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem"><div><div style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk)">${s.date||''}</div><div style="margin-top:5px;display:flex;gap:.45rem;align-items:center">${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}${s.loc?`<span style="font-size:.76rem;color:var(--muted)">📍 ${esc(s.loc)}</span>`:''}</div></div><div style="font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--wing2)">${s.shots.length}샷</div></div>
+
+  return`<div class="page">
+  <button class="back-btn" onclick="goList()">← 비행 기록 목록</button>
+
+  <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:.9rem">
+    <div class="sec-label" style="margin-bottom:.6rem">기록 정보 편집</div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl-label">날짜</label>
+        <input class="inp" type="date" id="se-date" value="${ea(s.date||'')}" onblur="saveSessionField('${s.id}','date',this.value)">
+      </div>
+      <div class="fg">
+        <label class="fl-label">클럽</label>
+        <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)">
+          <option value="">선택...</option>
+          ${CLUBS.map(c=>`<option ${s.club===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl-label">장소</label>
+      <input class="inp" id="se-loc" value="${ea(s.loc||'')}" placeholder="연습장 · 장소" onblur="saveSessionField('${s.id}','location',this.value)">
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <label class="fl-label">메모</label>
+      <textarea class="ta" id="se-memo" placeholder="이번 비행의 기록, 개선점..." style="min-height:62px" onblur="saveSessionField('${s.id}','memo',this.value)">${ea(s.memo||'')}</textarea>
+    </div>
+  </div>
+
   ${(s.imageUrls?.length > 1) ? `<div class="sec-label">GDR 데이터 (${s.imageUrls.length}장)</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem;margin-bottom:.9rem">${s.imageUrls.map(url=>`<img src="${ea(url)}" onclick="window.open(this.src,'_blank')" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:pointer" alt="">`).join('')}</div>` : s.imgUrl ? `<div class="sec-label">GDR 데이터</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">` : ''}
-  <div class="sec-label">샷 데이터</div>${shotsH}${s.memo?`<div class="sec-label" style="margin-top:.9rem">메모</div><div style="font-size:.88rem;color:var(--dim);line-height:1.7">${esc(s.memo)}</div>`:''}
+  <div class="sec-label">샷 데이터</div>${shotsH}
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
     <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
@@ -890,6 +918,25 @@ function pDetail(){
   </div>`;
 }
 function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
+
+// ── 세션 필드 저장 ────────────────────────────────────
+window.saveSessionField = async (id, field, val) => {
+  const s = D.sessions.find(x => x.id === id); if(!s) return;
+  const trimmed = val.trim();
+  // 변경 없으면 스킵
+  const cur = field === 'date' ? s.date : field === 'club' ? s.club : field === 'location' ? s.loc : s.memo;
+  if(trimmed === (cur||'')) return;
+  const dbField = field === 'location' ? 'location' : field === 'date' ? 'session_date' : field;
+  sync('busy');
+  const {error} = await sb.from('practice_sessions').update({[dbField]: trimmed}).eq('id', id).eq('user_id', user.id);
+  if(error){ toast('저장 실패'); sync('err'); return; }
+  // 메모리 반영
+  if(field === 'date')     s.date  = trimmed;
+  if(field === 'club')     s.club  = trimmed;
+  if(field === 'location') s.loc   = trimmed;
+  if(field === 'memo')     s.memo  = trimmed;
+  sync('ok'); toast('저장됐습니다');
+};
 
 // ── AI 스윙 분석 ─────────────────────────────────────
 window.analyzeSwing = async (sid) => {
