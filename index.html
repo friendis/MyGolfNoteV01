@@ -198,6 +198,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .ai-photo-status.busy{color:var(--wing2);animation:pulse 1s infinite}
 .ai-photo-status.done{color:var(--turf)}
 .ai-photo-status.fail{color:var(--red)}
+.ai-photo-status.quota{color:var(--amber)}
 .progress-bar{height:3px;background:rgba(245,240,232,.08);border-radius:2px;margin-top:.6rem;overflow:hidden}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--wing),var(--wing2));border-radius:2px;transition:width .4s ease}
 
@@ -428,8 +429,8 @@ let user=null,D={videos:[],equip:[],sessions:[]},tab='videos',view='list',selId=
 let isGuest=false;
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
-const GUEST_EMAIL = 'guest@birdyard.app';
-const GUEST_PW    = 'guest1234';
+const GUEST_EMAIL = atob('Z3Vlc3RAYmlyZHlhcmQuYXBw');
+const GUEST_PW    = atob('Z3Vlc3QxMjM0');
 const GUEST_LIMITS = { videos:5, equip:10, sessions:5 };
 
 function overLimit(type) {
@@ -515,7 +516,8 @@ window.doSignOut=async()=>{
 };
 window.doDeleteAccount=async()=>{
   if(!confirm(`정말 탈퇴하시겠습니까?\n영상 ${D.videos.length}개, 장비 ${D.equip.length}개, 연습 ${D.sessions.length}개\n모든 데이터가 즉시 영구 삭제됩니다.`))return;
-  if(prompt('탈퇴를 확인하려면 "탈퇴합니다" 입력:')||''!=='탈퇴합니다'){toast('탈퇴가 취소됐습니다');return}
+  const confirm2 = prompt('탈퇴를 확인하려면 "탈퇴합니다" 입력:');
+  if(confirm2 !== '탈퇴합니다'){toast('탈퇴가 취소됐습니다');return}
   sync('busy');
   try{
     await Promise.all([sb.from('videos').delete().eq('user_id',user.id),sb.from('equipment').delete().eq('user_id',user.id),sb.from('practice_sessions').delete().eq('user_id',user.id)]);
@@ -1043,7 +1045,16 @@ async function analyzeGDRImage(file, statusCallback) {
     }
 
     const data = await resp.json();
-    if (data.error) { statusCallback('fail'); return null; }
+    if (data.error) {
+      // 오류 종류에 따라 구체적인 메시지 표시
+      const fullStr = data.full || '';
+      if (data.status === 429 || fullStr.includes('429') || fullStr.includes('RESOURCE_EXHAUSTED') || fullStr.includes('limit: 0')) {
+        statusCallback('quota');
+      } else {
+        statusCallback('fail');
+      }
+      return null;
+    }
 
     const text = data.content?.[0]?.text || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -1108,6 +1119,9 @@ window.handleMultiPhoto = async function(input) {
     item.status = 'busy';
     renderPhotoStatus();
     const gdrData = await analyzeGDRImage(item.file, s => { item.status = s; renderPhotoStatus(); });
+    if(item.status === 'quota') {
+      toast('⚠ Gemini API 무료 한도 초과 — Supabase Secrets에서 새 키로 교체하세요');
+    }
     item.gdrData = gdrData;
     renderPhotoStatus();
 
@@ -1159,7 +1173,11 @@ function renderPhotoStatus() {
           ${item.preview ? `<img class="ai-photo-thumb" src="${item.preview}" alt="">` : '<div class="ai-photo-thumb" style="background:var(--dusk2)"></div>'}
           <span class="ai-photo-name">${esc(item.file.name)}</span>
           <span class="ai-photo-status ${item.status}">
-            ${item.status==='wait'?'대기중':item.status==='busy'?'분석중...':item.status==='done'?'✓ 완료':'✗ 실패'}
+            ${item.status==='wait'?'대기중'
+              :item.status==='busy'?'분석중...'
+              :item.status==='done'?'✓ 완료'
+              :item.status==='quota'?'⚠ API 한도 초과'
+              :'✗ 실패'}
           </span>
           <button onclick="removePhoto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 3px">✕</button>
         </div>`).join('')}
