@@ -1133,7 +1133,11 @@ window.handleMultiPhoto = async function(input) {
     if(gdrData?.club) {
       const pc = $('pc');
       if(pc) {
-        const match = CLUBS.find(c => c.toLowerCase().includes(gdrData.club.toLowerCase()) || gdrData.club.toLowerCase().includes(c.toLowerCase()));
+        const clubStr = String(gdrData.club); // 숫자/문자 모두 처리
+        const match = CLUBS.find(c =>
+          c.toLowerCase().includes(clubStr.toLowerCase()) ||
+          clubStr.toLowerCase().includes(c.toLowerCase())
+        );
         if(match) pc.value = match;
       }
     }
