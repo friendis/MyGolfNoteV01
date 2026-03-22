@@ -953,32 +953,22 @@ window.analyzeSwing = async (sid) => {
 
   try {
     const st = ss(s);
-    const shotSummary = s.shots.map((sh, i) =>
-      `샷${i+1}: 캐리${sh.carry||'-'}m 총거리${sh.total||'-'}m 헤드속도${sh.headSpeed||'-'} 볼속도${sh.ballSpeed||'-'} 스매시${sh.smashFactor||'-'} 발사각${sh.launchAngle||'-'}° 스핀${sh.spin||'-'}rpm 방향${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction):'-'}`
-    ).join('\n');
 
-    const prompt = `당신은 골프 전문 코치입니다. 아래 GDR 데이터를 분석해서 스윙 피드백을 주세요.
+    const prompt = `골프 코치로서 아래 GDR 데이터를 분석해 간결하게 피드백해주세요.
 
-클럽: ${s.club || '미기록'}
-날짜: ${s.date}
-총 ${s.shots.length}샷
+클럽: ${s.club || '미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
+캐리 평균: ${fn(st.avgCarry,'m')} | 베스트: ${fn(st.bestCarry,'m')} | 헤드속도: ${fn(st.avgHs)} | 스매시팩터: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
 
-[샷 데이터]
-${shotSummary}
+샷 데이터:
+${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} BS${sh.ballSpeed||0} 스매시${sh.smashFactor||0} 방향${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction):0}`).join(' / ')}
 
-[평균 통계]
-캐리 평균: ${fn(st.avgCarry,'m')} / 베스트: ${fn(st.bestCarry,'m')}
-헤드속도 평균: ${fn(st.avgHs)} / 베스트: ${fn(st.bestHs)}
-볼속도 평균: ${fn(st.avgBs)}
-스매시팩터 평균: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
+아래 4가지를 각각 1~2문장으로만 작성하세요:
+**✓ 총평** — 이번 연습 한 줄 평가
+**✓ 잘된 점** — 데이터에서 긍정적인 수치
+**✓ 개선 포인트** — 가장 시급한 한 가지
+**✓ 다음 연습 팁** — 구체적인 드릴 또는 체크포인트
 
-다음 항목으로 분석해주세요:
-1. 전체 평가 (2~3문장)
-2. 잘된 점
-3. 개선이 필요한 점
-4. 다음 연습 때 집중할 포인트 1가지
-
-한국어로, 친근하고 전문적인 코치 말투로 작성해주세요.`;
+한국어, 친근한 코치 말투로.`;
 
     const resp = await fetch(
       'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',
@@ -1053,22 +1043,21 @@ window.analyzeGrowth = async () => {
     const carryChange = (first.avgCarry && last.avgCarry) ? (last.avgCarry - first.avgCarry).toFixed(1) : null;
     const hsChange    = (first.avgHs && last.avgHs) ? (last.avgHs - first.avgHs).toFixed(1) : null;
 
-    const prompt = `당신은 골프 전문 코치입니다. 아래 ${sessions.length}개 세션의 성장 데이터를 분석해서 종합 피드백을 주세요.
+    const prompt = `골프 코치로서 아래 ${sessions.length}개 세션의 성장 데이터를 분석해 간결하게 피드백해주세요.
 
-[세션별 데이터 (시간 순)]
+[세션별 요약 (시간순)]
 ${sessionSummaries}
 
 [전체 변화]
-캐리 평균: ${carryChange ? (carryChange>0?'+':'')+carryChange+'m 변화' : '데이터 부족'}
-헤드스피드: ${hsChange ? (hsChange>0?'+':'')+hsChange+' 변화' : '데이터 부족'}
+캐리: ${carryChange ? (carryChange>0?'+':'')+carryChange+'m' : '데이터 부족'} | 헤드속도: ${hsChange ? (hsChange>0?'+':'')+hsChange : '데이터 부족'}
 
-다음 항목으로 분석해주세요:
-1. **전체 성장 요약** — 얼마나 성장했는지 (2~3문장)
-2. **가장 많이 향상된 부분**
-3. **아직 불안정한 부분** — 수치에서 일관성이 없는 항목
-4. **앞으로의 목표 제안** — 다음 1개월 집중 과제
+아래 4가지를 각각 1~2문장으로만 작성하세요:
+**✓ 성장 요약** — 전체 기간 한 줄 평가
+**✓ 가장 향상된 점** — 수치로 확인된 개선 항목
+**✓ 불안정한 부분** — 편차가 큰 항목
+**✓ 다음 목표** — 향후 1개월 집중 과제 한 가지
 
-한국어로, 친근하고 전문적인 코치 말투로 작성해주세요.`;
+한국어, 친근한 코치 말투로.`;
 
     const resp = await fetch(
       'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',
