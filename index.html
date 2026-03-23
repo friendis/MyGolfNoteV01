@@ -1322,53 +1322,25 @@ window.handleMultiPhoto = async function(input) {
   if(!files.length) return;
 
   // 파일 추가
+  const startIdx = multiFiles.length;
   multiFiles = [...multiFiles, ...files.map(f => ({file:f, preview:'', exif:null, gdrData:null, status:'wait'}))];
   renderPhotoStatus();
 
   // 썸네일 생성
-  for(let i = 0; i < multiFiles.length; i++) {
-    if(multiFiles[i].preview) continue;
+  for(let i = startIdx; i < multiFiles.length; i++) {
     multiFiles[i].preview = await fileToDataUrl(multiFiles[i].file);
   }
   renderPhotoStatus();
 
   // EXIF + AI 분석 순차 실행
-  let firstDate = null, firstLocation = null;
-  for(let i = 0; i < multiFiles.length; i++) {
-    const item = multiFiles[i];
-    if(item.status === 'done') continue;
-
-    // EXIF
-    const exif = await readExif(item.file);
-    item.exif = exif;
-    const dt = exifDateToISO(exif.dateTime);
-    if(dt && !firstDate) firstDate = dt;
-    // GPS → 주소
-    if(exif.gps?.lat && exif.gps?.lon && !firstLocation) {
-      const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
-      const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
-      firstLocation = await gpsToAddress(lat, lon);
-    }
-
-    // Claude 분석
-    item.status = 'busy';
-    renderPhotoStatus();
-    const gdrData = await analyzeGDRImage(item.file, s => { item.status = s; renderPhotoStatus(); });
-    if(item.status === 'quota') {
-      toast('⚠ Gemini API 무료 한도 초과 — Supabase Secrets에서 새 키로 교체하세요');
-    }
-    item.gdrData = gdrData;
-    renderPhotoStatus();
-
-    // 날짜/장소 자동 입력
-    if(firstDate) { const pd = $('pd'); if(pd) pd.value = firstDate; }
-    if(firstLocation) { const pl = $('pl'); if(pl && !pl.value) pl.value = firstLocation; }
-
+  for(let i = startIdx; i < multiFiles.length; i++) {
+    await analyzeOne(i);
     // 클럽 자동 선택
+    const gdrData = multiFiles[i].gdrData;
     if(gdrData?.club) {
       const pc = $('pc');
       if(pc) {
-        const clubStr = String(gdrData.club); // 숫자/문자 모두 처리
+        const clubStr = String(gdrData.club);
         const match = CLUBS.find(c =>
           c.toLowerCase().includes(clubStr.toLowerCase()) ||
           clubStr.toLowerCase().includes(c.toLowerCase())
@@ -1376,8 +1348,6 @@ window.handleMultiPhoto = async function(input) {
         if(match) pc.value = match;
       }
     }
-
-    // 샷 행 자동 생성/업데이트
     updateShotRows();
   }
   renderPhotoStatus();
@@ -1395,6 +1365,7 @@ function renderPhotoStatus() {
   const wrap = $('photo-status');
   if(!wrap) return;
   const done = multiFiles.filter(f => f.status === 'done').length;
+  const failed = multiFiles.filter(f => f.status === 'fail' || f.status === 'quota').length;
   const total = multiFiles.length;
   const pct = total ? Math.round(done / total * 100) : 0;
 
@@ -1404,7 +1375,9 @@ function renderPhotoStatus() {
   }
   wrap.style.display = 'block';
   wrap.innerHTML = `
-    <div class="ai-status-title">✨ AI 분석 ${done}/${total}</div>
+    <div class="ai-status-title">✨ AI 분석 ${done}/${total}
+      ${failed > 0 ? `<button onclick="retryAllFailed()" style="margin-left:auto;background:rgba(193,123,106,.15);border:1px solid rgba(193,123,106,.3);color:#e8a898;padding:2px 10px;border-radius:2px;font-size:.68rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">↺ 실패 항목 재시도 (${failed})</button>` : ''}
+    </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     <div class="ai-photo-list" style="margin-top:.5rem">
       ${multiFiles.map((item, i) => `
@@ -1415,9 +1388,10 @@ function renderPhotoStatus() {
             ${item.status==='wait'?'대기중'
               :item.status==='busy'?'분석중...'
               :item.status==='done'?'✓ 완료'
-              :item.status==='quota'?'⚠ API 한도 초과'
+              :item.status==='quota'?'⚠ 한도 초과'
               :'✗ 실패'}
           </span>
+          ${(item.status==='fail'||item.status==='quota') ? `<button onclick="retryPhoto(${i})" style="background:rgba(193,123,106,.12);border:1px solid rgba(193,123,106,.25);color:#e8a898;padding:2px 8px;border-radius:2px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">↺ 재시도</button>` : ''}
           <button onclick="removePhoto(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 3px">✕</button>
         </div>`).join('')}
     </div>`;
@@ -1428,6 +1402,61 @@ window.removePhoto = idx => {
   renderPhotoStatus();
   updateShotRows();
 };
+
+// 단일 항목 재시도
+window.retryPhoto = async idx => {
+  const item = multiFiles[idx];
+  if(!item) return;
+  item.status = 'wait';
+  item.gdrData = null;
+  renderPhotoStatus();
+  await analyzeOne(idx);
+  updateShotRows();
+};
+
+// 실패 항목 전체 재시도
+window.retryAllFailed = async () => {
+  const failedIdxs = multiFiles
+    .map((f, i) => (f.status === 'fail' || f.status === 'quota') ? i : -1)
+    .filter(i => i >= 0);
+  for(const idx of failedIdxs) {
+    multiFiles[idx].status = 'wait';
+    multiFiles[idx].gdrData = null;
+  }
+  renderPhotoStatus();
+  for(const idx of failedIdxs) {
+    await analyzeOne(idx);
+  }
+  updateShotRows();
+};
+
+// 개별 항목 분석 (EXIF + AI)
+async function analyzeOne(idx) {
+  const item = multiFiles[idx];
+  if(!item) return;
+
+  // EXIF
+  const exif = await readExif(item.file);
+  item.exif = exif;
+  const dt = exifDateToISO(exif.dateTime);
+  if(dt) { const pd = $('pd'); if(pd && !pd.value) pd.value = dt; }
+  if(exif.gps?.lat && exif.gps?.lon) {
+    const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
+    const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
+    const addr = await gpsToAddress(lat, lon);
+    if(addr) { const pl = $('pl'); if(pl && !pl.value) pl.value = addr; }
+  }
+
+  // AI 분석
+  item.status = 'busy';
+  renderPhotoStatus();
+  const gdrData = await analyzeGDRImage(item.file, s => { item.status = s; renderPhotoStatus(); });
+  if(item.status === 'quota') {
+    toast('⚠ Gemini API 무료 한도 초과 — Supabase Secrets에서 새 키로 교체하세요');
+  }
+  item.gdrData = gdrData;
+  renderPhotoStatus();
+}
 
 function updateShotRows() {
   const wrap = $('shots-wrap');
