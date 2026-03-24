@@ -954,21 +954,23 @@ window.analyzeSwing = async (sid) => {
   try {
     const st = ss(s);
 
-    const prompt = `골프 코치로서 아래 GDR 데이터를 분석해 간결하게 피드백해주세요.
+    const prompt = `아래 GDR 데이터를 분석해 골프 코치처럼 피드백해주세요.
 
 클럽: ${s.club || '미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
 캐리 평균: ${fn(st.avgCarry,'m')} | 베스트: ${fn(st.bestCarry,'m')} | 헤드속도: ${fn(st.avgHs)} | 스매시팩터: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
 
-샷 데이터:
-${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} BS${sh.ballSpeed||0} 스매시${sh.smashFactor||0} 방향${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction):0}`).join(' / ')}
+샷별 데이터:
+${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} 스매시${sh.smashFactor||0} 방향${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction):0}° 스핀${sh.spin||0}rpm`).join('\n')}
 
-아래 4가지를 각각 1~2문장으로만 작성하세요:
-**✓ 총평** — 이번 연습 한 줄 평가
-**✓ 잘된 점** — 데이터에서 긍정적인 수치
-**✓ 개선 포인트** — 가장 시급한 한 가지
-**✓ 다음 연습 팁** — 구체적인 드릴 또는 체크포인트
+다음 형식으로만 작성하세요. 각 항목은 1~2문장, 인삿말·도입부 없이 바로 시작:
 
-한국어, 친근한 코치 말투로.`;
+**✓ 총평** — 이번 세션 핵심 한 줄
+**✓ 잘 친 샷** — 구체적인 샷 번호(#N)와 수치 근거로 칭찬
+**✓ 개선 필요한 샷** — 구체적인 샷 번호(#N)와 문제 수치 (방향편차·스매시팩터·스핀 등)
+**✓ 개선 포인트** — 가장 시급한 한 가지 체크포인트
+**✓ 다음 연습 팁** — 구체적인 드릴 또는 집중 항목
+
+한국어, 친근한 코치 말투.`;
 
     const resp = await fetch(
       'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',
