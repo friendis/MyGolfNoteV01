@@ -784,22 +784,6 @@ function eDetail(){
   ${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem;margin-bottom:.9rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--wing2)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}
   <div class="sec-label">메모</div>
   <div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(e.memo)||'메모 없음'}</div>
-
-  <div class="divider"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-    <div class="sec-label" style="margin-bottom:0">AI 장비 분석</div>
-    <button class="btn-analyze" id="btn-equip-analyze-${e.id}" onclick="analyzeEquip('${e.id}')">
-      ${e.aiInfo ? '✦ 다시 분석' : '✦ 사양 분석'}
-    </button>
-  </div>
-  <div id="equip-analysis-result-${e.id}">${e.aiInfo ? `
-    <div class="analysis-box">
-      <div class="analysis-box-title">✦ AI 장비 분석</div>
-      <div class="analysis-content">${e.aiInfo.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
-      <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash · 저장된 분석</div>
-    </div>` : '<div style="font-size:.8rem;color:var(--muted);padding:.4rem 0">버튼을 눌러 장비 사양 및 특징을 분석합니다.</div>'}</div>
-
-  <div class="divider"></div>
   <div class="sec-label">인터넷 링크</div>
   ${linksH}${histH}
   <div style="display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap">
@@ -817,69 +801,6 @@ function eDetail(){
 window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
 window.updLinkP=async(eid,idx)=>{const e=D.equip.find(x=>x.id===eid);if(!e)return;const p=prompt(`새 가격 (현재: ${fmtP(e.links[idx].price)}):`,e.links[idx].price||'');if(p===null)return;const np=Number(p),newLinks=e.links.map((l,i)=>i===idx?{...l,price:np,checkedAt:today()}:l),newH=[...e.priceH,{date:today(),price:np}];sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',eid).eq('user_id',user.id);if(error){toast('업데이트 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('업데이트됨');goDetail(eid)};
 window.editEMemo=async id=>{const e=D.equip.find(x=>x.id===id);if(!e)return;const m=prompt('메모 수정:',e.memo);if(m===null)return;sync('busy');const{error}=await sb.from('equipment').update({memo:m}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.memo=m;sync('ok');toast('저장됨');goDetail(id)};
-
-// ── AI 장비 분석 ─────────────────────────────────────
-window.analyzeEquip = async (eid) => {
-  const e = D.equip.find(x => x.id === eid); if(!e) return;
-  const btn = $(`btn-equip-analyze-${eid}`);
-  const resultEl = $(`equip-analysis-result-${eid}`);
-  if(!btn || !resultEl) return;
-
-  btn.disabled = true; btn.textContent = '분석 중...';
-  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:18px;height:18px;border-width:1.5px"></div>장비 정보를 분석하고 있습니다...</div></div>`;
-
-  try {
-    const prompt = `골프 장비 전문가로서 아래 장비에 대해 핵심 정보를 알려주세요.
-
-장비명: ${e.name}
-분류: ${e.cat || '미기록'}
-상태: ${e.status === 'owned' ? '보유 중' : '관심 목록'}
-${e.memo ? `사용자 메모: ${e.memo}` : ''}
-
-다음 항목을 각각 2~3문장으로 간결하게 작성하세요. 인삿말 없이 바로 시작:
-
-**✓ 장비 소개** — 이 장비의 특징과 포지셔닝 (어떤 골퍼에게 적합한지)
-**✓ 주요 사양** — 헤드 소재, 로프트, 샤프트 옵션 등 핵심 스펙
-**✓ 장점** — 실제 사용 시 강점
-**✓ 단점 / 주의사항** — 구매 전 고려할 점
-**✓ 추천 대상** — 어떤 수준·스타일의 골퍼에게 맞는지
-
-한국어, 친근하고 전문적인 말투.`;
-
-    const resp = await fetch(
-      'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}` },
-        body: JSON.stringify({ prompt, type: 'swing' })
-      }
-    );
-    if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
-    const data = await resp.json();
-    if(data.error) throw new Error(data.error);
-    const text = data.content?.[0]?.text || data.text || '';
-    if(!text) throw new Error('응답이 비어있습니다');
-
-    // DB 저장
-    if(!isGuest) {
-      await sb.from('equipment').update({ ai_info: text }).eq('id', eid).eq('user_id', user.id);
-    }
-    e.aiInfo = text;
-
-    const formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    resultEl.innerHTML = `
-      <div class="analysis-box">
-        <div class="analysis-box-title">✦ AI 장비 분석</div>
-        <div class="analysis-content">${formatted}</div>
-        <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash</div>
-      </div>`;
-    btn.textContent = '✦ 다시 분석';
-  } catch(err) {
-    resultEl.innerHTML = `<div class="analysis-box" style="border-color:rgba(193,123,106,.25)"><div style="color:var(--red);font-size:.84rem">분석 실패: ${esc(err.message)}</div></div>`;
-    btn.textContent = '✦ 사양 분석';
-  }
-  btn.disabled = false;
-};
 // 장비명 저장
 window.saveEName=async(id,val)=>{
   const e=D.equip.find(x=>x.id===id);if(!e||!val.trim()||val.trim()===e.name)return;
