@@ -463,6 +463,8 @@ const best=a=>a.length?Math.max(...a):null;
 const fn=(n,u='')=>n!=null?Math.round(n)+u:'—';
 const vidId=url=>{const m=url.match(/(?:v=|youtu\.be\/|shorts\/)([^&\s?\/]+)/);return m?m[1]:null};
 const thumb=url=>{const id=vidId(url);return id?`https://img.youtube.com/vi/${id}/mqdefault.jpg`:''};
+const isInsta=url=>/instagram\.com\/(p|reel|tv)\//.test(url);
+const urlType=url=>vidId(url)?'youtube':isInsta(url)?'instagram':'other';
 const t2s=t=>{const p=t.split(':').map(Number);return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2]};
 const $=id=>document.getElementById(id);
 function toast(msg){const el=document.createElement('div');el.className='toast-el';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2700)}
@@ -475,12 +477,19 @@ window.doGuestLogin = async () => {
   try {
     const resp = await fetch(
       'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/guest-login',
-      { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':`Bearer ${SB_KEY}`} }
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SB_KEY}`
+        },
+        body: JSON.stringify({})
+      }
     );
     const data = await resp.json();
-    if(!resp.ok || data.error) throw new Error(data.error || '접속 실패');
+    console.log('guest-login 응답:', resp.status, data);
+    if(!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
 
-    // Supabase 세션 수동 설정
     const { error } = await sb.auth.setSession({
       access_token: data.access_token,
       refresh_token: data.refresh_token
@@ -490,8 +499,8 @@ window.doGuestLogin = async () => {
     isGuest = true;
     await enterApp(data.user);
   } catch(e) {
-    toast('테스트 계정 접속 실패. 잠시 후 다시 시도해주세요.');
-    console.error(e);
+    console.error('doGuestLogin 오류:', e);
+    toast(`테스트 계정 접속 실패: ${e.message}`);
   } finally {
     if(btn){ btn.disabled=false; btn.textContent='🐦 테스트 계정으로 체험하기'; }
   }
@@ -564,7 +573,7 @@ async function loadAll(){
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
-    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:r.tags||[]}));
+    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:r.tags||[],aiInfo:r.ai_info||''}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||''}));
     sync('ok');
   }catch(e){sync('err');toast('로드 실패: '+e.message)}
@@ -616,7 +625,7 @@ function render(){
 }
 function vList(){
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
-  const cards=D.videos.length?D.videos.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div><div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>저장된 노트가 없습니다.</div>`;
+  const cards=D.videos.length?D.videos.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:isInsta(v.url)?`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);font-size:1.4rem">📸</div>`:`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--dusk2);font-size:1.2rem">🎬</div>`}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div><div class="card-meta">${isInsta(v.url)?'📸 Instagram · ':''}⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>저장된 노트가 없습니다.</div>`;
   return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select></div><div id="vcards">${cards}</div><button class="btn btn-p" style="margin-top:.5rem" onclick="goAdd()">+ 노트 추가</button></div>`;
 }
 window.filterV=(q,cat)=>{
@@ -627,6 +636,7 @@ window.filterV=(q,cat)=>{
 function vDetail(){
   const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
   const vid=vidId(v.url),embed=vid?`https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1`:'';
+  const insta=isInsta(v.url);
   const tsH=v.ts.length?v.ts.map((t,i)=>`<div class="ts-item"><span class="ts-time" onclick="playFrom('${t.time}','${v.id}')">${t.time}</span><span class="ts-note">${esc(t.note)}</span><button class="ts-del" onclick="delTs('${v.id}',${i})">✕</button></div>`).join(''):`<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">저장된 구간이 없습니다.</div>`;
   const tagsH=`
     <div style="margin-bottom:.65rem">
@@ -639,7 +649,23 @@ function vDetail(){
       </div>
       <div class="kw-pills" style="margin-top:5px">${VCATS.map(c=>`<span class="kw-pill" style="font-size:.62rem" onclick="quickAddVTag('${v.id}','${c}')">${c}</span>`).join('')}</div>
     </div>`;
-  return `<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${vid?`<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`:`<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 유효한 YouTube URL이 아닙니다.</div>`}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
+
+  // 영상 영역
+  const mediaH = vid
+    ? `<div class="yt-wrap"><iframe id="yt-frame" src="${embed}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.9rem;text-align:right">타임스탬프 클릭 시 해당 구간부터 재생</div>`
+    : insta
+      ? `<div style="padding:1rem;background:var(--night);border-radius:4px;margin-bottom:.9rem;display:flex;align-items:center;gap:.9rem">
+           <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">📸</div>
+           <div style="flex:1;min-width:0">
+             <div style="font-size:.82rem;font-weight:600;color:var(--chalk);margin-bottom:4px">Instagram 영상</div>
+             <div style="font-size:.74rem;color:var(--muted);word-break:break-all;margin-bottom:.55rem">${esc(v.url)}</div>
+             <a href="${ea(v.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#e6683c,#cc2366);color:#fff;padding:.3rem .85rem;border-radius:2px;font-size:.74rem;font-weight:500;text-decoration:none">Instagram에서 열기 ↗</a>
+           </div>
+         </div>
+         <div style="font-size:.72rem;color:var(--muted);margin-bottom:.9rem">⚠ Instagram 보안 정책으로 앱 내 재생이 불가합니다.</div>`
+      : `<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 지원하지 않는 URL 형식입니다.</div>`;
+
+  return `<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="font-size:.89rem;color:var(--dim);line-height:1.7;margin-bottom:.9rem">${esc(v.memo)||'메모 없음'}</div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-s btn-sm" onclick="editVMemo('${v.id}')">메모 편집</button><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
 
@@ -691,11 +717,12 @@ window.delVideo=async id=>{
   if(!confirm('영상을 삭제하시겠습니까?'))return;
   sync('busy');const{error}=await sb.from('videos').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.videos=D.videos.filter(v=>v.id!==id);sync('ok');toast('삭제됨');goList();
 };
-function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.prevThumb=()=>{const t=thumb($('vu').value),img=$('vthumb');if(t){img.src=t;img.style.display='block'}else img.style.display='none'};
 window.addKw=c=>{const e=$('vk');e.value=e.value.trim()?(e.value.trim()+', '+c):c};
 window.saveVideo=async()=>{
   const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}
+  if(!vidId(url)&&!isInsta(url)){toast('YouTube 또는 Instagram URL을 입력하세요');return}
   if(overLimit('videos')){toast(limitMsg('videos'));return}
   const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim();
   const btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';
