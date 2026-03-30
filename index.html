@@ -1005,9 +1005,9 @@ function pList(){
     <tr id="club-rec-row-${esc(club)}" style="display:none"><td colspan="8" style="padding:.5rem 0"><div id="club-rec-result-${esc(club)}"></div></td></tr>`}).join('');
     return`<div class="page">${srow}${ptabs}
     ${rows?`<div class="sec-label">클럽별 분석</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>일관성</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
-    <div class="chart-wrap"><div class="chart-title">📏 캐리 평균 추이 (m)</div><div style="position:relative;height:180px"><canvas id="chart-carry"></canvas></div></div>
-    <div class="chart-wrap"><div class="chart-title">⚡ 헤드스피드 추이</div><div style="position:relative;height:180px"><canvas id="chart-hs"></canvas></div></div>
-    <div class="chart-wrap"><div class="chart-title">🎯 샷 일관성 추이 (점수)</div><div style="position:relative;height:180px"><canvas id="chart-con"></canvas></div><div style="font-size:.7rem;color:var(--muted);margin-top:.4rem">85+ 매우높음 · 70+ 높음 · 55+ 보통 · 40+ 낮음 · ~40 불안정</div></div>
+    <div class="chart-wrap"><div class="chart-title">📏 캐리 평균 추이 (m)</div><div style="position:relative;height:220px"><canvas id="chart-carry"></canvas></div></div>
+    <div class="chart-wrap"><div class="chart-title">⚡ 헤드스피드 추이</div><div style="position:relative;height:220px"><canvas id="chart-hs"></canvas></div></div>
+    <div class="chart-wrap"><div class="chart-title">🎯 샷 일관성 추이 (점수)</div><div style="position:relative;height:220px"><canvas id="chart-con"></canvas></div><div style="font-size:.7rem;color:var(--muted);margin-top:.4rem">85+ 매우높음 · 70+ 높음 · 55+ 보통 · 40+ 낮음 · ~40 불안정</div></div>
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <div style="font-size:.75rem;color:var(--dim)">전체 ${D.sessions.length}개 세션을 기반으로 성장 추이를 분석합니다.</div>
@@ -1027,62 +1027,106 @@ window.setPSub=t=>{
   m.innerHTML=pList();
   if(t==='stats') requestAnimationFrame(()=>requestAnimationFrame(initCharts));
 };
-function initCharts(){
-  const sessions=[...D.sessions].reverse();if(!sessions.length)return;
 
-  // canvas가 아직 없으면 재시도
+// 클럽별 고정 색상 팔레트
+const CLUB_COLORS = {
+  '드라이버':  {line:'#E8A855', bg:'rgba(232,168,85,.15)'},
+  '3W':        {line:'#F07070', bg:'rgba(240,112,112,.15)'},
+  '5W':        {line:'#F09070', bg:'rgba(240,144,112,.15)'},
+  '유틸리티':  {line:'#E87070', bg:'rgba(232,112,112,.12)'},
+  '2I':        {line:'#70C8A8', bg:'rgba(112,200,168,.15)'},
+  '3I':        {line:'#60B898', bg:'rgba(96,184,152,.15)'},
+  '4I':        {line:'#50A888', bg:'rgba(80,168,136,.15)'},
+  '5I':        {line:'#3D9E74', bg:'rgba(61,158,116,.15)'},
+  '6I':        {line:'#5AB4A0', bg:'rgba(90,180,160,.15)'},
+  '7I':        {line:'#7AB0E8', bg:'rgba(122,176,232,.15)'},
+  '8I':        {line:'#88A8E0', bg:'rgba(136,168,224,.15)'},
+  '9I':        {line:'#A090D8', bg:'rgba(160,144,216,.15)'},
+  'PW':        {line:'#A78BFA', bg:'rgba(167,139,250,.15)'},
+  'GW':        {line:'#C085E8', bg:'rgba(192,133,232,.15)'},
+  'SW':        {line:'#D880D0', bg:'rgba(216,128,208,.15)'},
+  'LW':        {line:'#E870C0', bg:'rgba(232,112,192,.15)'},
+  '퍼터':      {line:'#8888A8', bg:'rgba(136,136,168,.15)'},
+};
+function clubColor(club) {
+  return CLUB_COLORS[club] || {line:'#8A9BAA', bg:'rgba(138,155,170,.15)'};
+}
+
+function initCharts(){
+  const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
+
   if(!$('chart-carry')||!$('chart-hs')||!$('chart-con')){
-    setTimeout(initCharts, 100); return;
+    setTimeout(initCharts,100); return;
   }
 
-  const labels=sessions.map(s=>s.date?.slice(5)||'');
-  const carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null});
-  const hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null});
-  const conD=sessions.map(s=>{const st=ss(s);return st.consistency});
+  // 클럽 목록 (데이터 있는 것만)
+  const clubs=[...new Set(sessions.map(s=>s.club).filter(Boolean))];
 
-  const baseOpts=(yLabel,yMin,yMax)=>({
-    responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yLabel}`}}},
+  // 전체 날짜 라벨 (x축 공유)
+  const allDates=[...new Set(sessions.map(s=>s.date||''))].sort();
+  const labels=allDates.map(d=>d.slice(5));
+
+  // 클럽별 dataset 생성 헬퍼
+  const makeDatasets=(getValue)=>clubs.map(club=>{
+    const col=clubColor(club);
+    const data=allDates.map(date=>{
+      const s=sessions.find(x=>x.club===club&&x.date===date);
+      if(!s)return null;
+      return getValue(s);
+    });
+    return{
+      label:club, data,
+      borderColor:col.line, backgroundColor:col.bg,
+      borderWidth:2, tension:.35, fill:false,
+      pointBackgroundColor:col.line, pointBorderColor:'#0D1117', pointBorderWidth:1,
+      pointRadius:4, pointHoverRadius:6, spanGaps:true
+    };
+  }).filter(ds=>ds.data.some(v=>v!=null));
+
+  const baseOpts=(yLabel,showLegend=true)=>({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{
+        display:showLegend&&clubs.length>1,
+        position:'bottom',
+        labels:{color:'#7A9AAA',font:{size:10},boxWidth:10,padding:8}
+      },
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}${yLabel}`}}
+    },
     scales:{
       x:{ticks:{color:'#5A7A8A',font:{size:10},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},
-      y:{...(yMin!==undefined?{min:yMin}:{}),
-         ...(yMax!==undefined?{max:yMax}:{}),
-         ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.06)'}}
+      y:{ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.06)'}}
     }
   });
 
-  const mkLine=(id,data,color,bgColor,label,yLabel='',yMin=undefined,yMax=undefined)=>{
-    const c=$(id);if(!c)return;
+  const mkMulti=(id,datasets,opts)=>{
+    const c=$(id); if(!c)return;
     if(charts[id]){try{charts[id].destroy()}catch(e){}}
-    charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{
-      label,data,
-      borderColor:color,backgroundColor:bgColor,
-      borderWidth:2,tension:.35,fill:true,
-      pointBackgroundColor:color,pointBorderColor:'#0D1117',pointBorderWidth:1,
-      pointRadius:4,pointHoverRadius:6,spanGaps:true
-    }]},options:baseOpts(yLabel,yMin,yMax)});
+    charts[id]=new Chart(c,{type:'line',data:{labels,datasets},options:opts});
   };
 
-  mkLine('chart-carry',carryD,'#C8893A','rgba(200,137,58,.15)','캐리 평균','m');
-  mkLine('chart-hs',hsD,'#3D9E74','rgba(61,158,116,.15)','헤드스피드','');
+  // ① 캐리 추이
+  mkMulti('chart-carry',
+    makeDatasets(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null}),
+    baseOpts('m')
+  );
 
-  const conCanvas=$('chart-con');if(!conCanvas)return;
-  if(charts['chart-con']){try{charts['chart-con'].destroy()}catch(e){}}
-  charts['chart-con']=new Chart(conCanvas,{type:'line',data:{labels,datasets:[{
-    label:'샷 일관성',data:conD,
-    borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,.12)',
-    borderWidth:2,tension:.35,fill:true,
-    pointBackgroundColor:conD.map(v=>v==null?'#5A5850':v>=85?'#3D9E74':v>=70?'#7ab0e8':v>=55?'#C8893A':v>=40?'#E4A855':'#C17B6A'),
-    pointBorderColor:'#0D1117',pointBorderWidth:1,
-    pointRadius:5,pointHoverRadius:7,spanGaps:true
-  }]},options:{
-    responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=ctx.parsed.y;return`${v}점 — ${consistencyLabel(v)}`}}}},
+  // ② 헤드스피드 추이
+  mkMulti('chart-hs',
+    makeDatasets(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null}),
+    baseOpts('')
+  );
+
+  // ③ 샷 일관성 추이 (Y축 0~100 고정)
+  const conDatasets = makeDatasets(s=>{const st=ss(s);return st.consistency});
+  const conOpts = {
+    ...baseOpts('점'),
     scales:{
       x:{ticks:{color:'#5A7A8A',font:{size:10},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},
       y:{min:0,max:100,ticks:{color:'#5A7A8A',font:{size:10},callback:v=>`${v}점`},grid:{color:'rgba(240,237,230,.06)'}}
     }
-  }});
+  };
+  mkMulti('chart-con', conDatasets, conOpts);
 }
 function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
