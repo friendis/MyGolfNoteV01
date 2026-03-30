@@ -739,7 +739,15 @@ function eList(){
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:.7rem">${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
-  return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value)"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value)"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div><div id="ecards">${cards}</div></div>`;
+  return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value)"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value)"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div><div id="ecards">${cards}</div>
+  <div style="margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div style="font-size:.75rem;color:var(--dim)">비행 통계와 비교해 내 장비 궁합을 분석합니다.</div>
+      <button class="btn-analyze" id="btn-equip-fit" onclick="analyzeEquipFit()" ${D.sessions.length<1||D.equip.filter(e=>e.status==='owned').length<1?'disabled':''}>✦ 장비 궁합 분석</button>
+    </div>
+    <div id="equip-fit-result"></div>
+  </div>
+  </div>`;
 }
 window.filterE=(q,cat,st)=>{const f=D.equip.filter(e=>(!q||e.name.includes(q))&&(!cat||e.cat===cat)&&(!st||e.status===st));const c=$('ecards');if(!c)return;c.innerHTML=f.length?f.map(e=>`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between"><div><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${(e.links.length?e.links[e.links.length-1].price:e.buyPrice)?`<div class="link-price">${fmtP(e.links.length?e.links[e.links.length-1].price:e.buyPrice)}</div>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`};
 function eDetail(){
@@ -990,10 +998,17 @@ function pList(){
     <div class="chart-wrap"><div class="chart-title">⚡ 헤드스피드 추이</div><div style="position:relative;height:180px"><canvas id="chart-hs"></canvas></div></div>
     <div class="chart-wrap"><div class="chart-title">🎯 샷 일관성 추이 (점수)</div><div style="position:relative;height:180px"><canvas id="chart-con"></canvas></div><div style="font-size:.7rem;color:var(--muted);margin-top:.4rem">85+ 매우높음 · 70+ 높음 · 55+ 보통 · 40+ 낮음 · ~40 불안정</div></div>
     <div class="divider"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-      <div style="font-size:.8rem;color:var(--dim)">전체 ${D.sessions.length}개 세션 데이터를 기반으로 성장 추이를 분석합니다.</div>
-      <button class="btn-analyze" id="btn-growth" onclick="analyzeGrowth()" ${D.sessions.length<2?'disabled title="세션이 2개 이상 필요합니다"':''}>✦ 성장 분석</button>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:.75rem;color:var(--dim);margin-bottom:.4rem">클럽별 성적을 분석해 나에게 맞는 클럽을 추천합니다.</div>
+        <button class="btn-analyze" id="btn-club-rec" onclick="analyzeClubRec()" ${D.sessions.length<2?'disabled':''}>✦ 클럽 추천 분석</button>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:.75rem;color:var(--dim);margin-bottom:.4rem">전체 ${D.sessions.length}개 세션을 기반으로 성장 추이를 분석합니다.</div>
+        <button class="btn-analyze" id="btn-growth" onclick="analyzeGrowth()" ${D.sessions.length<2?'disabled':''}>✦ 성장 분석</button>
+      </div>
     </div>
+    <div id="club-rec-result"></div>
     <div id="growth-result"></div>
     </div>`;
   }
@@ -1005,43 +1020,50 @@ function initCharts(){
   const sessions=[...D.sessions].reverse();if(!sessions.length)return;
   const labels=sessions.map(s=>s.date?.slice(5)||'');
   const carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null});
-  const hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs):null});
+  const hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null});
   const conD=sessions.map(s=>{const st=ss(s);return st.consistency});
 
-  const mkOpts=(yLabel,yMin,yMax)=>({
+  const baseOpts=(yLabel,yMin,yMax)=>({
     responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yLabel}`}}},
     scales:{
-      x:{ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.04)'}},
-      y:{min:yMin,max:yMax,ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.06)'}}
+      x:{ticks:{color:'#5A7A8A',font:{size:10},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},
+      y:{...(yMin!==undefined?{min:yMin}:{}),
+         ...(yMax!==undefined?{max:yMax}:{}),
+         ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.06)'}}
     }
   });
 
-  const mkLine=(id,data,color,label,yLabel='',yMin=undefined,yMax=undefined)=>{
+  const mkLine=(id,data,color,bgColor,label,yLabel='',yMin=undefined,yMax=undefined)=>{
     const c=$(id);if(!c)return;
+    if(charts[id]){try{charts[id].destroy()}catch(e){}}
     charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{
-      label,data,borderColor:color,backgroundColor:color+'22',
-      tension:.35,fill:true,pointBackgroundColor:color,pointRadius:4,spanGaps:true
-    }]},options:mkOpts(yLabel,yMin,yMax)});
+      label,data,
+      borderColor:color,backgroundColor:bgColor,
+      borderWidth:2,tension:.35,fill:true,
+      pointBackgroundColor:color,pointBorderColor:'#0D1117',pointBorderWidth:1,
+      pointRadius:4,pointHoverRadius:6,spanGaps:true
+    }]},options:baseOpts(yLabel,yMin,yMax)});
   };
 
-  mkLine('chart-carry',carryD,'var(--wing)','캐리 평균','m');
-  mkLine('chart-hs',hsD,'var(--turf)','헤드스피드','');
+  mkLine('chart-carry',carryD,'#C8893A','rgba(200,137,58,.15)','캐리 평균','m');
+  mkLine('chart-hs',hsD,'#3D9E74','rgba(61,158,116,.15)','헤드스피드','');
 
-  // 일관성 차트 — 배경색을 점수 구간에 따라 다르게
   const conCanvas=$('chart-con');if(!conCanvas)return;
+  if(charts['chart-con']){try{charts['chart-con'].destroy()}catch(e){}}
   charts['chart-con']=new Chart(conCanvas,{type:'line',data:{labels,datasets:[{
     label:'샷 일관성',data:conD,
-    borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,.15)',
-    tension:.35,fill:true,pointBackgroundColor:conD.map(v=>consistencyColor(v)),
-    pointRadius:5,spanGaps:true
+    borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,.12)',
+    borderWidth:2,tension:.35,fill:true,
+    pointBackgroundColor:conD.map(v=>v==null?'#5A5850':v>=85?'#3D9E74':v>=70?'#7ab0e8':v>=55?'#C8893A':v>=40?'#E4A855':'#C17B6A'),
+    pointBorderColor:'#0D1117',pointBorderWidth:1,
+    pointRadius:5,pointHoverRadius:7,spanGaps:true
   }]},options:{
     responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=ctx.parsed.y;return`${v}점 — ${consistencyLabel(v)}`}}}},
     scales:{
-      x:{ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.04)'}},
-      y:{min:0,max:100,ticks:{color:'#5A7A8A',font:{size:10},callback:v=>`${v}점`},grid:{color:'rgba(240,237,230,.06)'},
-        afterDataLimits(axis){axis.min=0;axis.max=100}}
+      x:{ticks:{color:'#5A7A8A',font:{size:10},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},
+      y:{min:0,max:100,ticks:{color:'#5A7A8A',font:{size:10},callback:v=>`${v}점`},grid:{color:'rgba(240,237,230,.06)'}}
     }
   }});
 }
@@ -1198,6 +1220,141 @@ ${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} 스매
 };
 
 // ── AI 성장 분석 (전체 세션) ──────────────────────────
+// ── 클럽 추천 분석 ─────────────────────────────────────
+// ── 장비 궁합 분석 ───────────────────────────────────
+window.analyzeEquipFit = async () => {
+  const btn = $('btn-equip-fit');
+  const resultEl = $('equip-fit-result');
+  if(!btn || !resultEl) return;
+
+  btn.disabled = true; btn.textContent = '분석 중...';
+  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:18px;height:18px;border-width:1.5px"></div>장비와 비행 데이터를 비교하고 있습니다...</div></div>`;
+
+  try {
+    // 비행 통계 집계
+    const cm = {};
+    D.sessions.forEach(s => {
+      if(!s.club || !s.shots.length) return;
+      const st = ss(s);
+      if(!cm[s.club]) cm[s.club] = {carries:[], hs:[], sf:[], con:[]};
+      if(st.avgCarry) cm[s.club].carries.push(st.avgCarry);
+      if(st.avgHs) cm[s.club].hs.push(st.avgHs);
+      if(st.avgSf) cm[s.club].sf.push(st.avgSf);
+      if(st.consistency!=null) cm[s.club].con.push(st.consistency);
+    });
+    const statSummary = Object.entries(cm).map(([club,d])=>
+      `${club}: 캐리${avg(d.carries)?Math.round(avg(d.carries))+'m':'—'} HS${avg(d.hs)?Math.round(avg(d.hs)*10)/10:'—'} 스매시${avg(d.sf)?avg(d.sf).toFixed(2):'—'} 일관성${avg(d.con)?Math.round(avg(d.con))+'점':'—'}`
+    ).join('\n') || '데이터 없음';
+
+    const owned = D.equip.filter(e=>e.status==='owned');
+    const equipList = owned.map(e=>`- ${e.name} (${e.cat})${e.memo?` / ${e.memo}`:''}`).join('\n');
+    const wishList = D.equip.filter(e=>e.status==='wishlist').map(e=>`- ${e.name} (${e.cat})`).join('\n') || '없음';
+
+    const prompt = `골프 장비 전문가로서 아래 데이터를 보고 장비 궁합을 평가해주세요.
+
+[내 비행 통계 (클럽별)]
+${statSummary}
+
+[보유 장비]
+${equipList}
+
+[관심 장비]
+${wishList}
+
+다음 형식으로 작성하세요. 인삿말 없이 바로 시작:
+
+**✓ 현재 장비 궁합 총평** — 현재 실력과 장비의 매칭도를 1~2문장으로
+**✓ 잘 맞는 장비** — 보유 장비 중 실력에 잘 맞는 것과 이유 1~2문장
+**✓ 아쉬운 장비** — 실력에 비해 아쉽거나 더 활용하기 어려운 장비 1~2문장
+**✓ 관심 장비 평가** — 관심 목록의 장비가 현재 실력에 적합한지 1~2문장 (관심 장비가 없으면 생략)
+**✓ 업그레이드 제안** — 지금 실력에서 가장 효과적인 장비 변화 1~2문장
+
+한국어, 친근한 전문가 말투.`;
+
+    const resp = await fetch('https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body: JSON.stringify({prompt, type:'swing'})
+    });
+    if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || data.text || '';
+    if(!text) throw new Error('응답이 비어있습니다');
+    const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-box-title">✦ 장비 궁합 분석</div><div class="analysis-content">${formatted}</div><div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash</div></div>`;
+    btn.textContent = '✦ 다시 분석';
+  } catch(e) {
+    resultEl.innerHTML = `<div class="analysis-box" style="border-color:rgba(193,123,106,.25)"><div style="color:var(--red);font-size:.84rem">분석 실패: ${esc(e.message)}</div></div>`;
+    btn.textContent = '✦ 장비 궁합 분석';
+  }
+  btn.disabled = false;
+};
+
+window.analyzeClubRec = async () => {
+  const btn = $('btn-club-rec');
+  const resultEl = $('club-rec-result');
+  if(!btn || !resultEl) return;
+
+  btn.disabled = true; btn.textContent = '분석 중...';
+  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:18px;height:18px;border-width:1.5px"></div>클럽별 성적을 분석하고 있습니다...</div></div>`;
+
+  try {
+    // 클럽별 통계 집계
+    const cm = {};
+    D.sessions.forEach(s => {
+      if(!s.club || !s.shots.length) return;
+      const st = ss(s);
+      if(!cm[s.club]) cm[s.club] = {sessions:0, carries:[], hs:[], sf:[], con:[]};
+      cm[s.club].sessions++;
+      if(st.avgCarry) cm[s.club].carries.push(st.avgCarry);
+      if(st.avgHs) cm[s.club].hs.push(st.avgHs);
+      if(st.avgSf) cm[s.club].sf.push(st.avgSf);
+      if(st.consistency != null) cm[s.club].con.push(st.consistency);
+    });
+
+    if(!Object.keys(cm).length) { toast('클럽 데이터가 있는 세션이 없습니다'); btn.disabled=false; btn.textContent='✦ 클럽 추천 분석'; resultEl.innerHTML=''; return; }
+
+    const clubSummary = Object.entries(cm).map(([club, d]) =>
+      `${club}: ${d.sessions}세션 · 캐리평균${avg(d.carries)?Math.round(avg(d.carries))+'m':'—'} · HS${avg(d.hs)?Math.round(avg(d.hs)*10)/10:'—'} · 스매시${avg(d.sf)?avg(d.sf).toFixed(2):'—'} · 일관성${avg(d.con)?Math.round(avg(d.con))+'점':'—'}`
+    ).join('\n');
+
+    // 보유 장비 목록
+    const ownedEquip = D.equip.filter(e=>e.status==='owned').map(e=>`${e.name}(${e.cat})`).join(', ') || '없음';
+
+    const prompt = `골프 클럽 전문가로서 아래 데이터를 분석해 맞춤 클럽을 추천해주세요.
+
+[클럽별 성적]
+${clubSummary}
+
+[보유 장비]
+${ownedEquip}
+
+다음 형식으로 작성하세요. 인삿말 없이 바로 시작:
+
+**✓ 가장 잘 맞는 클럽** — 데이터 근거와 함께 1~2문장
+**✓ 개선이 필요한 클럽** — 어떤 수치가 아쉬운지 1~2문장
+**✓ 클럽 추천** — 현재 성적과 장비를 고려해 구매/업그레이드를 추천할 클럽과 이유 2~3문장
+**✓ 연습 방향** — 어떤 클럽에 집중 연습이 필요한지 1~2문장
+
+한국어, 친근한 코치 말투.`;
+
+    const resp = await fetch('https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body: JSON.stringify({prompt, type:'swing'})
+    });
+    if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || data.text || '';
+    if(!text) throw new Error('응답이 비어있습니다');
+    const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-box-title">✦ 클럽 추천 분석</div><div class="analysis-content">${formatted}</div><div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash</div></div>`;
+    btn.textContent = '✦ 다시 분석';
+  } catch(e) {
+    resultEl.innerHTML = `<div class="analysis-box" style="border-color:rgba(193,123,106,.25)"><div style="color:var(--red);font-size:.84rem">분석 실패: ${esc(e.message)}</div></div>`;
+    btn.textContent = '✦ 클럽 추천 분석';
+  }
+  btn.disabled = false;
+};
+
 window.analyzeGrowth = async () => {
   const btn = $('btn-growth');
   const resultEl = $('growth-result');
