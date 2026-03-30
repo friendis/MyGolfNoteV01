@@ -1306,55 +1306,85 @@ ${wishList}
 };
 
 // ── 클럽별 개별 추천 분석 ─────────────────────────────
-window.analyzeClubRec = async (club) => {
+const clubRecCache = {}; // {club: {result, dataHash}}
+
+function clubDataHash(club) {
+  // 해당 클럽 세션 데이터의 간단한 해시 (데이터 변화 감지용)
+  const sessions = D.sessions.filter(s=>s.club===club&&s.shots.length);
+  return sessions.map(s=>s.id+s.shots.length).join('|');
+}
+
+window.analyzeClubRec = async (club, forceReanalyze=false) => {
   const btnId = `btn-club-${club}`;
   const resultId = `club-rec-result-${club}`;
   const rowId = `club-rec-row-${club}`;
   const btn = $(btnId), resultEl = $(resultId), row = $(rowId);
   if(!btn || !resultEl) return;
 
-  // 이미 결과가 있으면 토글 (닫기)
-  if(row && row.style.display !== 'none' && resultEl.querySelector('.analysis-box')) {
-    row.style.display = 'none'; btn.textContent = '✦ 추천'; return;
-  }
+  // 결과 행 표시
   if(row) row.style.display = 'table-row';
 
+  // 닫기 토글
+  if(!forceReanalyze && row && row.style.display !== 'none' && resultEl.querySelector('.analysis-cached')) {
+    row.style.display = 'none'; btn.textContent = '✦ 추천'; return;
+  }
+
+  // 캐시 확인 — 데이터 변화 없으면 캐시 표시
+  const currentHash = clubDataHash(club);
+  if(!forceReanalyze && clubRecCache[club] && clubRecCache[club].dataHash === currentHash) {
+    renderClubRecResult(club, resultEl, btn, clubRecCache[club].result);
+    return;
+  }
+
   btn.disabled = true; btn.textContent = '분석중...';
-  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:16px;height:16px;border-width:1.5px"></div>${club} 데이터를 분석하고 있습니다...</div></div>`;
+  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:16px;height:16px;border-width:1.5px"></div>${club} 스윙 패턴을 분석하고 있습니다...</div></div>`;
 
   try {
     const clubSessions = D.sessions.filter(s => s.club === club && s.shots.length);
     if(!clubSessions.length) throw new Error('해당 클럽의 세션 데이터가 없습니다');
 
-    const carries=[], hs=[], sf=[], con=[];
+    const carries=[], hs=[], sf=[], con=[], dirs=[], spins=[], angles=[];
     clubSessions.forEach(s => {
       const st=ss(s);
       if(st.avgCarry) carries.push(st.avgCarry);
       if(st.avgHs) hs.push(st.avgHs);
       if(st.avgSf) sf.push(st.avgSf);
       if(st.consistency!=null) con.push(st.consistency);
+      s.shots.forEach(sh => {
+        if(sh.direction!=null) dirs.push(sh.direction);
+        if(sh.spin) spins.push(sh.spin);
+        if(sh.launchAngle) angles.push(sh.launchAngle);
+      });
     });
 
-    const allCarries = D.sessions.filter(s=>s.shots.length).flatMap(s=>{const st=ss(s);return st.avgCarry?[st.avgCarry]:[]});
-    const relatedEquip = D.equip.filter(e=>e.status==='owned'&&(e.cat.includes(club)||e.name.toLowerCase().includes(club.toLowerCase()))).map(e=>e.name).join(', ') || '없음';
-    const trend = carries.length >= 2 ? (carries[carries.length-1]-carries[0]>0?'상승':carries[carries.length-1]-carries[0]<0?'하락':'유지') : '데이터 부족';
+    const trend = carries.length>=2 ? (carries[carries.length-1]-carries[0]>0?'상승':carries[carries.length-1]-carries[0]<0?'하락':'유지') : '데이터 부족';
+    const avgDir = avg(dirs), avgSpin = avg(spins), avgAngle = avg(angles);
+    const dirPattern = avgDir==null ? '데이터 없음' : avgDir > 3 ? `우측 편향 (평균 R+${Math.round(avgDir)})` : avgDir < -3 ? `좌측 편향 (평균 L${Math.abs(Math.round(avgDir))})` : `직진성 양호 (평균 ${Math.round(avgDir)})`;
 
-    const prompt = `골프 코치로서 아래 ${club} 클럽 데이터를 분석해 맞춤 조언을 해주세요.
+    // 보유 클럽 목록 (같은 분류)
+    const ownedClubs = D.equip.filter(e=>e.status==='owned').map(e=>`${e.name}(${e.cat})`).join(', ') || '없음';
+    const wishClubs = D.equip.filter(e=>e.status==='wishlist').map(e=>`${e.name}(${e.cat})`).join(', ') || '없음';
 
-클럽: ${club} / 세션: ${clubSessions.length}회 / 비거리 추세: ${trend}
-캐리 평균: ${avg(carries)?Math.round(avg(carries))+'m':'—'} (전체 평균: ${avg(allCarries)?Math.round(avg(allCarries))+'m':'—'})
-캐리 베스트: ${best(carries)?Math.round(best(carries))+'m':'—'}
+    const prompt = `골프 장비 전문가이자 코치로서 아래 ${club} 데이터를 분석해 클럽 추천을 해주세요.
+
+[스윙 데이터 — ${club}]
+세션: ${clubSessions.length}회 / 비거리 추세: ${trend}
+캐리 평균: ${avg(carries)?Math.round(avg(carries))+'m':'—'} / 베스트: ${best(carries)?Math.round(best(carries))+'m':'—'}
 헤드스피드: ${avg(hs)?Math.round(avg(hs)*10)/10:'—'} / 스매시팩터: ${avg(sf)?avg(sf).toFixed(2):'—'}
 일관성: ${avg(con)?Math.round(avg(con))+'점 ('+consistencyLabel(Math.round(avg(con)))+')':'—'}
-관련 보유 장비: ${relatedEquip}
+방향 패턴: ${dirPattern}
+평균 발사각: ${avgAngle?Math.round(avgAngle*10)/10+'°':'—'} / 평균 스핀: ${avgSpin?Math.round(avgSpin)+'rpm':'—'}
+
+[보유 장비] ${ownedClubs}
+[관심 장비] ${wishClubs}
 
 다음 형식으로 작성하세요. 인삿말 없이 바로 시작:
 
-**✓ 현재 수준** — 데이터로 본 ${club} 실력 1문장
-**✓ 강점** — 잘 나오는 수치 1문장
-**✓ 개선 포인트** — 가장 시급한 문제와 원인 2문장
-**✓ 연습 팁** — 이 클럽 특화 드릴 또는 체크포인트 2문장
-**✓ 장비 조언** — 현재 장비 충분한지, 업그레이드 필요한지 1문장
+**✓ 스윙 패턴 분석** — 방향 편향·스핀·발사각 데이터로 본 스윙 특성 2문장
+**✓ 현재 장비 궁합** — 보유 장비 중 이 클럽과 잘 맞는 것과 아쉬운 것 각 1문장씩
+**✓ 추천 클럽 (장비 목록에 없는 제품)** — 스윙 패턴과 실력에 맞는 구체적인 제품명 2~3개와 선택 이유. 실제 시중 제품명으로 추천
+**✓ 개선 포인트** — 데이터에서 나타난 가장 시급한 문제 2문장
+**✓ 연습 팁** — 이 클럽 특화 드릴 2문장
 
 한국어, 친근한 코치 말투.`;
 
@@ -1366,15 +1396,31 @@ window.analyzeClubRec = async (club) => {
     const data = await resp.json();
     const text = data.content?.[0]?.text || data.text || '';
     if(!text) throw new Error('응답이 비어있습니다');
-    const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    resultEl.innerHTML = `<div class="analysis-box" style="margin:.3rem 0"><div class="analysis-box-title">✦ ${esc(club)} 분석</div><div class="analysis-content">${formatted}</div><div style="margin-top:.6rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash</div></div>`;
-    btn.textContent = '✕ 닫기';
+
+    // 캐시에 저장
+    clubRecCache[club] = {result: text, dataHash: currentHash};
+    renderClubRecResult(club, resultEl, btn, text);
+
   } catch(e) {
     resultEl.innerHTML = `<div class="analysis-box" style="border-color:rgba(193,123,106,.25);margin:.3rem 0"><div style="color:var(--red);font-size:.84rem">분석 실패: ${esc(e.message)}</div></div>`;
     btn.textContent = '✦ 추천';
   }
   btn.disabled = false;
 };
+
+function renderClubRecResult(club, resultEl, btn, text) {
+  const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  resultEl.innerHTML = `
+    <div class="analysis-box analysis-cached" style="margin:.3rem 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <div class="analysis-box-title" style="margin-bottom:0">✦ ${esc(club)} 추천 분석</div>
+        <button onclick="analyzeClubRec('${esc(club)}',true)" style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;font-family:var(--sans)">↺ 다시 분석</button>
+      </div>
+      <div class="analysis-content">${formatted}</div>
+      <div style="margin-top:.6rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash</div>
+    </div>`;
+  btn.textContent = '✕ 닫기';
+}
 
 window.analyzeGrowth = async () => {
   const btn = $('btn-growth');
