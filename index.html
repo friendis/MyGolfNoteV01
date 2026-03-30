@@ -965,15 +965,30 @@ window.saveEquip=async()=>{
 };
 function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
-const ss=s=>{const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null),carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');return{carries,totals,hs,bs,sf,avgCarry:avg(carries),bestCarry:best(carries),avgTotal:avg(totals),avgHs:avg(hs),bestHs:best(hs),avgBs:avg(bs),avgSf:avg(sf)}};
+const ss=s=>{
+  const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
+  const carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');
+  // 표준편차 계산
+  const stddev=arr=>{if(arr.length<2)return null;const m=arr.reduce((a,b)=>a+b,0)/arr.length;return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length)};
+  const avgCarry=avg(carries),sdCarry=stddev(carries);
+  // 일관성 점수: 캐리 변동계수(CV)를 0~100으로 변환. CV낮을수록 일관성 높음
+  const consistency = avgCarry&&sdCarry!=null ? Math.max(0,Math.min(100,Math.round(100-(sdCarry/avgCarry*100)))) : null;
+  return{carries,totals,hs,bs,sf,avgCarry,bestCarry:best(carries),avgTotal:avg(totals),avgHs:avg(hs),bestHs:best(hs),avgBs:avg(bs),avgSf:avg(sf),consistency};
+};
+const consistencyLabel=c=>c==null?'—':c>=85?'매우 높음':c>=70?'높음':c>=55?'보통':c>=40?'낮음':'불안정';
+const consistencyColor=c=>c==null?'var(--muted)':c>=85?'var(--turf)':c>=70?'#7ab0e8':c>=55?'var(--wing2)':c>=40?'var(--amber)':'var(--red)';
 function pList(){
   const totalShots=D.sessions.reduce((a,s)=>a+(s.shots?.length||0),0),clubs=[...new Set(D.sessions.map(s=>s.club).filter(Boolean))];
   const ptabs=`<div class="p-tabs" style="display:flex;align-items:center"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button><button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button></div>`;
   const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
   if(pSub==='stats'){
-    const cm={};D.sessions.forEach(s=>{if(!s.club)return;if(!cm[s.club])cm[s.club]={c:[],h:[],b:[],sf:[]};const st=ss(s);if(st.avgCarry)cm[s.club].c.push(st.avgCarry);if(st.avgHs)cm[s.club].h.push(st.avgHs);if(st.avgBs)cm[s.club].b.push(st.avgBs);if(st.avgSf)cm[s.club].sf.push(st.avgSf)});
-    const rows=Object.entries(cm).map(([club,d])=>`<tr><td><span class="club-badge">${esc(club)}</span></td><td class="vl">${fn(avg(d.c),'m')}</td><td class="vl best">${fn(best(d.c),'m')}</td><td class="vl">${fn(avg(d.h))}</td><td class="vl">${fn(avg(d.b))}</td><td class="vl">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td></tr>`).join('');
-    return`<div class="page">${srow}${ptabs}${rows?`<div class="sec-label">클럽별 분석</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}<div class="chart-wrap"><div class="chart-title">비거리 추이</div><div style="position:relative;height:190px"><canvas id="chart-carry"></canvas></div></div><div class="chart-wrap"><div class="chart-title">헤드 스피드</div><div style="position:relative;height:190px"><canvas id="chart-hs"></canvas></div></div>
+    const cm={};D.sessions.forEach(s=>{if(!s.club)return;if(!cm[s.club])cm[s.club]={c:[],h:[],b:[],sf:[],con:[]};const st=ss(s);if(st.avgCarry)cm[s.club].c.push(st.avgCarry);if(st.avgHs)cm[s.club].h.push(st.avgHs);if(st.avgBs)cm[s.club].b.push(st.avgBs);if(st.avgSf)cm[s.club].sf.push(st.avgSf);if(st.consistency!=null)cm[s.club].con.push(st.consistency)});
+    const rows=Object.entries(cm).map(([club,d])=>{const con=avg(d.con);return`<tr><td><span class="club-badge">${esc(club)}</span></td><td class="vl">${fn(avg(d.c),'m')}</td><td class="vl best">${fn(best(d.c),'m')}</td><td class="vl">${fn(avg(d.h))}</td><td class="vl">${fn(avg(d.b))}</td><td class="vl">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td><td class="vl" style="color:${consistencyColor(con&&Math.round(con))}">${con!=null?Math.round(con)+'점':'—'}<div style="font-size:.7rem;opacity:.8">${consistencyLabel(con&&Math.round(con))}</div></td></tr>`}).join('');
+    return`<div class="page">${srow}${ptabs}
+    ${rows?`<div class="sec-label">클럽별 분석</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>일관성</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
+    <div class="chart-wrap"><div class="chart-title">📏 캐리 평균 추이 (m)</div><div style="position:relative;height:180px"><canvas id="chart-carry"></canvas></div></div>
+    <div class="chart-wrap"><div class="chart-title">⚡ 헤드스피드 추이</div><div style="position:relative;height:180px"><canvas id="chart-hs"></canvas></div></div>
+    <div class="chart-wrap"><div class="chart-title">🎯 샷 일관성 추이 (점수)</div><div style="position:relative;height:180px"><canvas id="chart-con"></canvas></div><div style="font-size:.7rem;color:var(--muted);margin-top:.4rem">85+ 매우높음 · 70+ 높음 · 55+ 보통 · 40+ 낮음 · ~40 불안정</div></div>
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <div style="font-size:.8rem;color:var(--dim)">전체 ${D.sessions.length}개 세션 데이터를 기반으로 성장 추이를 분석합니다.</div>
@@ -982,20 +997,58 @@ function pList(){
     <div id="growth-result"></div>
     </div>`;
   }
-  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
+  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);const con=st.consistency;return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
   return`<div class="page">${srow}${ptabs}${cards}</div>`;
 }
 window.setPSub=t=>{pSub=t;Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};const m=$('main');m.innerHTML=pList();if(t==='stats')initCharts()};
 function initCharts(){
   const sessions=[...D.sessions].reverse();if(!sessions.length)return;
-  const labels=sessions.map(s=>s.date?.slice(5)||''),carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null}),hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs):null});
-  const mk=(id,data,color,label)=>{const c=$(id);if(!c)return;charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{label,data,borderColor:color,backgroundColor:color+'22',tension:.35,fill:true,pointBackgroundColor:color,pointRadius:4,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5A7A8A',font:{size:11}},grid:{color:'rgba(240,237,230,.04)'}},y:{ticks:{color:'#5A7A8A',font:{size:11}},grid:{color:'rgba(240,237,230,.06)'}}}}})};
-  mk('chart-carry',carryD,'var(--wing)','캐리 평균(m)');mk('chart-hs',hsD,'var(--turf)','헤드스피드');
+  const labels=sessions.map(s=>s.date?.slice(5)||'');
+  const carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null});
+  const hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs):null});
+  const conD=sessions.map(s=>{const st=ss(s);return st.consistency});
+
+  const mkOpts=(yLabel,yMin,yMax)=>({
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yLabel}`}}},
+    scales:{
+      x:{ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.04)'}},
+      y:{min:yMin,max:yMax,ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.06)'}}
+    }
+  });
+
+  const mkLine=(id,data,color,label,yLabel='',yMin=undefined,yMax=undefined)=>{
+    const c=$(id);if(!c)return;
+    charts[id]=new Chart(c,{type:'line',data:{labels,datasets:[{
+      label,data,borderColor:color,backgroundColor:color+'22',
+      tension:.35,fill:true,pointBackgroundColor:color,pointRadius:4,spanGaps:true
+    }]},options:mkOpts(yLabel,yMin,yMax)});
+  };
+
+  mkLine('chart-carry',carryD,'var(--wing)','캐리 평균','m');
+  mkLine('chart-hs',hsD,'var(--turf)','헤드스피드','');
+
+  // 일관성 차트 — 배경색을 점수 구간에 따라 다르게
+  const conCanvas=$('chart-con');if(!conCanvas)return;
+  charts['chart-con']=new Chart(conCanvas,{type:'line',data:{labels,datasets:[{
+    label:'샷 일관성',data:conD,
+    borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,.15)',
+    tension:.35,fill:true,pointBackgroundColor:conD.map(v=>consistencyColor(v)),
+    pointRadius:5,spanGaps:true
+  }]},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=ctx.parsed.y;return`${v}점 — ${consistencyLabel(v)}`}}}},
+    scales:{
+      x:{ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.04)'}},
+      y:{min:0,max:100,ticks:{color:'#5A7A8A',font:{size:10},callback:v=>`${v}점`},grid:{color:'rgba(240,237,230,.06)'},
+        afterDataLimits(axis){axis.min=0;axis.max=100}}
+    }
+  }});
 }
 function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
   const st=ss(s);
-  const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--wing2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--turf)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">샷 데이터가 없습니다.</div>';
+  const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--wing2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--turf)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}${st.consistency!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:${consistencyColor(st.consistency)}">${st.consistency}점</div><div class="stat-l">샷 일관성</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">샷 데이터가 없습니다.</div>';
 
   return`<div class="page">
   <button class="back-btn" onclick="goList()">← 비행 기록 목록</button>
