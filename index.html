@@ -433,7 +433,8 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 
 <script type="module">
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import Chart from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
+import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
+Chart.register(...registerables);
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 const sb=createClient(SB_URL,SB_KEY);
