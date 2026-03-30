@@ -1322,13 +1322,13 @@ window.analyzeClubRec = async (club, forceReanalyze=false) => {
   const btn = $(btnId), resultEl = $(resultId), row = $(rowId);
   if(!btn || !resultEl) return;
 
-  // 결과 행 표시
-  if(row) row.style.display = 'table-row';
-
-  // 닫기 토글
+  // 닫기 토글 — 결과가 열려있으면 닫기
   if(!forceReanalyze && row && row.style.display !== 'none' && resultEl.querySelector('.analysis-cached')) {
     row.style.display = 'none'; btn.textContent = '✦ 추천'; return;
   }
+
+  // 결과 행 표시
+  if(row) row.style.display = 'table-row';
 
   // 캐시 확인 — 데이터 변화 없으면 캐시 표시
   const currentHash = clubDataHash(club);
