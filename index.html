@@ -621,7 +621,7 @@ function render(){
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   if(tab==='videos'){if(view==='list')m.innerHTML=vList();else if(view==='detail')m.innerHTML=vDetail();else m.innerHTML=vAdd();}
   else if(tab==='equipment'){if(view==='list')m.innerHTML=eList();else if(view==='detail')m.innerHTML=eDetail();else m.innerHTML=eAdd();}
-  else{if(view==='list'){m.innerHTML=pList();if(pSub==='stats')initCharts();}else if(view==='detail')m.innerHTML=pDetail();else m.innerHTML=pAdd();}
+  else{if(view==='list'){m.innerHTML=pList();if(pSub==='stats')requestAnimationFrame(()=>requestAnimationFrame(initCharts));}else if(view==='detail')m.innerHTML=pDetail();else m.innerHTML=pAdd();}
 }
 function vList(){
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
@@ -1018,9 +1018,22 @@ function pList(){
   const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);const con=st.consistency;return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
   return`<div class="page">${srow}${ptabs}${cards}</div>`;
 }
-window.setPSub=t=>{pSub=t;Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};const m=$('main');m.innerHTML=pList();if(t==='stats')initCharts()};
+window.setPSub=t=>{
+  pSub=t;
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});
+  charts={};
+  const m=$('main');
+  m.innerHTML=pList();
+  if(t==='stats') requestAnimationFrame(()=>requestAnimationFrame(initCharts));
+};
 function initCharts(){
   const sessions=[...D.sessions].reverse();if(!sessions.length)return;
+
+  // canvas가 아직 없으면 재시도
+  if(!$('chart-carry')||!$('chart-hs')||!$('chart-con')){
+    setTimeout(initCharts, 100); return;
+  }
+
   const labels=sessions.map(s=>s.date?.slice(5)||'');
   const carryD=sessions.map(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null});
   const hsD=sessions.map(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null});
