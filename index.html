@@ -269,7 +269,18 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
 .btn-ghost{background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.25);color:var(--sky2);width:100%;padding:.55rem 1.2rem;border-radius:2px;font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
 .btn-ghost:hover{background:rgba(74,143,168,.15);border-color:rgba(74,143,168,.4)}
-/* SWING ANALYSIS */
+/* RELEASE NOTES */
+.release-badge{display:inline-flex;align-items:center;justify-content:center;width:7px;height:7px;border-radius:50%;background:var(--red);position:absolute;top:2px;right:2px}
+.rn-version{font-family:var(--mono);font-size:.72rem;color:var(--wing2);background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.2);padding:2px 8px;border-radius:2px;margin-bottom:1rem;display:inline-block}
+.rn-item{padding:.65rem 0;border-bottom:1px solid rgba(240,237,230,.06)}
+.rn-item:last-child{border-bottom:none}
+.rn-item-title{font-size:.78rem;font-weight:600;color:var(--chalk);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem}
+.rn-item-title .rn-tag{font-size:.62rem;font-weight:500;letter-spacing:.08em;padding:1px 6px;border-radius:2px;text-transform:uppercase}
+.rn-tag.new{background:rgba(61,158,116,.15);color:#3D9E74;border:1px solid rgba(61,158,116,.25)}
+.rn-tag.fix{background:rgba(122,176,232,.15);color:#7ab0e8;border:1px solid rgba(122,176,232,.25)}
+.rn-tag.improve{background:rgba(167,139,250,.15);color:#A78BFA;border:1px solid rgba(167,139,250,.25)}
+.rn-item-desc{font-size:.8rem;color:var(--dim);line-height:1.6}
+.rn-section-title{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:1rem 0 .4rem}
 .analysis-box{background:rgba(74,143,168,.06);border:1px solid rgba(74,143,168,.2);border-radius:4px;padding:1rem 1.1rem;margin-top:.9rem}
 .analysis-box-title{font-size:.68rem;font-weight:500;color:var(--sky2);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem}
 .analysis-content{font-size:.87rem;color:var(--dim);line-height:1.85;white-space:pre-wrap;max-height:420px;overflow-y:auto;padding-right:.4rem}
@@ -368,6 +379,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
         <div class="sync-dot" id="sync-dot"></div>
         <span class="email-lbl" id="hdr-email"></span>
         <span class="guest-badge" id="guest-badge" style="display:none">GUEST</span>
+        <button class="icon-btn" id="rn-btn" onclick="openModal('release-modal')" style="position:relative" title="업데이트 노트">
+          🆕<span class="release-badge" id="rn-badge" style="display:none"></span>
+        </button>
         <button class="icon-btn" id="acct-toggle" onclick="toggleAcctPanel()">계정 ▾</button>
         <div class="acct-panel" id="acct-panel">
           <div class="acct-email" id="panel-email"></div>
@@ -627,6 +641,7 @@ async function enterApp(u){
   }
   $('main').innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:1rem"><div class="spinner"></div><span style="color:var(--muted);font-size:.9rem">데이터 불러오는 중...</span></div>';
   await loadAll();setupRealtime();render();
+  checkNewVersion();
 }
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;
@@ -1569,6 +1584,85 @@ window.saveApiKeys = () => {
   closeModal('settings-modal');
   toast('API 키가 저장됐습니다');
 };
+// ── 릴리즈 노트 ─────────────────────────────────────
+const RELEASE_NOTES = [
+  {
+    version: 'v1.5.0',
+    date: '2025-04-01',
+    items: [
+      {tag:'new',    title:'클럽별 추이 그래프',       desc:'비행 통계에서 클럽별 색상이 다른 멀티라인 그래프로 캐리·헤드스피드·일관성 추이를 한눈에 확인할 수 있습니다.'},
+      {tag:'new',    title:'클럽별 추천 분석',         desc:'클럽별 스윙 패턴·방향 편향·스핀 데이터를 기반으로 맞춤 장비를 추천하고, 결과를 캐싱해 재분석 없이 바로 확인할 수 있습니다.'},
+      {tag:'new',    title:'장비 궁합 분석',           desc:'장비 창고에서 비행 통계와 보유 장비를 비교해 궁합을 평가합니다.'},
+      {tag:'new',    title:'업데이트 노트',            desc:'새 버전 접속 시 변경 사항을 팝업으로 확인할 수 있습니다.'},
+      {tag:'fix',    title:'그래프 렌더링 오류 수정',  desc:'비행 통계 탭 전환 시 차트가 표시되지 않던 문제를 수정했습니다.'},
+      {tag:'fix',    title:'클럽 추천 닫기 버튼 오류', desc:'분석 결과를 닫은 후 추천 버튼이 동작하지 않던 문제를 수정했습니다.'},
+    ]
+  },
+  {
+    version: 'v1.4.0',
+    date: '2025-03-27',
+    items: [
+      {tag:'new',    title:'샷 일관성 분석',           desc:'각 세션의 캐리 변동계수를 기반으로 0~100점의 일관성 점수를 계산합니다. 비행 목록 카드, 세션 상세, 통계 탭에서 확인 가능합니다.'},
+      {tag:'new',    title:'테스트 계정 체험',         desc:'회원가입 없이 테스트 계정으로 앱의 모든 기능을 체험할 수 있습니다.'},
+      {tag:'new',    title:'Instagram URL 지원',       desc:'학습 노트에 Instagram Reel·포스트 URL을 저장하고 링크로 바로 열 수 있습니다.'},
+      {tag:'new',    title:'장비 AI 사양 분석',        desc:'장비명을 기반으로 Gemini가 사양·장점·단점·추천 대상을 분석합니다.'},
+      {tag:'improve','title':'AI 스윙 분석 개선',      desc:'잘 친 샷과 개선 필요한 샷을 번호로 구분해 표시하고, 분석 결과를 DB에 저장해 재분석 없이 바로 확인합니다.'},
+      {tag:'improve','title':'추가 버튼 위치 개선',    desc:'각 탭의 추가 버튼을 검색창·탭 버튼과 같은 줄 우측에 배치했습니다.'},
+    ]
+  },
+  {
+    version: 'v1.3.0',
+    date: '2025-03-20',
+    items: [
+      {tag:'new',    title:'비행 기록 편집',           desc:'날짜·클럽·장소·메모를 세션 상세 화면에서 직접 수정할 수 있습니다.'},
+      {tag:'new',    title:'성장 분석',               desc:'전체 세션 데이터를 기반으로 성장 추이를 AI가 분석합니다.'},
+      {tag:'new',    title:'사진 분석 재시도',         desc:'분석 실패한 사진을 개별 또는 일괄로 재시도할 수 있습니다.'},
+      {tag:'fix',    title:'GDR 클럽 번호 오류 수정', desc:'Gemini가 클럽을 숫자로 반환할 때 발생하던 TypeError를 수정했습니다.'},
+    ]
+  },
+];
+
+const CURRENT_VERSION = RELEASE_NOTES[0].version;
+const RN_KEY = 'birdyard_seen_version';
+
+function renderReleaseNotes() {
+  const el = $('release-content'); if(!el) return;
+  el.innerHTML = RELEASE_NOTES.map((r, ri) => `
+    <div style="${ri>0?'margin-top:1.2rem':''}">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem">
+        <span class="rn-version">${r.version}</span>
+        <span style="font-size:.73rem;color:var(--muted)">${r.date}</span>
+        ${ri===0?'<span style="font-size:.65rem;font-weight:500;color:var(--turf);background:rgba(61,158,116,.12);border:1px solid rgba(61,158,116,.2);padding:1px 7px;border-radius:2px">최신</span>':''}
+      </div>
+      ${r.items.map(it=>`
+        <div class="rn-item">
+          <div class="rn-item-title">
+            <span class="rn-tag ${it.tag}">${it.tag==='new'?'신규':it.tag==='fix'?'수정':'개선'}</span>
+            ${it.title}
+          </div>
+          <div class="rn-item-desc">${it.desc}</div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+window.closeReleaseModal = () => {
+  closeModal('release-modal');
+  // 확인 후 뱃지 제거 + 버전 저장
+  localStorage.setItem(RN_KEY, CURRENT_VERSION);
+  const badge = $('rn-badge');
+  if(badge) badge.style.display = 'none';
+};
+
+function checkNewVersion() {
+  renderReleaseNotes();
+  const seen = localStorage.getItem(RN_KEY);
+  if(seen !== CURRENT_VERSION) {
+    // 새 버전 — 뱃지만 표시 (자동 팝업 없음)
+    const badge = $('rn-badge');
+    if(badge) badge.style.display = 'block';
+  }
+}
+
 window.openModal = id => {
   $(id).classList.add('on');
   document.body.style.overflow = 'hidden';
@@ -2068,5 +2162,21 @@ window.delSession=async id=>{
   sb.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN'&&session?.user&&!user){await enterApp(session.user)}else if(event==='SIGNED_OUT'){user=null}});
 })();
 </script>
-</body>
+<div class="modal-bg" id="release-modal" onclick="if(event.target===this)closeReleaseModal()" style="z-index:600">
+  <div class="modal-box" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+      <div>
+        <div style="font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--chalk)">업데이트 노트</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:2px">BIRDYARD Release Notes</div>
+      </div>
+      <button class="modal-close" onclick="closeReleaseModal()">✕</button>
+    </div>
+    <div style="max-height:70vh;overflow-y:auto;padding-right:.3rem" id="release-content"></div>
+    <div style="margin-top:1rem;display:flex;justify-content:flex-end">
+      <button class="btn btn-p btn-sm" onclick="closeReleaseModal()">확인</button>
+    </div>
+  </div>
+</div>
+
+
 </html>
