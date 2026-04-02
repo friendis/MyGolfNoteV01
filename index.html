@@ -355,6 +355,17 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
       </div>
     </div>
     <button class="btn btn-p" id="auth-btn" onclick="doAuth()" style="width:100%;margin-top:.75rem">로그인</button>
+    <div id="forgot-pw-wrap" style="text-align:center;margin-top:.6rem">
+      <button onclick="showForgotPw()" style="background:none;border:none;color:var(--muted);font-size:.73rem;cursor:pointer;font-family:var(--sans);text-decoration:underline">비밀번호를 잊으셨나요?</button>
+    </div>
+    <div id="forgot-pw-form" style="display:none;margin-top:.7rem">
+      <div style="font-size:.78rem;color:var(--dim);margin-bottom:.5rem">가입한 이메일 주소로 비밀번호 재설정 링크를 보내드립니다.</div>
+      <div style="display:flex;gap:.4rem">
+        <input class="inp" type="email" id="forgot-email" placeholder="가입한 이메일 주소" style="flex:1">
+        <button class="btn btn-p btn-sm" onclick="sendResetEmail()">전송</button>
+      </div>
+      <div id="forgot-msg" style="font-size:.75rem;margin-top:.4rem"></div>
+    </div>
     <div class="auth-divider">또는</div>
     <button class="btn-ghost" onclick="doGuestLogin()">🐦 테스트 계정으로 체험하기</button>
     <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.6rem;line-height:1.6">
@@ -437,6 +448,24 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
         <p id="acct-email-disp" style="color:var(--wing2);font-size:.9rem"></p>
         <h3 style="margin-top:.75rem">저장된 데이터</h3>
         <p id="acct-data-cnt"></p>
+      </div>
+      <div style="margin-top:1rem;padding:1rem;background:var(--dusk2);border:1px solid var(--border);border-radius:4px">
+        <div style="font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem">🔑 비밀번호 변경</div>
+        <div class="fg" style="margin-bottom:.5rem">
+          <label class="fl-label">새 비밀번호</label>
+          <input class="inp" type="password" id="new-pw" placeholder="새 비밀번호 (6자 이상)">
+        </div>
+        <div class="fg" style="margin-bottom:.7rem">
+          <label class="fl-label">새 비밀번호 확인</label>
+          <input class="inp" type="password" id="new-pw-confirm" placeholder="비밀번호 다시 입력">
+        </div>
+        <div id="pw-change-msg" style="font-size:.75rem;margin-bottom:.5rem"></div>
+        <button class="btn btn-p btn-sm" style="width:100%" onclick="changePassword()">비밀번호 변경</button>
+        <div style="margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
+          <div style="font-size:.73rem;color:var(--muted);margin-bottom:.4rem">또는 이메일로 재설정 링크 받기</div>
+          <button class="btn btn-s btn-sm" style="width:100%" onclick="sendResetEmailFromAcct()">재설정 링크 이메일 발송</button>
+          <div id="reset-link-msg" style="font-size:.74rem;margin-top:.4rem"></div>
+        </div>
       </div>
       <div class="danger-zone" style="margin-top:1rem">
         <div class="danger-title">⚠ 위험 구역</div>
@@ -557,7 +586,18 @@ window.toggleAcctPanel=()=>$('acct-panel').classList.toggle('on');
 window.closeAcctPanel=()=>$('acct-panel').classList.remove('on');
 document.addEventListener('click',e=>{const p=$('acct-panel'),b=$('acct-toggle');if(p&&!p.contains(e.target)&&e.target!==b)p.classList.remove('on')});
 window.openAcctSettings=()=>{$('acct-email-disp').textContent=user?.email||'';$('acct-data-cnt').textContent=`영상 ${D.videos.length}개 · 장비 ${D.equip.length}개 · 연습 세션 ${D.sessions.length}개`;openModal('acct-modal')};
-window.setAuthMode=mode=>{authMode=mode;$('atab-login').classList.toggle('on',mode==='login');$('atab-signup').classList.toggle('on',mode==='signup');$('auth-btn').textContent=mode==='login'?'로그인':'회원가입';$('agree-wrap').style.display=mode==='signup'?'block':'none';$('auth-err').style.display='none';$('auth-ok').style.display='none'};
+window.setAuthMode=mode=>{
+  authMode=mode;
+  $('atab-login').classList.toggle('on',mode==='login');
+  $('atab-signup').classList.toggle('on',mode==='signup');
+  $('auth-btn').textContent=mode==='login'?'로그인':'회원가입';
+  $('agree-wrap').style.display=mode==='signup'?'block':'none';
+  $('auth-err').style.display='none';$('auth-ok').style.display='none';
+  // 비밀번호 찾기 폼 — 로그인 탭만 표시
+  const forgotWrap=$('forgot-pw-wrap'), forgotForm=$('forgot-pw-form');
+  if(forgotWrap) forgotWrap.style.display=mode==='login'?'block':'none';
+  if(forgotForm) forgotForm.style.display='none';
+};
 function showErr(msg){const e=$('auth-err');e.textContent=msg;e.style.display='block';$('auth-ok').style.display='none'}
 function showOk(msg){const e=$('auth-ok');e.textContent=msg;e.style.display='block';$('auth-err').style.display='none'}
 window.doAuth=async()=>{
@@ -570,14 +610,81 @@ window.doAuth=async()=>{
     const{error}=await sb.auth.signUp({email,password:pw});
     btn.disabled=false;btn.textContent='회원가입';
     if(error){showErr(error.message.includes('already')?'이미 등록된 이메일입니다':error.message);return}
-    showOk('가입 완료! 로그인해주세요.');setAuthMode('login');
+    showOk('가입 완료! 📧 가입하신 이메일로 인증 메일이 발송됐습니다.\n인증 링크를 클릭한 후 로그인해주세요.');
+    setAuthMode('login');
   }else{
     const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
     btn.disabled=false;btn.textContent='로그인';
-    if(error){showErr('이메일 또는 비밀번호가 올바르지 않습니다');return}
+    if(error){
+      if(error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+        showErr('이메일 인증이 필요합니다. 가입 시 발송된 인증 메일의 링크를 클릭해주세요.\n\n인증 메일이 없다면 스팸 폴더를 확인하거나, 아래 비밀번호 재설정을 통해 새 메일을 받으세요.');
+      } else {
+        showErr('이메일 또는 비밀번호가 올바르지 않습니다');
+      }
+      return;
+    }
     await enterApp(data.user);
   }
 };
+// ── 비밀번호 관련 함수 ───────────────────────────────
+window.showForgotPw = () => {
+  const form = $('forgot-pw-form');
+  const wrap = $('forgot-pw-wrap');
+  if(!form) return;
+  const isVisible = form.style.display !== 'none';
+  form.style.display = isVisible ? 'none' : 'block';
+  if(wrap) wrap.style.display = isVisible ? 'block' : 'none';
+  if(!isVisible) {
+    const emailInput = $('a-email');
+    const forgotEmail = $('forgot-email');
+    if(forgotEmail && emailInput?.value) forgotEmail.value = emailInput.value;
+  }
+};
+
+window.sendResetEmail = async () => {
+  const email = $('forgot-email')?.value.trim();
+  const msg = $('forgot-msg');
+  if(!email) { if(msg) { msg.textContent='이메일을 입력해주세요'; msg.style.color='var(--red)'; } return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if(msg) {
+    if(error) { msg.textContent = '전송 실패: ' + error.message; msg.style.color = 'var(--red)'; }
+    else { msg.textContent = '📧 재설정 링크를 이메일로 발송했습니다. 스팸 폴더도 확인해주세요.'; msg.style.color = 'var(--turf)'; }
+  }
+};
+
+window.sendResetEmailFromAcct = async () => {
+  const msg = $('reset-link-msg');
+  if(!user?.email) return;
+  const { error } = await sb.auth.resetPasswordForEmail(user.email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if(msg) {
+    if(error) { msg.textContent = '전송 실패: ' + error.message; msg.style.color = 'var(--red)'; }
+    else { msg.textContent = `📧 ${user.email}로 재설정 링크를 발송했습니다.`; msg.style.color = 'var(--turf)'; }
+  }
+};
+
+window.changePassword = async () => {
+  const newPw = $('new-pw')?.value;
+  const confirm = $('new-pw-confirm')?.value;
+  const msg = $('pw-change-msg');
+  const setMsg = (text, color) => { if(msg) { msg.textContent = text; msg.style.color = color; } };
+
+  if(!newPw || newPw.length < 6) { setMsg('비밀번호는 6자 이상이어야 합니다', 'var(--red)'); return; }
+  if(newPw !== confirm) { setMsg('비밀번호가 일치하지 않습니다', 'var(--red)'); return; }
+
+  const { error } = await sb.auth.updateUser({ password: newPw });
+  if(error) {
+    setMsg('변경 실패: ' + error.message, 'var(--red)');
+  } else {
+    setMsg('✓ 비밀번호가 변경됐습니다', 'var(--turf)');
+    if($('new-pw')) $('new-pw').value = '';
+    if($('new-pw-confirm')) $('new-pw-confirm').value = '';
+  }
+};
+
 window.doSignOut=async()=>{
   if(!confirm('로그아웃 하시겠습니까?'))return;
   if(rtCh)sb.removeChannel(rtCh);
@@ -2159,7 +2266,21 @@ window.delSession=async id=>{
     if(session?.user){await enterApp(session.user)}else{$('auth').style.display='flex'}
   }catch(e){$('auth').style.display='flex'}
   finally{$('loading').style.display='none'}
-  sb.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN'&&session?.user&&!user){await enterApp(session.user)}else if(event==='SIGNED_OUT'){user=null}});
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      // 비밀번호 재설정 링크로 접속한 경우
+      await enterApp(session.user);
+      setTimeout(()=>{
+        openAcctSettings();
+        const msg=$('pw-change-msg');
+        if(msg){msg.textContent='🔑 새 비밀번호를 입력해주세요';msg.style.color='var(--wing2)';}
+      }, 600);
+    } else if(event==='SIGNED_IN'&&session?.user&&!user){
+      await enterApp(session.user);
+    } else if(event==='SIGNED_OUT'){
+      user=null;
+    }
+  });
 })();
 </script>
 <div class="modal-bg" id="release-modal" onclick="if(event.target===this)closeReleaseModal()" style="z-index:600">
