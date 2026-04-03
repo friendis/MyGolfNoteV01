@@ -93,7 +93,8 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 5rem;width:100%}
 .inp,.sel,.ta{width:100%;background:rgba(13,17,23,.8);border:1px solid var(--border);color:var(--text);padding:.6rem .9rem;border-radius:2px;font-family:var(--sans);font-size:.88rem;outline:none;transition:border-color .15s}
 .inp:focus,.sel:focus,.ta:focus{border-color:rgba(200,137,58,.4);box-shadow:0 0 0 1px rgba(200,137,58,.15)}
 .sel{background-color:var(--dusk)}
-.ta{resize:vertical;min-height:76px;line-height:1.65}
+.ta{resize:vertical;min-height:72px;line-height:1.65}
+.ta::-webkit-resizer{background:transparent}
 .fg{margin-bottom:.85rem}
 .frow{display:flex;gap:.6rem}
 .frow>.fg{flex:1}
@@ -983,23 +984,80 @@ window.analyzeEquip = async (eid) => {
   if(!btn || !resultEl) return;
 
   btn.disabled = true; btn.textContent = '분석 중...';
-  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:18px;height:18px;border-width:1.5px"></div>장비 정보를 분석하고 있습니다...</div></div>`;
+  resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:18px;height:18px;border-width:1.5px"></div>장비와 비행 데이터를 분석하고 있습니다...</div></div>`;
 
   try {
-    const prompt = `골프 장비 전문가로서 아래 장비에 대해 핵심 정보를 알려주세요.
+    // 해당 클럽 카테고리 비행 데이터 수집
+    const catKeywords = e.cat ? [e.cat] : [];
+    const nameKeywords = e.name.toLowerCase().split(/\s+/);
+    const relatedSessions = D.sessions.filter(s => {
+      if(!s.club || !s.shots.length) return false;
+      const club = s.club.toLowerCase();
+      return catKeywords.some(k => club.includes(k.toLowerCase())) ||
+             nameKeywords.some(k => k.length > 1 && club.includes(k));
+    });
 
+    // 전체 비행 통계 (참고용)
+    const allSessions = D.sessions.filter(s => s.shots.length);
+    const allCarries = allSessions.flatMap(s => { const st=ss(s); return st.avgCarry?[st.avgCarry]:[]; });
+    const allHs = allSessions.flatMap(s => { const st=ss(s); return st.avgHs?[st.avgHs]:[]; });
+
+    // 관련 세션 통계
+    let flightStats = '비행 데이터 없음 (이 클럽 분류로 기록된 세션이 없습니다)';
+    let swingProfile = '';
+    if(relatedSessions.length > 0) {
+      const carries=[], hs=[], sf=[], con=[], dirs=[], spins=[], angles=[];
+      relatedSessions.forEach(s => {
+        const st=ss(s);
+        if(st.avgCarry) carries.push(st.avgCarry);
+        if(st.avgHs) hs.push(st.avgHs);
+        if(st.avgSf) sf.push(st.avgSf);
+        if(st.consistency!=null) con.push(st.consistency);
+        s.shots.forEach(sh => {
+          if(sh.direction!=null) dirs.push(sh.direction);
+          if(sh.spin) spins.push(sh.spin);
+          if(sh.launchAngle) angles.push(sh.launchAngle);
+        });
+      });
+      const avgDir = avg(dirs);
+      const dirTend = avgDir==null ? '데이터 없음'
+        : avgDir > 5  ? `우측 편향 (슬라이스 경향, R+${Math.round(avgDir)})`
+        : avgDir < -5 ? `좌측 편향 (훅 경향, L${Math.abs(Math.round(avgDir))})`
+        : `직진 (편차 ${Math.round(Math.abs(avgDir??0))})`;
+
+      flightStats = `세션 ${relatedSessions.length}회
+캐리 평균: ${avg(carries)?Math.round(avg(carries))+'m':'—'} / 베스트: ${best(carries)?Math.round(best(carries))+'m':'—'}
+헤드스피드: ${avg(hs)?Math.round(avg(hs)*10)/10:'—'} (전체 평균: ${avg(allHs)?Math.round(avg(allHs)*10)/10:'—'})
+스매시팩터: ${avg(sf)?avg(sf).toFixed(2):'—'}
+발사각: ${avg(angles)?Math.round(avg(angles)*10)/10+'°':'—'} / 스핀: ${avg(spins)?Math.round(avg(spins))+'rpm':'—'}
+방향 패턴: ${dirTend}
+일관성: ${avg(con)?Math.round(avg(con))+'점 ('+consistencyLabel(Math.round(avg(con)))+')':'—'}`;
+
+      swingProfile = `
+전체 헤드스피드 평균: ${avg(allHs)?Math.round(avg(allHs)*10)/10:'—'}
+전체 캐리 평균: ${avg(allCarries)?Math.round(avg(allCarries))+'m':'—'}`;
+    }
+
+    const prompt = `골프 장비 전문가로서 아래 장비와 사용자의 비행 데이터를 종합 분석해주세요.
+
+[장비 정보]
 장비명: ${e.name}
 분류: ${e.cat || '미기록'}
 상태: ${e.status === 'owned' ? '보유 중' : '관심 목록'}
-${e.memo ? `사용자 메모: ${e.memo}` : ''}
+${e.memo ? `메모: ${e.memo}` : ''}
 
-다음 항목을 각각 2~3문장으로 간결하게 작성하세요. 인삿말 없이 바로 시작:
+[이 클럽 분류 비행 데이터]
+${flightStats}
+${swingProfile}
 
-**✓ 장비 소개** — 이 장비의 특징과 포지셔닝 (어떤 골퍼에게 적합한지)
-**✓ 주요 사양** — 헤드 소재, 로프트, 샤프트 옵션 등 핵심 스펙
-**✓ 장점** — 실제 사용 시 강점
-**✓ 단점 / 주의사항** — 구매 전 고려할 점
-**✓ 추천 대상** — 어떤 수준·스타일의 골퍼에게 맞는지
+다음 항목을 간결하게 작성하세요. 인삿말 없이 바로 시작:
+
+**✓ 장비 소개** — 이 장비의 특징과 포지셔닝 2문장
+**✓ 내 스윙과의 궁합** — 비행 데이터(헤드스피드·발사각·방향·스핀)를 바탕으로 이 장비가 나에게 잘 맞는지 2~3문장. 데이터가 없으면 장비 특성만으로 판단
+**✓ 샤프트 추천** — 헤드스피드와 스윙 특성 기반으로 플렉스(R/SR/S)와 무게 추천 2문장
+**✓ 로프트 추천** — 발사각·캐리 데이터를 바탕으로 적합한 로프트 범위 추천 2문장
+**✓ 방향 안정성** — 방향 편향 패턴에 맞는 조언 (오프셋·페이스각 등) 1~2문장
+**✓ 구매 추천 여부** — 현재 실력에 이 장비가 적합한지 최종 한 줄 결론
 
 한국어, 친근하고 전문적인 말투.`;
 
@@ -1028,7 +1086,7 @@ ${e.memo ? `사용자 메모: ${e.memo}` : ''}
       <div class="analysis-box">
         <div class="analysis-box-title">✦ AI 장비 분석</div>
         <div class="analysis-content">${formatted}</div>
-        <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash</div>
+        <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash${relatedSessions.length>0?' · 비행 데이터 '+relatedSessions.length+'세션 반영':''}</div>
       </div>`;
     btn.textContent = '✦ 다시 분석';
   } catch(err) {
@@ -1696,20 +1754,39 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.7.0',
+    date: '2026-04-04',
+    items: [
+      {tag:'improve','title':'메모창 높이 조절',           desc:'모든 메모창(장비·노트·비행기록)을 하단을 드래그해 원하는 높이로 자유롭게 조절할 수 있습니다.'},
+      {tag:'improve','title':'장비 AI 분석 강화',          desc:'비행 기록 데이터(헤드스피드·발사각·스핀·방향 패턴)를 반영해 내 스윙에 맞는 샤프트 플렉스·무게, 로프트, 방향 안정성, 구매 적합 여부까지 구체적으로 분석합니다.'},
+    ]
+  },
+  {
+    version: 'v1.6.0',
+    date: '2026-04-04',
+    items: [
+      {tag:'new',    title:'장비 메모 인라인 편집',      desc:'장비 창고 상세 화면에서 메모를 textarea로 직접 수정할 수 있습니다. 줄바꿈을 자유롭게 입력할 수 있으며 포커스를 잃을 때 자동 저장됩니다.'},
+      {tag:'new',    title:'비밀번호 변경 / 찾기',       desc:'계정 설정에서 비밀번호를 직접 변경하거나 이메일로 재설정 링크를 받을 수 있습니다. 로그인 화면에도 비밀번호 찾기 기능이 추가됐습니다.'},
+      {tag:'new',    title:'업데이트 노트',              desc:'새 버전 배포 시 헤더 버튼으로 변경 내역을 확인할 수 있습니다. 새 버전이면 뱃지로 알림을 표시합니다.'},
+      {tag:'new',    title:'저작권 표시',                desc:'코드 최상단에 저작권 문구가 추가됐습니다.'},
+      {tag:'improve','title':'회원가입 오류 안내 개선',  desc:'가입 후 이메일 인증 필요 안내와 인증 미완료 시 로그인 오류 메시지를 더 명확하게 표시합니다.'},
+      {tag:'fix',    title:'중복 함수 제거',             desc:'editEMemo 함수가 중복 선언되어 있던 문제를 정리했습니다.'},
+    ]
+  },
+  {
     version: 'v1.5.0',
-    date: '2025-04-01',
+    date: '2026-03-30',
     items: [
       {tag:'new',    title:'클럽별 추이 그래프',       desc:'비행 통계에서 클럽별 색상이 다른 멀티라인 그래프로 캐리·헤드스피드·일관성 추이를 한눈에 확인할 수 있습니다.'},
       {tag:'new',    title:'클럽별 추천 분석',         desc:'클럽별 스윙 패턴·방향 편향·스핀 데이터를 기반으로 맞춤 장비를 추천하고, 결과를 캐싱해 재분석 없이 바로 확인할 수 있습니다.'},
       {tag:'new',    title:'장비 궁합 분석',           desc:'장비 창고에서 비행 통계와 보유 장비를 비교해 궁합을 평가합니다.'},
-      {tag:'new',    title:'업데이트 노트',            desc:'새 버전 접속 시 변경 사항을 팝업으로 확인할 수 있습니다.'},
       {tag:'fix',    title:'그래프 렌더링 오류 수정',  desc:'비행 통계 탭 전환 시 차트가 표시되지 않던 문제를 수정했습니다.'},
       {tag:'fix',    title:'클럽 추천 닫기 버튼 오류', desc:'분석 결과를 닫은 후 추천 버튼이 동작하지 않던 문제를 수정했습니다.'},
     ]
   },
   {
     version: 'v1.4.0',
-    date: '2025-03-27',
+    date: '2026-03-27',
     items: [
       {tag:'new',    title:'샷 일관성 분석',           desc:'각 세션의 캐리 변동계수를 기반으로 0~100점의 일관성 점수를 계산합니다. 비행 목록 카드, 세션 상세, 통계 탭에서 확인 가능합니다.'},
       {tag:'new',    title:'테스트 계정 체험',         desc:'회원가입 없이 테스트 계정으로 앱의 모든 기능을 체험할 수 있습니다.'},
@@ -1721,7 +1798,7 @@ const RELEASE_NOTES = [
   },
   {
     version: 'v1.3.0',
-    date: '2025-03-20',
+    date: '2026-03-20',
     items: [
       {tag:'new',    title:'비행 기록 편집',           desc:'날짜·클럽·장소·메모를 세션 상세 화면에서 직접 수정할 수 있습니다.'},
       {tag:'new',    title:'성장 분석',               desc:'전체 세션 데이터를 기반으로 성장 추이를 AI가 분석합니다.'},
@@ -1731,7 +1808,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = RELEASE_NOTES[0].version;
+const CURRENT_VERSION = 'v1.7.0';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
