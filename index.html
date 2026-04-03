@@ -518,6 +518,22 @@ function limitMsg(type) {
 const VCATS=['드라이버','우드/하이브리드','아이언','웨지','퍼팅','숏게임','어프로치','멘탈','피트니스','코스매니지먼트','룰/에티켓','기타'];
 const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','GW','SW','LW','퍼터'];
+// 장비 분류 → 대표 클럽 매핑
+const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','GW','SW','LW'],'퍼터':['퍼터']};
+// 보유 장비 클럽 옵션 HTML 생성
+function ownedClubOptions(currentVal=''){
+  const owned=D.equip.filter(e=>e.status==='owned');
+  if(!owned.length)return'';
+  const items=owned.map(e=>{
+    const clubs=CAT_TO_CLUBS[e.cat]||[];
+    const val=clubs[0]||e.cat||'';
+    if(!val)return null;
+    const label=`${e.name}${clubs[0]?' ('+clubs[0]+')':e.cat?' ('+e.cat+')':''}`;
+    return`<option value="${val}"${currentVal===val?' selected':''}>${label}</option>`;
+  }).filter(Boolean);
+  if(!items.length)return'';
+  return`<optgroup label="🪶 보유 장비">${items.join('')}</optgroup>`;
+}
 const today=()=>new Date().toISOString().split('T')[0];
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const ea=s=>String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -1380,17 +1396,8 @@ function pDetail(){
         <label class="fl-label">클럽</label>
         <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)">
           <option value="">선택...</option>
-          ${(()=>{
-            const ownedClubs = D.equip.filter(e=>e.status==='owned'&&e.cat);
-            if(!ownedClubs.length) return CLUBS.map(c=>`<option ${s.club===c?'selected':''}>${c}</option>`).join('');
-            const matchedOwned = [...new Set(ownedClubs.map(e=>{
-              return CLUBS.find(c=>c.toLowerCase()===e.cat.toLowerCase()||e.cat.toLowerCase().includes(c.toLowerCase())||c.toLowerCase().includes(e.cat.toLowerCase()));
-            }).filter(Boolean))];
-            const ownedGroup = matchedOwned.length
-              ? `<optgroup label="🪶 보유 장비">${matchedOwned.map(c=>`<option value="${c}" ${s.club===c?'selected':''}>${c}</option>`).join('')}</optgroup><optgroup label="전체 클럽">`
-              : '<optgroup label="전체 클럽">';
-            return ownedGroup + CLUBS.map(c=>`<option ${s.club===c?'selected':''}>${c}</option>`).join('') + (matchedOwned.length?'</optgroup>':'');
-          })()}
+          ${ownedClubOptions(s.club||'')}
+          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option ${s.club===c?'selected':''}>${c}</option>`).join('')}</optgroup>
         </select>
       </div>
     </div>
@@ -2307,18 +2314,8 @@ function pAdd() {
       <div class="fg"><label class="fl-label">클럽</label>
         <select class="sel" id="pc">
           <option value="">선택...</option>
-          ${(()=>{
-            const ownedClubs = D.equip.filter(e=>e.status==='owned'&&e.cat);
-            if(!ownedClubs.length) return CLUBS.map(c=>`<option>${c}</option>`).join('');
-            // 보유 장비에서 CLUBS 목록과 매칭되는 것만 추출 (중복 제거)
-            const matchedOwned = [...new Set(ownedClubs.map(e=>{
-              return CLUBS.find(c=>c.toLowerCase()===e.cat.toLowerCase()||e.cat.toLowerCase().includes(c.toLowerCase())||c.toLowerCase().includes(e.cat.toLowerCase()));
-            }).filter(Boolean))];
-            const ownedGroup = matchedOwned.length
-              ? `<optgroup label="🪶 보유 장비">${matchedOwned.map(c=>`<option value="${c}">${c}</option>`).join('')}</optgroup><optgroup label="전체 클럽">`
-              : '<optgroup label="전체 클럽">';
-            return ownedGroup + CLUBS.map(c=>`<option>${c}</option>`).join('') + (matchedOwned.length?'</optgroup>':'');
-          })()}
+          ${ownedClubOptions()}
+          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option>${c}</option>`).join('')}</optgroup>
         </select>
       </div>
     </div>
