@@ -520,19 +520,42 @@ const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터',
 const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','GW','SW','LW'],'퍼터':['퍼터']};
+const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
+// 아이언 세트 체크박스 HTML
+function ironSetUI(selected=[], disabled=false){
+  return`<div style="margin-top:.5rem">
+    <div class="fl-label">보유 아이언 번호</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selected.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
+        <input type="checkbox" value="${n}" name="iron_set"${selected.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
+      </label>`).join('')}
+    </div>
+  </div>`;
+}
+// 선택된 아이언 번호 읽기
+function readIronSet(){
+  return [...document.querySelectorAll('input[name="iron_set"]:checked')].map(el=>el.value);
+}
 // 보유 장비 클럽 옵션 HTML 생성
 function ownedClubOptions(currentVal=''){
   const owned=D.equip.filter(e=>e.status==='owned');
   if(!owned.length)return'';
-  const items=owned.map(e=>{
-    const clubs=CAT_TO_CLUBS[e.cat]||[];
-    const val=clubs[0]||e.cat||'';
-    if(!val)return null;
-    const label=`${e.name}${clubs[0]?' ('+clubs[0]+')':e.cat?' ('+e.cat+')':''}`;
-    return`<option value="${val}"${currentVal===val?' selected':''}>${label}</option>`;
-  }).filter(Boolean);
+  const items=[];
+  owned.forEach(e=>{
+    if(e.cat==='아이언'){
+      // 아이언 세트는 ironSet 배열로 개별 번호 표시
+      const irons=e.ironSet&&e.ironSet.length?e.ironSet:CAT_TO_CLUBS['아이언'];
+      irons.forEach(n=>items.push({val:n,label:`${e.name} — ${n}`,selected:currentVal===n}));
+    } else {
+      const clubs=CAT_TO_CLUBS[e.cat]||[];
+      const val=clubs[0]||e.cat||'';
+      if(!val)return;
+      const label=`${e.name}${clubs[0]?' ('+clubs[0]+')':e.cat?' ('+e.cat+')':''}`;
+      items.push({val,label,selected:currentVal===val});
+    }
+  });
   if(!items.length)return'';
-  return`<optgroup label="🪶 보유 장비">${items.join('')}</optgroup>`;
+  return`<optgroup label="🪶 보유 장비">${items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`;
 }
 const today=()=>new Date().toISOString().split('T')[0];
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -731,7 +754,7 @@ async function loadAll(){
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
-    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:r.tags||[],aiInfo:r.ai_info||''}));
+    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||''}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||''}));
     sync('ok');
   }catch(e){sync('err');toast('로드 실패: '+e.message)}
@@ -916,7 +939,15 @@ function eDetail(){
   const histH=e.priceH.length?`<div class="sec-label" style="margin-top:.9rem">가격 동향</div><div>${e.priceH.slice().reverse().map((h,i,a)=>{const d=a[i+1]?h.price-a[i+1].price:0;return`<div class="price-entry"><span>${h.date}</span><span>${fmtP(h.price)} ${d?`<span style="color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</span>`:''}</span></div>`}).join('')}</div>`:'';
 
   // 태그 (category + 커스텀 tags)
-  const tags = e.tags || [];
+  const tags = Array.isArray(e.tags)?e.tags:[];
+  const ironSetSection = e.cat==='아이언'?`
+    <div style="margin-bottom:.9rem;padding:.7rem;background:rgba(13,17,23,.4);border:1px solid var(--border);border-radius:2px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+        <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 아이언 번호</div>
+        <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
+      </div>
+      ${ironSetUI(e.ironSet||[])}
+    </div>`:'';
   const tagsH = `
     <div style="margin-bottom:.9rem">
       <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:28px" id="etag-list">
@@ -935,7 +966,7 @@ function eDetail(){
         <button class="btn btn-s btn-sm" onclick="addETag('${e.id}')">+ 추가</button>
       </div>
       <div class="kw-pills" style="margin-top:5px">${ECATS.map(c=>`<span class="kw-pill" style="font-size:.62rem" onclick="quickAddETag('${e.id}','${c}')">${c}</span>`).join('')}</div>
-    </div>`;
+    </div>${ironSetSection}`;
 
   return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
@@ -990,6 +1021,14 @@ window.saveEMemo=async(id,val)=>{
   sync('busy');const{error}=await sb.from('equipment').update({memo:val}).eq('id',id).eq('user_id',user.id);
   if(error){toast('저장 실패');sync('err');return}
   e.memo=val;sync('ok');toast('메모 저장됨');
+};
+window.saveIronSet=async(id)=>{
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  const selected=readIronSet();
+  const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)?{...e.tags,iron_set:selected}:{iron_set:selected};
+  sync('busy');const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  e.ironSet=selected;e.tags=newTags;sync('ok');toast(`아이언 세트 저장됨 (${selected.join(', ')||'없음'})`);
 };
 
 // ── AI 장비 분석 ─────────────────────────────────────
@@ -1215,14 +1254,18 @@ window.saveEquip=async()=>{
   const pp=$('ep')?.value,pd=$('ed')?.value;
   const links=link?[{url:link,label:lbl||'링크',price:lpr?Number(lpr):null,checkedAt:today()}]:[];
   const priceH=(lpr&&link)?[{date:today(),price:Number(lpr)}]:[];
+  // 아이언 세트 저장
+  const ironSet=cat==='아이언'?readIronSet():[];
+  const tagsData=ironSet.length?{iron_set:ironSet}:null;
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
-  const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null});
+  const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
   await loadAll();toast('장비 추가됨');goList();
 };
-function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
+window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
 const ss=s=>{
   const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
   const carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');
@@ -1803,6 +1846,14 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.10.0',
+    date: '2026-04-04',
+    items: [
+      {tag:'new',    title:'아이언 세트 번호 관리',         desc:'장비 창고에서 아이언 분류 장비에 보유한 번호(2I~9I)를 체크박스로 선택·저장할 수 있습니다. 비행 기록 추가·편집 시 보유 아이언이 번호별로 분리되어 표시됩니다.'},
+      {tag:'improve','title':'보유 장비 클럽 선택 개선',    desc:'비행 기록 클럽 선택 드롭다운에 보유 장비가 장비명과 함께 표시됩니다. 아이언 세트는 등록된 번호별로 개별 항목으로 나타납니다.'},
+    ]
+  },
+  {
     version: 'v1.9.0',
     date: '2026-04-04',
     items: [
@@ -1871,7 +1922,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.9.0';
+const CURRENT_VERSION = 'v1.10.0';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
