@@ -1056,24 +1056,26 @@ function dictList(){
     <div id="dict-search-result" style="margin-top:.5rem"></div>
   </div>
   <div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.75rem">
-    ${cats.map(c=>`<button onclick="dictCat='${c}';view='dict';tab='videos';render()" style="padding:3px 10px;border-radius:2px;border:1px solid ${dictCat===c||(c==='전체'&&!dictCat)?'rgba(200,137,58,.5)':'var(--border)'};background:${dictCat===c||(c==='전체'&&!dictCat)?'rgba(200,137,58,.1)':'none'};color:${dictCat===c||(c==='전체'&&!dictCat)?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans)">${c}</button>`).join('')}
+    ${cats.map(c=>`<button onclick="dictSetCat('${c}')" style="padding:3px 10px;border-radius:2px;border:1px solid ${dictCat===c||(c==='전체'&&!dictCat)?'rgba(200,137,58,.5)':'var(--border)'};background:${dictCat===c||(c==='전체'&&!dictCat)?'rgba(200,137,58,.1)':'none'};color:${dictCat===c||(c==='전체'&&!dictCat)?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans)">${c}</button>`).join('')}
   </div>
   <div>${items||`<div class="empty"><div class="empty-icon">📖</div>용어가 없습니다.</div>`}</div>
   </div>`;
 }
 
-window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; view='dict'; tab='videos'; render(); };
+window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; view='dict'; render(); };
+window.dictGoList=()=>{ dictView='list'; view='dict'; render(); };
+window.dictSetCat=(c)=>{ dictCat=c; view='dict'; render(); };
 
 function dictDetail(){
   const t=D_TERMS.terms.find(x=>x.id===dictSelId);
-  if(!t)return`<div class="page"><button class="back-btn" onclick="dictView='list';view='dict';tab='videos';render()">← 사전 목록</button><div class="empty">용어를 찾을 수 없습니다.</div></div>`;
+  if(!t)return`<div class="page"><button class="back-btn" onclick="dictGoList()">← 사전 목록</button><div class="empty">용어를 찾을 수 없습니다.</div></div>`;
   const note=D_TERMS.notes[t.id];
   const relH=t.relations?.length?`<div class="sec-label">연관 용어</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.9rem">${t.relations.map(r=>`<button class="dict-rel ${r.type}" onclick="goToRelTerm('${esc(r.term)}')">${REL_LABELS[r.type]||r.type} ${esc(r.term)}</button>`).join('')}</div>`:'';
   const linkedVideos=D.videos.filter(v=>v.kw.includes(t.term));
   const videosH=linkedVideos.length?`<div class="sec-label">관련 노트 (${linkedVideos.length}개)</div><div>${linkedVideos.map(v=>`<div class="card" onclick="view='detail';selId='${v.id}';render()" style="padding:.5rem .7rem"><div class="card-title" style="font-size:.84rem">📹 ${esc(v.title)}</div></div>`).join('')}</div>`:'';
 
   return`<div class="page">
-  <button class="back-btn" onclick="dictView='list';view='dict';tab='videos';render()">← 사전 목록</button>
+  <button class="back-btn" onclick="dictGoList()">← 사전 목록</button>
   <div style="margin-bottom:1rem">
     <div style="display:flex;align-items:flex-start;justify-content:space-between">
       <div>
@@ -1097,8 +1099,8 @@ function dictDetail(){
 // 연관 용어 클릭 이동
 window.goToRelTerm=term=>{
   const t=D_TERMS.terms.find(x=>x.term===term);
-  if(t){dictSelId=t.id;dictView='detail';view='dict';tab='videos';render();}
-  else{dictView='list';view='dict';tab='videos';render();setTimeout(()=>searchTerm(term),200);}
+  if(t){dictViewDetail(t.id);}
+  else{dictGoList();setTimeout(()=>searchTerm(term),200);}
 };
 
 // 검색창 입력 힌트
@@ -1272,7 +1274,7 @@ function vDetail(){
          <div style="font-size:.72rem;color:var(--muted);margin-bottom:.9rem">⚠ Instagram 보안 정책으로 앱 내 재생이 불가합니다.</div>`
       : `<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 지원하지 않는 URL 형식입니다.</div>`;
 
-  return `<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="margin-bottom:.9rem"><textarea class="ta" id="vmemo-${v.id}" style="min-height:80px;font-size:.88rem;line-height:1.7" placeholder="메모를 입력하세요..." onblur="saveVMemo('${v.id}',this.value)">${ea(v.memo||'')}</textarea></div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
+  return `<div class="page"><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="margin-bottom:.9rem"><textarea class="ta" id="vmemo-${v.id}" style="min-height:72px;font-size:.88rem;line-height:1.7;field-sizing:content" placeholder="메모를 입력하세요..." onblur="saveVMemo('${v.id}',this.value)">${ea(v.memo||'')}</textarea></div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
 
