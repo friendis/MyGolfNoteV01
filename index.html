@@ -94,6 +94,12 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .inp:focus,.sel:focus,.ta:focus{border-color:rgba(200,137,58,.4);box-shadow:0 0 0 1px rgba(200,137,58,.15)}
 .sel{background-color:var(--dusk)}
 .ta{resize:vertical;min-height:72px;line-height:1.65;field-sizing:content}
+/* 메모 툴바 */
+.memo-toolbar{display:none;gap:2px;padding:3px 4px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
+.memo-toolbar.active{display:flex}
+.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.75rem;padding:3px 9px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
+.mt-btn:active{background:rgba(200,137,58,.15);border-color:rgba(200,137,58,.3);color:var(--wing2)}
+.mt-sep{width:1px;background:rgba(240,237,230,.1);margin:2px 3px}
 .ta::-webkit-resizer{background:transparent}
 .fg{margin-bottom:.85rem}
 .frow{display:flex;gap:.6rem}
@@ -464,6 +470,17 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
   </div>
 
   <main id="main"></main>
+
+  <!-- 메모 툴바 (포커스된 textarea 위에 표시) -->
+  <div id="memo-toolbar" class="memo-toolbar" onmousedown="event.preventDefault()">
+    <button class="mt-btn" onclick="memoTool('bullet')">- 불릿</button>
+    <button class="mt-btn" onclick="memoTool('num')">1. 번호</button>
+    <div class="mt-sep"></div>
+    <button class="mt-btn" onclick="memoTool('indent')">→ 들여</button>
+    <button class="mt-btn" onclick="memoTool('outdent')">← 내어</button>
+    <div class="mt-sep"></div>
+    <button class="mt-btn" onclick="memoTool('bold')"><b>굵게</b></button>
+  </div>
 
   <!-- SETTINGS MODAL -->
   <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
@@ -2278,7 +2295,97 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Escape')closePhotoViewer();
 });
 
-// ── 메모창 키보드 단축키 (모든 textarea) ─────────────
+// ── 메모 툴바 (모바일 불릿/들여쓰기) ─────────────────
+let _activeTa = null;
+
+document.addEventListener('focusin', e=>{
+  const ta = e.target;
+  if(!ta||ta.tagName!=='TEXTAREA') return;
+  if(ta.id&&(ta.id.includes('search')||ta.id.includes('srch'))) return;
+  _activeTa = ta;
+  const tb = $('memo-toolbar'); if(!tb) return;
+  // textarea 바로 앞에 툴바 삽입
+  ta.parentNode.insertBefore(tb, ta);
+  tb.classList.add('active');
+  // textarea 상단 border-radius 제거 (툴바와 이어보이도록)
+  ta.style.borderTopLeftRadius = '0';
+  ta.style.borderTopRightRadius = '0';
+});
+
+document.addEventListener('focusout', e=>{
+  const ta = e.target;
+  if(!ta||ta.tagName!=='TEXTAREA') return;
+  // 툴바 버튼 클릭은 focusout 후 mousedown이므로 약간 딜레이
+  setTimeout(()=>{
+    if(document.activeElement && document.activeElement.tagName==='TEXTAREA') return;
+    const tb = $('memo-toolbar'); if(!tb) return;
+    tb.classList.remove('active');
+    if(_activeTa){
+      _activeTa.style.borderTopLeftRadius = '';
+      _activeTa.style.borderTopRightRadius = '';
+    }
+    _activeTa = null;
+    document.body.appendChild(tb); // 숨김 상태로 body에 보관
+  }, 150);
+});
+
+window.memoTool = (action) => {
+  const ta = _activeTa; if(!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const val = ta.value;
+  const lineStart = val.lastIndexOf('\n', start-1)+1;
+  const lineEnd = val.indexOf('\n', start); 
+  const lineEndPos = lineEnd===-1 ? val.length : lineEnd;
+  const currentLine = val.slice(lineStart, start);
+
+  if(action==='bullet'){
+    // 현재 줄 앞에 "- " 추가 (이미 있으면 제거)
+    const hasBullet = /^\s*[-•*]\s/.test(val.slice(lineStart, lineEndPos));
+    if(hasBullet){
+      const newLine = val.slice(lineStart, lineEndPos).replace(/^(\s*)[-•*]\s/, '$1');
+      ta.value = val.slice(0,lineStart)+newLine+val.slice(lineEndPos);
+      ta.selectionStart = ta.selectionEnd = start - (val.slice(lineStart,lineEndPos).length - newLine.length);
+    } else {
+      const indent = currentLine.match(/^(\s*)/)[1];
+      ta.value = val.slice(0,lineStart)+indent+'- '+val.slice(lineStart+indent.length);
+      ta.selectionStart = ta.selectionEnd = start+2;
+    }
+  } else if(action==='num'){
+    const hasNum = /^\s*\d+\.\s/.test(val.slice(lineStart, lineEndPos));
+    if(hasNum){
+      const newLine = val.slice(lineStart, lineEndPos).replace(/^(\s*)\d+\.\s/, '$1');
+      ta.value = val.slice(0,lineStart)+newLine+val.slice(lineEndPos);
+      ta.selectionStart = ta.selectionEnd = start - (val.slice(lineStart,lineEndPos).length - newLine.length);
+    } else {
+      const indent = currentLine.match(/^(\s*)/)[1];
+      ta.value = val.slice(0,lineStart)+indent+'1. '+val.slice(lineStart+indent.length);
+      ta.selectionStart = ta.selectionEnd = start+3;
+    }
+  } else if(action==='indent'){
+    ta.value = val.slice(0,lineStart)+'  '+val.slice(lineStart);
+    ta.selectionStart = ta.selectionEnd = start+2;
+  } else if(action==='outdent'){
+    if(val.slice(lineStart).startsWith('  ')){
+      ta.value = val.slice(0,lineStart)+val.slice(lineStart+2);
+      ta.selectionStart = ta.selectionEnd = Math.max(lineStart, start-2);
+    } else if(val.slice(lineStart).startsWith(' ')){
+      ta.value = val.slice(0,lineStart)+val.slice(lineStart+1);
+      ta.selectionStart = ta.selectionEnd = Math.max(lineStart, start-1);
+    }
+  } else if(action==='bold'){
+    const sel = val.slice(start, end);
+    if(sel){
+      const wrapped = `**${sel}**`;
+      ta.value = val.slice(0,start)+wrapped+val.slice(end);
+      ta.selectionStart = start+2; ta.selectionEnd = start+2+sel.length;
+    } else {
+      ta.value = val.slice(0,start)+'****'+val.slice(end);
+      ta.selectionStart = ta.selectionEnd = start+2;
+    }
+  }
+  ta.dispatchEvent(new Event('input'));
+  ta.focus();
+};
 document.addEventListener('keydown',e=>{
   const ta=e.target;
   if(!ta||ta.tagName!=='TEXTAREA')return;
