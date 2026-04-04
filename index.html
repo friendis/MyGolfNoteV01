@@ -1045,8 +1045,7 @@ function dictList(){
 
   return`<div class="page">
   <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
-    <button class="back-btn" style="margin-bottom:0" onclick="dictKw='';dictCat='';view='list';render()">← 노트 목록</button>
-    <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--chalk);margin-left:.3rem">📖 골프 용어 사전</div>
+    <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--chalk)">📖 골프 용어 사전</div>
     <span style="margin-left:auto;font-size:.72rem;color:var(--muted)">${D_TERMS.terms.length}개</span>
   </div>
   <div style="margin-bottom:.75rem">
@@ -1063,18 +1062,18 @@ function dictList(){
   </div>`;
 }
 
-window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; render(); };
+window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; view='dict'; render(); };
 
 function dictDetail(){
   const t=D_TERMS.terms.find(x=>x.id===dictSelId);
-  if(!t)return`<div class="page"><button class="back-btn" onclick="dictView='list';render()">← 사전 목록</button><div class="empty">용어를 찾을 수 없습니다.</div></div>`;
+  if(!t)return`<div class="page"><button class="back-btn" onclick="dictView='list';view='dict';render()">← 사전 목록</button><div class="empty">용어를 찾을 수 없습니다.</div></div>`;
   const note=D_TERMS.notes[t.id];
   const relH=t.relations?.length?`<div class="sec-label">연관 용어</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.9rem">${t.relations.map(r=>`<button class="dict-rel ${r.type}" onclick="goToRelTerm('${esc(r.term)}')">${REL_LABELS[r.type]||r.type} ${esc(r.term)}</button>`).join('')}</div>`:'';
   const linkedVideos=D.videos.filter(v=>v.kw.includes(t.term));
   const videosH=linkedVideos.length?`<div class="sec-label">관련 노트 (${linkedVideos.length}개)</div><div>${linkedVideos.map(v=>`<div class="card" onclick="view='detail';selId='${v.id}';render()" style="padding:.5rem .7rem"><div class="card-title" style="font-size:.84rem">📹 ${esc(v.title)}</div></div>`).join('')}</div>`:'';
 
   return`<div class="page">
-  <button class="back-btn" onclick="dictView='list';render()">← 사전 목록</button>
+  <button class="back-btn" onclick="dictView='list';view='dict';render()">← 사전 목록</button>
   <div style="margin-bottom:1rem">
     <div style="display:flex;align-items:flex-start;justify-content:space-between">
       <div>
