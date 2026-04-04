@@ -1012,10 +1012,10 @@ function vList(){
   const termCard = dictKw ? (()=>{
     const t = D_TERMS.terms.find(x=>x.term===dictKw);
     if(!t) return `<div class="term-info-card"><div class="term-name">📖 ${esc(dictKw)}</div><div class="term-def" style="color:var(--muted);font-size:.78rem">사전에 등록되지 않은 용어입니다. <button onclick="goDict();setTimeout(()=>searchTermFromTag('${esc(dictKw)}'),200)" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.78rem;text-decoration:underline">AI로 검색하기 →</button></div></div>`;
-    return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="goDict('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
+    return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="goDict('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
-  return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
   <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
 }
 window.filterV=(q,cat)=>{
@@ -1062,9 +1062,11 @@ function dictList(){
   </div>`;
 }
 
-window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; view='dict'; render(); };
-window.dictGoList=()=>{ dictView='list'; view='dict'; render(); };
-window.dictSetCat=(c)=>{ dictCat=c; view='dict'; render(); };
+window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; view='dict'; tab='videos'; document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));const tb=$('tab-videos');if(tb)tb.classList.add('on'); render(); };
+window.dictBack=()=>{ dictView='list'; view='dict'; tab='videos'; render(); };
+window.dictCatFilter=c=>{ dictCat=c; view='dict'; tab='videos'; render(); };
+window.dictGoList=()=>{ dictView='list'; view='dict'; tab='videos'; render(); };
+window.dictSetCat=c=>{ dictCat=c; view='dict'; tab='videos'; render(); };
 
 function dictDetail(){
   const t=D_TERMS.terms.find(x=>x.id===dictSelId);
@@ -1236,6 +1238,7 @@ window.saveTermNote=async(termId,memo)=>{
   D_TERMS.notes[termId]=data;toast('메모 저장됨');
 };
 window.filterByTag=(e,kw)=>{e.stopPropagation();dictKw=kw;render();};
+window.clearTagFilter=()=>{dictKw='';render();};
 window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';render();};
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
