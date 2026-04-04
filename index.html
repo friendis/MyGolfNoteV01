@@ -206,6 +206,32 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .img-upload:hover{border-color:var(--wing2);color:var(--wing)}
 .img-upload input{display:none}
 
+/* HOME SCREEN */
+.home-section{margin-bottom:1.2rem}
+.home-section-title{font-size:.65rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.65rem;display:flex;align-items:center;gap:.4rem}
+.home-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.2rem}
+.home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s}
+.home-kpi:hover{border-color:rgba(200,137,58,.3)}
+.home-kpi-n{font-family:var(--serif);font-size:1.6rem;font-weight:700;line-height:1;color:var(--chalk)}
+.home-kpi-l{font-size:.67rem;color:var(--muted);margin-top:4px;letter-spacing:.06em}
+.skill-bar-wrap{margin-bottom:.5rem}
+.skill-bar-label{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px}
+.skill-bar-track{height:7px;background:rgba(240,237,230,.08);border-radius:4px;overflow:hidden}
+.skill-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.perf-card{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem}
+.perf-icon{font-size:1.4rem;flex-shrink:0;width:36px;text-align:center}
+.perf-val{font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--chalk)}
+.perf-lbl{font-size:.7rem;color:var(--muted);margin-top:1px}
+.perf-badge{font-size:.65rem;padding:2px 7px;border-radius:2px;margin-left:.4rem;font-weight:500}
+.bench-row{display:flex;align-items:center;gap:.5rem;font-size:.75rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.05)}
+.bench-row:last-child{border-bottom:none}
+.bench-label{color:var(--muted);width:60px;flex-shrink:0}
+.bench-bar-wrap{flex:1;height:5px;background:rgba(240,237,230,.08);border-radius:3px;overflow:hidden;position:relative}
+.bench-bar-fill{height:100%;border-radius:3px}
+.bench-val{color:var(--chalk);font-weight:600;width:44px;text-align:right;flex-shrink:0}
+.today-term{background:linear-gradient(135deg,rgba(167,139,250,.06),rgba(200,137,58,.05));border:1px solid rgba(167,139,250,.2);border-radius:3px;padding:.8rem 1rem;cursor:pointer;transition:border-color .15s}
+.today-term:hover{border-color:rgba(167,139,250,.4)}
+
 /* GOLF DICTIONARY */
 .dict-entry{padding:.75rem 0;border-bottom:1px solid rgba(240,237,230,.07);cursor:pointer;transition:background .12s}
 .dict-entry:hover{background:rgba(200,137,58,.04)}
@@ -400,7 +426,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 <div id="app">
   <header>
     <div class="hdr">
-      <div class="logo">
+      <div class="logo" onclick="goHome()" style="cursor:pointer">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
           <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
@@ -472,6 +498,23 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
         <p id="acct-data-cnt"></p>
       </div>
       <div style="margin-top:1rem;padding:1rem;background:var(--dusk2);border:1px solid var(--border);border-radius:4px">
+        <div style="font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem">🏌️ 골프 프로필</div>
+        <div class="fg" style="margin-bottom:.5rem">
+          <label class="fl-label">골프 시작 날짜</label>
+          <input class="inp" type="date" id="prof-started">
+        </div>
+        <div class="fg" style="margin-bottom:.7rem">
+          <label class="fl-label">주로 즐기는 골프</label>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.35rem">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem"><input type="radio" name="prof-gametype" value="screen"> 🖥️ 스크린</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem"><input type="radio" name="prof-gametype" value="field"> ⛳ 필드</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem"><input type="radio" name="prof-gametype" value="both"> 둘 다</label>
+          </div>
+        </div>
+        <button class="btn btn-p btn-sm" style="width:100%" onclick="saveProfile()">프로필 저장</button>
+        <div id="prof-msg" style="font-size:.74rem;margin-top:.4rem"></div>
+      </div>
+      <div style="margin-top:1rem;padding:1rem;background:var(--dusk2);border:1px solid var(--border);border-radius:4px">
         <div style="font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem">🔑 비밀번호 변경</div>
         <div class="fg" style="margin-bottom:.5rem">
           <label class="fl-label">새 비밀번호</label>
@@ -522,7 +565,7 @@ Chart.register(...registerables);
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 const sb=createClient(SB_URL,SB_KEY);
-let user=null,D={videos:[],equip:[],sessions:[]},tab='videos',view='list',selId=null,pSub='sessions',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
+let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='sessions',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
 let isGuest=false;
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
@@ -901,17 +944,19 @@ window.doDeleteAccount=async()=>{
 async function loadAll(){
   sync('busy');
   try{
-    const[vR,eR,sR,tR,tnR]=await Promise.all([
+    const[vR,eR,sR,tR,tnR,pR]=await Promise.all([
       sb.from('videos').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
       sb.from('equipment').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
       sb.from('practice_sessions').select('*').eq('user_id',user.id).order('session_date',{ascending:false}),
       sb.from('golf_terms').select('*').order('term',{ascending:true}),
       sb.from('golf_term_notes').select('*').eq('user_id',user.id),
+      sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||''}));
-    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||''}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18}));
+    D.profile=pR.data||null;
     // 용어 사전
     if(!tR.error) D_TERMS.terms = tR.data.map(r=>({id:r.id,term:r.term,definition:r.definition,category:r.category||'기초',source:r.source||'builtin',relations:r.relations||[]}));
     if(!tnR.error) { D_TERMS.notes = {}; tnR.data.forEach(r=>{ D_TERMS.notes[r.term_id]=r; }); }
@@ -962,15 +1007,57 @@ async function enterApp(u){
     $('apanel-signup').style.display='none';
   }
   $('main').innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:1rem"><div class="spinner"></div><span style="color:var(--muted);font-size:.9rem">데이터 불러오는 중...</span></div>';
-  await loadAll();setupRealtime();render();
+  await loadAll();setupRealtime();
+  tab='home';view='list';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  render();
   checkNewVersion();
+  // 프로필 없으면 온보딩
+  if(!isGuest && !D.profile) setTimeout(()=>openModal('onboarding-modal'),500);
 }
 window.goList=()=>{view='list';selId=null;render()};
 window.goDetail=id=>{view='detail';selId=id;render()};
 window.goAdd=()=>{view='add';shotCnt=1;upFile=null;render()};
+window.goHome=()=>{
+  tab='home';view='list';selId=null;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  render();
+};
+
+// ── 온보딩 저장 ──────────────────────────────────────
+window.saveOnboarding=async()=>{
+  const started=$('ob-started')?.value||null;
+  const gameType=(document.querySelector('input[name="ob-gametype"]:checked')||{}).value||'screen';
+  const{data,error}=await sb.from('user_profiles').upsert({user_id:user.id,golf_started:started,game_type:gameType,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select().single();
+  if(error){toast('저장 실패: '+error.message);return;}
+  D.profile=data;closeModal('onboarding-modal');render();
+};
+
+// ── 프로필 저장 (계정 설정) ──────────────────────────
+window.saveProfile=async()=>{
+  const started=$('prof-started')?.value||null;
+  const gameType=(document.querySelector('input[name="prof-gametype"]:checked')||{}).value||'screen';
+  const msg=$('prof-msg');
+  const{data,error}=await sb.from('user_profiles').upsert({user_id:user.id,golf_started:started,game_type:gameType,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select().single();
+  if(error){if(msg){msg.textContent='저장 실패';msg.style.color='var(--red)';}return;}
+  D.profile=data;if(msg){msg.textContent='✓ 저장됐습니다';msg.style.color='var(--turf)';}
+};
+
+window.openAcctSettings=()=>{
+  $('acct-email-disp').textContent=user?.email||'';
+  $('acct-data-cnt').textContent=`영상 ${D.videos.length}개 · 장비 ${D.equip.length}개 · 연습 세션 ${D.sessions.length}개`;
+  // 프로필 값 채우기
+  if(D.profile){
+    const ps=$('prof-started');if(ps&&D.profile.golf_started)ps.value=D.profile.golf_started;
+    const gt=D.profile.game_type||'screen';
+    const r=document.querySelector(`input[name="prof-gametype"][value="${gt}"]`);if(r)r.checked=true;
+  }
+  openModal('acct-modal');
+};
 function render(){
   const m=$('main');
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  if(tab==='home'){m.innerHTML=homeView();return;}
   if(tab==='videos'){
     if(view==='dict') m.innerHTML=dictView==='detail'?dictDetail():dictList();
     else if(view==='list') m.innerHTML=vList();
@@ -1002,6 +1089,211 @@ function render(){
   }
   const nav=$('session-nav');
   if(nav) nav.style.display = (tab==='practice'&&view==='detail') ? 'block' : 'none';
+}
+// ── 시작화면 ─────────────────────────────────────────
+function homeView(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  const userName = user?.email?.split('@')[0]||'골퍼';
+
+  // ── 구력 계산
+  let careerHtml = '';
+  if(D.profile?.golf_started){
+    const started = new Date(D.profile.golf_started);
+    const diffMs = now - started;
+    const months = Math.floor(diffMs/(1000*60*60*24*30.4));
+    const years = Math.floor(months/12);
+    const remMonths = months%12;
+    const careerStr = years>0?(remMonths>0?`${years}년 ${remMonths}개월`:`${years}년`):`${months}개월`;
+    careerHtml = `<span style="color:var(--wing2);font-weight:600">${careerStr}</span>`;
+  } else {
+    careerHtml = `<button onclick="openAcctSettings()" style="background:none;border:1px dashed rgba(200,137,58,.3);color:var(--muted);padding:1px 8px;border-radius:2px;font-size:.75rem;cursor:pointer">시작 날짜 입력</button>`;
+  }
+
+  // ── 연습 빈도 계산 (최근 90일)
+  const recent90 = D.sessions.filter(s=>{
+    const d=new Date(s.date); return (now-d)<=90*24*60*60*1000;
+  });
+  const freqPerWeek = recent90.length>0 ? (recent90.length/13).toFixed(1) : 0;
+  const freqLabel = freqPerWeek>=3?'매우 활발':freqPerWeek>=1.5?'활발':freqPerWeek>=0.5?'보통':'시작 단계';
+  const freqColor = freqPerWeek>=3?'var(--turf)':freqPerWeek>=1.5?'#7ab0e8':freqPerWeek>=0.5?'var(--wing2)':'var(--muted)';
+
+  // ── 전체 스윙 통계
+  const allShots = D.sessions.flatMap(s=>s.shots||[]);
+  const allCarries = allShots.map(sh=>sh.carry).filter(v=>v>0);
+  const allHs = allShots.map(sh=>sh.headSpeed).filter(v=>v>0);
+  const allSf = allShots.map(sh=>sh.smashFactor).filter(v=>v>0);
+  const myCarry = avg(allCarries);
+  const myHs = avg(allHs);
+  const mySf = avg(allSf);
+  const allCon = D.sessions.map(s=>ss(s).consistency).filter(v=>v!=null);
+  const myCon = avg(allCon);
+
+  // ── 실력 벤치마크 (드라이버 캐리 기준)
+  const benchmarks = [
+    {label:'프로',   carry:270, hs:52, color:'#E4A855'},
+    {label:'상급',   carry:230, hs:44, color:'#7ab0e8'},
+    {label:'중급',   carry:190, hs:38, color:'#A78BFA'},
+    {label:'초급',   carry:150, hs:33, color:'var(--muted)'},
+  ];
+  const myLevel = !myCarry ? '데이터 없음'
+    : myCarry>=250?'상급자':myCarry>=210?'중급자':myCarry>=170?'초급자':'입문';
+  const myLevelColor = !myCarry?'var(--muted)'
+    : myCarry>=250?'#7ab0e8':myCarry>=210?'#A78BFA':myCarry>=170?'var(--wing2)':'var(--muted)';
+
+  const maxCarry = 290;
+  const benchHtml = benchmarks.map(b=>{
+    const pct = Math.min(100,Math.round(b.carry/maxCarry*100));
+    const myPct = myCarry?Math.min(100,Math.round(myCarry/maxCarry*100)):0;
+    return `<div class="bench-row">
+      <span class="bench-label">${b.label}</span>
+      <div class="bench-bar-wrap">
+        <div class="bench-bar-fill" style="width:${pct}%;background:${b.color};opacity:.5"></div>
+        ${myCarry&&Math.abs(myCarry-b.carry)<25?`<div style="position:absolute;top:-2px;left:${myPct}%;width:2px;height:9px;background:var(--wing2);border-radius:1px"></div>`:''}
+      </div>
+      <span class="bench-val" style="color:${b.color}">${b.carry}m</span>
+    </div>`;
+  }).join('');
+
+  const myCarryRow = myCarry ? `<div class="bench-row" style="background:rgba(200,137,58,.06);border-radius:2px;padding:.3rem .2rem">
+    <span class="bench-label" style="color:var(--wing2)">내 캐리</span>
+    <div class="bench-bar-wrap">
+      <div class="bench-bar-fill" style="width:${Math.min(100,Math.round(myCarry/maxCarry*100))}%;background:var(--wing2)"></div>
+    </div>
+    <span class="bench-val" style="color:var(--wing2)">${Math.round(myCarry)}m</span>
+  </div>` : '';
+
+  // ── 최근 성과 (최근 5세션)
+  const recentSessions = D.sessions.slice(0,5);
+  const perfHtml = recentSessions.length ? recentSessions.map(s=>{
+    const st=ss(s);
+    const nc=normalizeClub(s.club);
+    const con=st.consistency;
+    const conColor=consistencyColor(con);
+    // 게임 기록
+    if(s.gameType==='screen'||s.gameType==='field'){
+      const icon=s.gameType==='screen'?'🖥️':'⛳';
+      return `<div class="perf-card">
+        <div class="perf-icon">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.78rem;color:var(--muted)">${s.date} ${s.courseName?'· '+esc(s.courseName):''}</div>
+          <div class="perf-val">${s.score?s.score+'타':'-'} <span style="font-size:.72rem;color:var(--muted)">(${s.holes||18}홀)</span></div>
+        </div>
+      </div>`;
+    }
+    return `<div class="perf-card">
+      <div class="perf-icon" style="font-size:1rem;font-weight:700;color:var(--wing2)">${nc||'—'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.78rem;color:var(--muted)">${s.date}${s.loc?' · '+esc(s.loc):''}</div>
+        <div style="display:flex;gap:.75rem;align-items:baseline;flex-wrap:wrap">
+          ${st.avgCarry!=null?`<span class="perf-val">${Math.round(st.avgCarry)}<span style="font-size:.72rem;font-weight:400;color:var(--muted)">m</span></span>`:''}
+          ${st.avgHs!=null?`<span style="font-size:.82rem;color:var(--turf)">HS ${Math.round(st.avgHs*10)/10}</span>`:''}
+          ${con!=null?`<span style="font-size:.78rem;color:${conColor}">🎯${con}점</span>`:''}
+        </div>
+      </div>
+      ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:48px;height:36px;object-fit:cover;border-radius:2px;border:1px solid var(--border);flex-shrink:0" alt="">`:''}
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:1.2rem 0">
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:.6rem">아직 비행 기록이 없습니다</div>
+    <button class="btn btn-p btn-sm" onclick="gotoTab('practice');goAdd()">+ 첫 기록 추가하기</button>
+  </div>`;
+
+  // ── 스코어 성적 섹션
+  const gameSessions = D.sessions.filter(s=>(s.gameType==='screen'||s.gameType==='field')&&s.score>0);
+  const screenSessions = gameSessions.filter(s=>s.gameType==='screen');
+  const fieldSessions = gameSessions.filter(s=>s.gameType==='field');
+  const avgScreenScore = screenSessions.length?Math.round(screenSessions.reduce((a,s)=>a+s.score,0)/screenSessions.length):null;
+  const avgFieldScore = fieldSessions.length?Math.round(fieldSessions.reduce((a,s)=>a+s.score,0)/fieldSessions.length):null;
+
+  const scoreHtml = gameSessions.length ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+      ${avgScreenScore!=null?`<div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.65rem .75rem;text-align:center">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em">🖥️ 스크린 평균</div>
+        <div style="font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--chalk);margin-top:2px">${avgScreenScore}</div>
+        <div style="font-size:.67rem;color:var(--muted)">${screenSessions.length}라운드</div>
+      </div>`:''}
+      ${avgFieldScore!=null?`<div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.65rem .75rem;text-align:center">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em">⛳ 필드 평균</div>
+        <div style="font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--chalk);margin-top:2px">${avgFieldScore}</div>
+        <div style="font-size:.67rem;color:var(--muted)">${fieldSessions.length}라운드</div>
+      </div>`:''}
+    </div>` : `<div style="text-align:center;padding:.8rem;background:var(--dusk);border:1px dashed rgba(200,137,58,.2);border-radius:3px">
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">스크린·필드 성적이 없습니다</div>
+    <button class="btn btn-s btn-sm" onclick="gotoTab('practice');goAdd()">게임 기록 추가 →</button>
+  </div>`;
+
+  // ── 오늘의 용어
+  const todayTerm = D_TERMS.terms.length ? D_TERMS.terms[Math.floor((now.getDate()+now.getMonth()*31)%D_TERMS.terms.length)] : null;
+  const termHtml = todayTerm ? `<div class="today-term" onclick="goDict('${todayTerm.id}')">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="font-size:.65rem;color:#A78BFA;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">오늘의 골프 용어</div>
+      <span style="font-size:.65rem;color:var(--muted)">${todayTerm.category}</span>
+    </div>
+    <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem">${esc(todayTerm.term)}</div>
+    <div style="font-size:.78rem;color:var(--dim);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(todayTerm.definition)}</div>
+  </div>` : '';
+
+  return `<div class="page" style="padding-bottom:1rem">
+  <!-- 헤더 -->
+  <div style="margin-bottom:1.3rem">
+    <div style="font-size:.75rem;color:var(--muted)">${dateStr}</div>
+    <div style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk);margin-top:2px">안녕하세요, ${esc(userName)} 님 👋</div>
+    <div style="display:flex;align-items:center;gap:.6rem;margin-top:.4rem;flex-wrap:wrap">
+      <span style="font-size:.78rem;color:var(--dim)">구력 ${careerHtml}</span>
+      <span style="font-size:.78rem;color:${freqColor}">주 ${freqPerWeek}회 · ${freqLabel}</span>
+      ${myCarry?`<span style="font-size:.72rem;padding:1px 7px;border-radius:2px;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.2);color:${myLevelColor}">${myLevel}</span>`:''}
+    </div>
+  </div>
+
+  <!-- KPI 카드 -->
+  <div class="home-kpi-row">
+    <div class="home-kpi" onclick="gotoTab('videos')">
+      <div class="home-kpi-n">${D.videos.length}</div><div class="home-kpi-l">학습 노트</div>
+    </div>
+    <div class="home-kpi" onclick="gotoTab('equipment')">
+      <div class="home-kpi-n">${D.equip.filter(e=>e.status==='owned').length}</div><div class="home-kpi-l">보유 장비</div>
+    </div>
+    <div class="home-kpi" onclick="gotoTab('practice')">
+      <div class="home-kpi-n">${D.sessions.length}</div><div class="home-kpi-l">비행 기록</div>
+    </div>
+  </div>
+
+  <!-- 스코어 성적 -->
+  <div class="home-section">
+    <div class="home-section-title">🏆 게임 성적</div>
+    ${scoreHtml}
+  </div>
+
+  <!-- 실력 벤치마크 -->
+  ${allCarries.length>=5?`<div class="home-section">
+    <div class="home-section-title">📊 실력 비교 <span style="font-size:.6rem;font-weight:400;text-transform:none;letter-spacing:0">(드라이버 캐리 기준)</span></div>
+    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem">
+      ${benchHtml}${myCarryRow}
+      <div style="margin-top:.6rem;display:flex;gap:.75rem;flex-wrap:wrap">
+        ${myHs?`<div><span style="font-size:.68rem;color:var(--muted)">헤드스피드 </span><span style="font-size:.82rem;color:var(--turf);font-weight:600">${Math.round(myHs*10)/10}</span></div>`:''}
+        ${mySf?`<div><span style="font-size:.68rem;color:var(--muted)">스매시팩터 </span><span style="font-size:.82rem;color:#7ab0e8;font-weight:600">${mySf.toFixed(2)}</span></div>`:''}
+        ${myCon?`<div><span style="font-size:.68rem;color:var(--muted)">일관성 </span><span style="font-size:.82rem;color:${consistencyColor(Math.round(myCon))};font-weight:600">${Math.round(myCon)}점</span></div>`:''}
+      </div>
+    </div>
+  </div>`:''}
+
+  <!-- 최근 성과 -->
+  <div class="home-section">
+    <div class="home-section-title">📈 최근 비행 성과
+      <button onclick="gotoTab('practice')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">전체 보기 →</button>
+    </div>
+    ${perfHtml}
+  </div>
+
+  <!-- 오늘의 용어 -->
+  ${termHtml?`<div class="home-section">${termHtml}</div>`:''}
+
+  <!-- 빠른 시작 -->
+  <div style="display:flex;gap:.5rem;margin-top:.5rem">
+    <button class="btn btn-p" style="flex:1" onclick="gotoTab('practice');goAdd()">+ 비행 기록</button>
+    <button class="btn btn-s" style="flex:1" onclick="gotoTab('videos');goAdd()">+ 학습 노트</button>
+  </div>
+  </div>`;
 }
 function vList(){
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
@@ -1244,7 +1536,9 @@ window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));$('tab-'+t).classList.add('on');render();
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  if($('tab-'+t))$('tab-'+t).classList.add('on');
+  render();
 };
 function vDetail(){
   const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
@@ -1696,6 +1990,12 @@ window.saveEquip=async()=>{
 };
 function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
+window.toggleRecType=v=>{
+  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap');
+  if(gdr)gdr.style.display=v==='gdr'?'block':'none';
+  if(game)game.style.display=v==='gdr'?'none':'block';
+  if(club)club.style.display=v==='gdr'?'block':'none';
+};
 window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
 const ss=s=>{
   const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
@@ -2426,6 +2726,16 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.12.0',
+    date: '2026-04-05',
+    items: [
+      {tag:'new',    title:'시작화면',                   desc:'로그인 후 구력·연습빈도·실력비교·최근성과·오늘의용어가 표시되는 홈 화면으로 시작합니다. 로고를 누르면 언제든 홈으로 이동합니다.'},
+      {tag:'new',    title:'스크린/필드 게임 기록',       desc:'비행 기록 추가에서 GDR 분석 외 스크린·필드 골프 스코어를 직접 입력할 수 있습니다.'},
+      {tag:'new',    title:'골프 프로필',                desc:'첫 접속 시 골프 시작 날짜와 게임 타입을 입력합니다. 계정 설정에서 언제든 수정 가능합니다.'},
+      {tag:'new',    title:'실력 벤치마크',              desc:'홈 화면에서 내 드라이버 캐리를 프로/상급/중급/초급과 비교해 볼 수 있습니다.'},
+    ]
+  },
+  {
     version: 'v1.11.1',
     date: '2026-04-05',
     items: [
@@ -2551,7 +2861,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.11.1';
+const CURRENT_VERSION = 'v1.12.0';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
@@ -2989,9 +3299,26 @@ function pAdd() {
   return `<div class="page"><button class="back-btn" onclick="goList()">← 비행 기록 목록</button>
   <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem">
     <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">비행 기록 추가</div>
+
+    <!-- 기록 타입 선택 -->
+    <div class="fg" style="margin-bottom:.8rem">
+      <label class="fl-label">기록 타입</label>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.35rem">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid rgba(200,137,58,.3);background:rgba(200,137,58,.08)">
+          <input type="radio" name="rec-type" value="gdr" checked onchange="toggleRecType(this.value)"> 📡 GDR 분석
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
+          <input type="radio" name="rec-type" value="screen" onchange="toggleRecType(this.value)"> 🖥️ 스크린 골프
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
+          <input type="radio" name="rec-type" value="field" onchange="toggleRecType(this.value)"> ⛳ 필드 골프
+        </label>
+      </div>
+    </div>
+
     <div class="frow">
       <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
-      <div class="fg"><label class="fl-label">클럽</label>
+      <div class="fg" id="club-wrap"><label class="fl-label">클럽</label>
         <select class="sel" id="pc">
           <option value="">선택...</option>
           ${ownedClubOptions()}
@@ -2999,20 +3326,36 @@ function pAdd() {
         </select>
       </div>
     </div>
+
+    <!-- 스크린/필드 전용 입력 -->
+    <div id="game-fields" style="display:none">
+      <div class="frow">
+        <div class="fg"><label class="fl-label">코스명 (선택)</label><input class="inp" id="p-course" placeholder="예: 설악밸리 CC"></div>
+        <div class="fg"><label class="fl-label">홀 수</label>
+          <select class="sel" id="p-holes">
+            <option value="18" selected>18홀</option>
+            <option value="9">9홀</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label class="fl-label">총 타수 (스코어)</label><input class="inp" type="number" id="p-score" placeholder="예: 95"></div>
+    </div>
+
     <div class="fg"><label class="fl-label">연습장 · 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
 
-    <div class="sec-label">GDR 데이터 사진 — 여러 장 동시 업로드</div>
-    ${`<div class="img-upload" onclick="document.getElementById('pimg').click()">
-      <input type="file" id="pimg" accept="image/*" multiple onchange="handleMultiPhoto(this)">
-      📷 사진을 탭하여 업로드 (여러 장 선택 가능)<br>
-      <span style="font-size:.73rem;opacity:.7">사진 1장 = 샷 1개로 자동 분석됩니다</span>
-    </div>`}
-
-    <div class="ai-status" id="photo-status" style="display:none"></div>
-
-    <div class="sec-label">샷 데이터</div>
-    <div id="shots-wrap">${mkShotRow(0)}</div>
-    <button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 수동 추가</button>
+    <!-- GDR 전용 입력 -->
+    <div id="gdr-fields">
+      <div class="sec-label">GDR 데이터 사진 — 여러 장 동시 업로드</div>
+      <div class="img-upload" onclick="document.getElementById('pimg').click()">
+        <input type="file" id="pimg" accept="image/*" multiple onchange="handleMultiPhoto(this)">
+        📷 사진을 탭하여 업로드 (여러 장 선택 가능)<br>
+        <span style="font-size:.73rem;opacity:.7">사진 1장 = 샷 1개로 자동 분석됩니다</span>
+      </div>
+      <div class="ai-status" id="photo-status" style="display:none"></div>
+      <div class="sec-label">샷 데이터</div>
+      <div id="shots-wrap">${mkShotRow(0)}</div>
+      <button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 수동 추가</button>
+    </div>
 
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
     <div class="brow">
@@ -3025,13 +3368,17 @@ function pAdd() {
 window.saveSession = async () => {
   const date = $('pd').value; if(!date){ toast('날짜를 선택하세요'); return; }
   if(overLimit('sessions')){ toast(limitMsg('sessions')); return; }
-  const club = $('pc').value, loc = $('pl').value.trim(), memo = $('pm').value.trim();
-  const shots = collectShots();
+  const recType=(document.querySelector('input[name="rec-type"]:checked')||{}).value||'gdr';
+  const club = recType==='gdr'?($('pc')?.value||''):'';
+  const loc = $('pl').value.trim(), memo = $('pm').value.trim();
+  const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
+  const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
+  const holes = recType!=='gdr'?parseInt($('p-holes')?.value||18):18;
+  const shots = recType==='gdr'?collectShots():[];
   const btn = $('psavebtn'); btn.disabled = true; btn.textContent = '저장 중...';
   sync('busy');
-  // 게스트는 사진 업로드 제한 (Supabase Storage는 본인 폴더만 허용)
   const imageUrls = [];
-  if(!isGuest) {
+  if(!isGuest && recType==='gdr') {
     for(const item of multiFiles) {
       const ext = item.file.name.split('.').pop();
       const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
@@ -3056,6 +3403,10 @@ window.saveSession = async () => {
     total_shots: shots.length, shots,
     image_url: imageUrls[0] || '',
     image_urls: imageUrls,
+    game_type: recType,
+    score: score,
+    course_name: courseName,
+    holes: holes,
   });
   if(error){ toast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; sync('err'); return; }
   multiFiles = []; upFile = null; shotCnt = 1;
@@ -3121,6 +3472,28 @@ window.delSession=async id=>{
     <div style="max-height:70vh;overflow-y:auto;padding-right:.3rem" id="release-content"></div>
     <div style="margin-top:1rem;display:flex;justify-content:flex-end">
       <button class="btn btn-p btn-sm" onclick="closeReleaseModal()">확인</button>
+    </div>
+  </div>
+</div><div class="modal-bg" id="onboarding-modal" style="z-index:700">
+  <div class="modal-box" style="max-width:420px">
+    <div style="font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--chalk);margin-bottom:.3rem">🪶 Birdyard에 오신 걸 환영합니다!</div>
+    <div style="font-size:.82rem;color:var(--dim);margin-bottom:1.2rem;line-height:1.6">나에게 맞는 분석을 위해 몇 가지 정보를 입력해주세요.<br>언제든지 계정 설정에서 수정할 수 있습니다.</div>
+    <div class="fg">
+      <label class="fl-label">골프 시작 날짜</label>
+      <input class="inp" type="date" id="ob-started" placeholder="처음 골프를 시작한 날짜">
+      <div style="font-size:.72rem;color:var(--muted);margin-top:3px">정확하지 않아도 됩니다. 연도만 알면 1월 1일로 입력하세요.</div>
+    </div>
+    <div class="fg" style="margin-top:.75rem">
+      <label class="fl-label">주로 즐기는 골프</label>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.35rem">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="ob-gametype" value="screen" checked> 🖥️ 스크린 골프</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="ob-gametype" value="field"> ⛳ 필드 골프</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="ob-gametype" value="both"> 둘 다</label>
+      </div>
+    </div>
+    <div class="brow" style="margin-top:1.2rem">
+      <button class="btn btn-p" onclick="saveOnboarding()">시작하기</button>
+      <button class="btn btn-s" onclick="closeModal('onboarding-modal')">나중에</button>
     </div>
   </div>
 </div>
