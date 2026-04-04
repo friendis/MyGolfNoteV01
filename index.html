@@ -93,7 +93,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .inp,.sel,.ta{width:100%;background:rgba(13,17,23,.8);border:1px solid var(--border);color:var(--text);padding:.6rem .9rem;border-radius:2px;font-family:var(--sans);font-size:.88rem;outline:none;transition:border-color .15s}
 .inp:focus,.sel:focus,.ta:focus{border-color:rgba(200,137,58,.4);box-shadow:0 0 0 1px rgba(200,137,58,.15)}
 .sel{background-color:var(--dusk)}
-.ta{resize:vertical;min-height:72px;line-height:1.65}
+.ta{resize:vertical;min-height:72px;line-height:1.65;field-sizing:content}
 .ta::-webkit-resizer{background:transparent}
 .fg{margin-bottom:.85rem}
 .frow{display:flex;gap:.6rem}
@@ -2278,11 +2278,12 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Escape')closePhotoViewer();
 });
 
-// ── 메모창 키보드 단축키 ─────────────────────────────
-// 모든 .ta textarea에서 동작
+// ── 메모창 키보드 단축키 (모든 textarea) ─────────────
 document.addEventListener('keydown',e=>{
   const ta=e.target;
-  if(!ta||ta.tagName!=='TEXTAREA'||!ta.classList.contains('ta'))return;
+  if(!ta||ta.tagName!=='TEXTAREA')return;
+  // 검색창 등 특수 textarea 제외 (id에 'search'가 있으면 스킵)
+  if(ta.id&&(ta.id.includes('search')||ta.id.includes('srch')))return;
 
   const start=ta.selectionStart, end=ta.selectionEnd;
   const val=ta.value;
@@ -2293,13 +2294,11 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Tab'){
     e.preventDefault();
     if(e.shiftKey){
-      // 내어쓰기: 줄 앞 공백 2칸 제거
       if(currentLine.startsWith('  ')){
         ta.value=val.slice(0,lineStart)+val.slice(lineStart+2);
         ta.selectionStart=ta.selectionEnd=Math.max(lineStart,start-2);
       }
     } else {
-      // 들여쓰기
       ta.value=val.slice(0,start)+'  '+val.slice(end);
       ta.selectionStart=ta.selectionEnd=start+2;
     }
@@ -2309,18 +2308,13 @@ document.addEventListener('keydown',e=>{
 
   // Enter → 현재 줄의 불렛/번호 이어받기
   if(e.key==='Enter'){
-    // 현재 줄의 앞 공백(들여쓰기) 파악
-    const indent=currentLine.match(/^(\s*)/)[1];
-    // 불렛 패턴 감지: - / • / * / 번호. 형식
     const bulletMatch=currentLine.match(/^(\s*)([-•*])\s/);
     const numMatch=currentLine.match(/^(\s*)(\d+)\.\s/);
 
     if(bulletMatch){
-      // 내용이 없으면 불렛 종료
       const content=currentLine.slice(bulletMatch[0].length);
       if(!content.trim()){
         e.preventDefault();
-        // 불렛 제거하고 빈 줄
         ta.value=val.slice(0,lineStart)+val.slice(start);
         ta.selectionStart=ta.selectionEnd=lineStart;
         return;
@@ -2345,8 +2339,6 @@ document.addEventListener('keydown',e=>{
       ta.selectionStart=ta.selectionEnd=start+insert.length;
       ta.dispatchEvent(new Event('input'));
     }
-    // 일반 줄은 기본 Enter 동작 유지 (들여쓰기만 이어받기 원하면 아래 주석 해제)
-    // else if(indent){ e.preventDefault(); const insert='\n'+indent; ta.value=val.slice(0,start)+insert+val.slice(end); ta.selectionStart=ta.selectionEnd=start+insert.length; }
   }
 });
 
