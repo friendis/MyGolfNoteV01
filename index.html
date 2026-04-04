@@ -1074,7 +1074,7 @@ function dictDetail(){
   const note=D_TERMS.notes[t.id];
   const relH=t.relations?.length?`<div class="sec-label">연관 용어</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.9rem">${t.relations.map(r=>`<button class="dict-rel ${r.type}" onclick="goToRelTerm('${esc(r.term)}')">${REL_LABELS[r.type]||r.type} ${esc(r.term)}</button>`).join('')}</div>`:'';
   const linkedVideos=D.videos.filter(v=>v.kw.includes(t.term));
-  const videosH=linkedVideos.length?`<div class="sec-label">관련 노트 (${linkedVideos.length}개)</div><div>${linkedVideos.map(v=>`<div class="card" onclick="view='detail';selId='${v.id}';render()" style="padding:.5rem .7rem"><div class="card-title" style="font-size:.84rem">📹 ${esc(v.title)}</div></div>`).join('')}</div>`:'';
+  const videosH=linkedVideos.length?`<div class="sec-label">관련 노트 (${linkedVideos.length}개)</div><div>${linkedVideos.map(v=>`<div class="card" onclick="goNoteDetail('${v.id}')" style="padding:.5rem .7rem"><div class="card-title" style="font-size:.84rem">📹 ${esc(v.title)}</div></div>`).join('')}</div>`:'';
 
   return`<div class="page">
   <button class="back-btn" onclick="dictGoList()">← 사전 목록</button>
@@ -1239,6 +1239,7 @@ window.saveTermNote=async(termId,memo)=>{
 };
 window.filterByTag=(e,kw)=>{e.stopPropagation();dictKw=kw;render();};
 window.clearTagFilter=()=>{dictKw='';render();};
+window.goNoteDetail=id=>{tab='videos';view='detail';selId=id;render();};
 window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';render();};
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
@@ -1977,6 +1978,78 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Escape')closePhotoViewer();
 });
 
+// ── 메모창 키보드 단축키 ─────────────────────────────
+// 모든 .ta textarea에서 동작
+document.addEventListener('keydown',e=>{
+  const ta=e.target;
+  if(!ta||ta.tagName!=='TEXTAREA'||!ta.classList.contains('ta'))return;
+
+  const start=ta.selectionStart, end=ta.selectionEnd;
+  const val=ta.value;
+  const lineStart=val.lastIndexOf('\n',start-1)+1;
+  const currentLine=val.slice(lineStart,start);
+
+  // Tab → 2칸 들여쓰기 (Shift+Tab → 내어쓰기)
+  if(e.key==='Tab'){
+    e.preventDefault();
+    if(e.shiftKey){
+      // 내어쓰기: 줄 앞 공백 2칸 제거
+      if(currentLine.startsWith('  ')){
+        ta.value=val.slice(0,lineStart)+val.slice(lineStart+2);
+        ta.selectionStart=ta.selectionEnd=Math.max(lineStart,start-2);
+      }
+    } else {
+      // 들여쓰기
+      ta.value=val.slice(0,start)+'  '+val.slice(end);
+      ta.selectionStart=ta.selectionEnd=start+2;
+    }
+    ta.dispatchEvent(new Event('input'));
+    return;
+  }
+
+  // Enter → 현재 줄의 불렛/번호 이어받기
+  if(e.key==='Enter'){
+    // 현재 줄의 앞 공백(들여쓰기) 파악
+    const indent=currentLine.match(/^(\s*)/)[1];
+    // 불렛 패턴 감지: - / • / * / 번호. 형식
+    const bulletMatch=currentLine.match(/^(\s*)([-•*])\s/);
+    const numMatch=currentLine.match(/^(\s*)(\d+)\.\s/);
+
+    if(bulletMatch){
+      // 내용이 없으면 불렛 종료
+      const content=currentLine.slice(bulletMatch[0].length);
+      if(!content.trim()){
+        e.preventDefault();
+        // 불렛 제거하고 빈 줄
+        ta.value=val.slice(0,lineStart)+val.slice(start);
+        ta.selectionStart=ta.selectionEnd=lineStart;
+        return;
+      }
+      e.preventDefault();
+      const insert='\n'+bulletMatch[1]+bulletMatch[2]+' ';
+      ta.value=val.slice(0,start)+insert+val.slice(end);
+      ta.selectionStart=ta.selectionEnd=start+insert.length;
+      ta.dispatchEvent(new Event('input'));
+    } else if(numMatch){
+      const content=currentLine.slice(numMatch[0].length);
+      if(!content.trim()){
+        e.preventDefault();
+        ta.value=val.slice(0,lineStart)+val.slice(start);
+        ta.selectionStart=ta.selectionEnd=lineStart;
+        return;
+      }
+      e.preventDefault();
+      const nextNum=parseInt(numMatch[2])+1;
+      const insert='\n'+numMatch[1]+nextNum+'. ';
+      ta.value=val.slice(0,start)+insert+val.slice(end);
+      ta.selectionStart=ta.selectionEnd=start+insert.length;
+      ta.dispatchEvent(new Event('input'));
+    }
+    // 일반 줄은 기본 Enter 동작 유지 (들여쓰기만 이어받기 원하면 아래 주석 해제)
+    // else if(indent){ e.preventDefault(); const insert='\n'+indent; ta.value=val.slice(0,start)+insert+val.slice(end); ta.selectionStart=ta.selectionEnd=start+insert.length; }
+  }
+});
+
 // ── 세션 필드 저장 ────────────────────────────────────
 window.saveSessionField = async (id, field, val) => {
   const s = D.sessions.find(x => x.id === id); if(!s) return;
@@ -2353,6 +2426,15 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.11.1',
+    date: '2026-04-05',
+    items: [
+      {tag:'fix',    title:'용어 사전 네비게이션 수정',    desc:'사전 목록 돌아가기, 카테고리 탭, 관련 노트 클릭이 동작하지 않던 문제를 수정했습니다.'},
+      {tag:'fix',    title:'태그 필터 해제 버튼 수정',     desc:'학습 노트에서 태그 필터를 해제하는 ✕ 버튼이 동작하지 않던 문제를 수정했습니다.'},
+      {tag:'new',    title:'메모창 불렛/번호 자동 입력',   desc:'모든 메모창에서 - 또는 1. 입력 후 Enter 시 다음 줄에 불렛/번호가 자동으로 이어집니다. Tab으로 들여쓰기, Shift+Tab으로 내어쓰기 가능합니다.'},
+    ]
+  },
+  {
     version: 'v1.11.0',
     date: '2026-04-04',
     items: [
@@ -2469,7 +2551,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.11.0';
+const CURRENT_VERSION = 'v1.11.1';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
