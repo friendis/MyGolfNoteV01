@@ -1123,27 +1123,21 @@ window.searchTerm=async(q)=>{
   if(!q||!q.trim())return;
   const term=q.trim();
   const res=$('dict-search-result');
-  // 이미 사전에 있으면 바로 표시
   const existing=D_TERMS.terms.find(t=>t.term===term||t.term.toLowerCase()===term.toLowerCase());
   if(existing){dictViewDetail(existing.id);return;}
   if(res)res.innerHTML=`<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:16px;height:16px;border-width:1.5px"></div>"${esc(term)}" AI 검색 중...</div></div>`;
 
   try{
-    const existingTermsList=D_TERMS.terms.map(t=>t.term).join(', ');
-    const prompt=`골프 용어 전문가로서 아래 용어를 설명하고 기존 사전의 연관 용어를 분류해주세요.
+    const existingTermsList=D_TERMS.terms.slice(0,80).map(t=>t.term).join(', ');
+    // JSON만 반환하도록 매우 단순한 프롬프트
+    const prompt=`다음 골프 용어를 JSON으로만 설명해주세요. JSON 외 텍스트는 절대 포함하지 마세요.
 
-검색 용어: ${term}
-기존 사전 용어(연관성 분석용): ${existingTermsList}
+용어: ${term}
+연관 용어 후보: ${existingTermsList}
 
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만:
-{
-  "term": "용어명(한글)",
-  "definition": "2~3문장의 골프 맥락 설명",
-  "category": "기초|스윙|구질|장비|코스|퍼팅|숏게임|스코어|탄도|기타 중 하나",
-  "relations": [
-    {"term": "기존용어명", "type": "same|similar|opposite|related"}
-  ]
-}`;
+출력 형식 (이것만 출력):
+{"term":"${term}","definition":"2문장 이내 설명","category":"기초또는스윙또는구질또는장비또는코스또는퍼팅또는숏게임또는스코어또는탄도또는기타","relations":[{"term":"연관용어","type":"same또는similar또는opposite또는related"}]}`;
+
     const resp=await fetch('https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',{
       method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
       body:JSON.stringify({prompt,type:'swing'})
@@ -1151,25 +1145,71 @@ window.searchTerm=async(q)=>{
     if(!resp.ok)throw new Error(`서버 오류 ${resp.status}`);
     const data=await resp.json();
     const text=data.content?.[0]?.text||data.text||'';
-    const clean=text.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(clean);
-    if(!parsed.term||!parsed.definition)throw new Error('응답 형식 오류');
+
+    // JSON 추출 — 중괄호로 감싸진 부분만 추출 시도
+    let parsed=null;
+    const jsonMatch=text.match(/\{[\s\S]*\}/);
+    if(jsonMatch){
+      try{
+        // 잘린 JSON 복구 시도: 열린 따옴표/중괄호 닫기
+        let raw=jsonMatch[0];
+        // relations 배열이 잘린 경우 처리
+        try{ parsed=JSON.parse(raw); }
+        catch{
+          // 간단 복구: 마지막 완전한 } 까지만 사용
+          const lastClose=raw.lastIndexOf('}');
+          if(lastClose>0){
+            let trimmed=raw.slice(0,lastClose+1);
+            // 열린 배열이 있으면 닫기
+            const opens=(trimmed.match(/\[/g)||[]).length;
+            const closes=(trimmed.match(/\]/g)||[]).length;
+            if(opens>closes)trimmed+=']'.repeat(opens-closes);
+            trimmed+='}'; // 최상위 닫기
+            try{ parsed=JSON.parse(trimmed); }catch{ parsed=null; }
+          }
+        }
+      }catch{ parsed=null; }
+    }
+
+    // JSON 파싱 실패 시 텍스트에서 직접 추출
+    if(!parsed){
+      const defMatch=text.match(/"definition"\s*:\s*"([^"]{5,})"/);
+      const catMatch=text.match(/"category"\s*:\s*"([^"]+)"/);
+      if(defMatch){
+        parsed={
+          term,
+          definition:defMatch[1],
+          category:catMatch?catMatch[1]:'기타',
+          relations:[]
+        };
+      }
+    }
+
+    if(!parsed||!parsed.definition)throw new Error('AI 응답을 파싱할 수 없습니다. 다시 시도해주세요.');
+
+    // relations 유효성 검사 (기존 용어에 있는 것만)
+    const validTypes=['same','similar','opposite','related'];
+    const validRels=(parsed.relations||[]).filter(r=>
+      r.term && r.type && validTypes.includes(r.type) &&
+      D_TERMS.terms.some(t=>t.term===r.term)
+    ).slice(0,5);
 
     // DB 저장
     const{data:inserted,error}=await sb.from('golf_terms').insert({
-      term:parsed.term,definition:parsed.definition,
-      category:parsed.category||'기타',source:'ai',
-      relations:parsed.relations||[]
+      term:parsed.term||term,
+      definition:parsed.definition,
+      category:parsed.category||'기타',
+      source:'ai',
+      relations:validRels
     }).select().single();
 
     if(error){
       if(error.code==='42501'||error.message?.includes('row-level security')){
-        // RLS 정책 미설정 시 로컬 캐시에만 저장하고 안내
         const localId='local-'+Date.now();
-        const localTerm={id:localId,term:parsed.term,definition:parsed.definition,category:parsed.category||'기타',source:'ai',relations:parsed.relations||[]};
+        const localTerm={id:localId,term:parsed.term||term,definition:parsed.definition,category:parsed.category||'기타',source:'ai',relations:validRels};
         D_TERMS.terms.push(localTerm);
         D_TERMS.terms.sort((a,b)=>a.term.localeCompare(b.term,'ko'));
-        toast(`'${parsed.term}' 검색됨 (DB 저장 권한 필요 — Supabase에서 INSERT 정책 추가 필요)`);
+        toast(`'${localTerm.term}' 검색됨 (DB INSERT 정책 추가 필요)`);
         dictViewDetail(localId);
         return;
       }
