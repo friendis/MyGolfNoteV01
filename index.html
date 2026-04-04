@@ -521,6 +521,20 @@ const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7
 // 장비 분류 → 대표 클럽 매핑
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
+// 클럽값에서 통계용 정규 클럽 번호 추출 ("JP921 아이언 — 7I" → "7I")
+function normalizeClub(club){
+  if(!club)return'';
+  // "장비명 — 클럽번호" 형식 파싱
+  const m=club.match(/—\s*([^\s]+)$/);
+  if(m)return m[1].trim();
+  return club;
+}
+// 카드/배지 표시용 라벨 (보유 장비면 장비명 포함, 아니면 클럽번호만)
+function clubLabel(club){
+  if(!club)return'';
+  if(club.includes(' — '))return club; // 이미 "장비명 — 번호" 형식
+  return club;
+}
 // 아이언 세트 체크박스 HTML
 function ironSetUI(selected=[], disabled=false){
   return`<div style="margin-top:.5rem">
@@ -543,15 +557,18 @@ function ownedClubOptions(currentVal=''){
   const items=[];
   owned.forEach(e=>{
     if(e.cat==='아이언'){
-      // 아이언 세트는 ironSet 배열로 개별 번호 표시
       const irons=e.ironSet&&e.ironSet.length?e.ironSet:CAT_TO_CLUBS['아이언'];
-      irons.forEach(n=>items.push({val:n,label:`${e.name} — ${n}`,selected:currentVal===n}));
+      irons.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
     } else {
       const clubs=CAT_TO_CLUBS[e.cat]||[];
-      const val=clubs[0]||e.cat||'';
-      if(!val)return;
-      const label=`${e.name}${clubs[0]?' ('+clubs[0]+')':e.cat?' ('+e.cat+')':''}`;
-      items.push({val,label,selected:currentVal===val});
+      const clubNum=clubs[0]||'';
+      if(!clubNum)return;
+      const val=`${e.name} — ${clubNum}`;
+      const label=`${e.name} — ${clubNum}`;
+      items.push({val,label,selected:currentVal===val||currentVal===clubNum});
     }
   });
   if(!items.length)return'';
@@ -803,7 +820,29 @@ function render(){
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   if(tab==='videos'){if(view==='list')m.innerHTML=vList();else if(view==='detail')m.innerHTML=vDetail();else m.innerHTML=vAdd();}
   else if(tab==='equipment'){if(view==='list')m.innerHTML=eList();else if(view==='detail')m.innerHTML=eDetail();else m.innerHTML=eAdd();}
-  else{if(view==='list'){m.innerHTML=pList();if(pSub==='stats')requestAnimationFrame(()=>requestAnimationFrame(initCharts));}else if(view==='detail')m.innerHTML=pDetail();else m.innerHTML=pAdd();}
+  else{
+    if(view==='list'){m.innerHTML=pList();if(pSub==='stats')requestAnimationFrame(()=>requestAnimationFrame(initCharts));}
+    else if(view==='detail'){
+      m.innerHTML=pDetail();
+      // se-club 이벤트를 DOM 생성 후 바인딩
+      requestAnimationFrame(()=>{
+        const sel=$('se-club');
+        if(sel) sel.addEventListener('change', e=>{
+          const s=D.sessions.find(x=>x.id===selId);
+          if(!s)return;
+          const newClub=e.target.value;
+          if(newClub===(s.club||''))return;
+          s.club=newClub;
+          sb.from('practice_sessions').update({club:newClub||null}).eq('id',selId).eq('user_id',user.id)
+            .then(({error})=>{
+              if(error){toast('저장 실패');sync('err');return;}
+              sync('ok');toast('클럽 저장됨');
+            });
+        });
+      });
+    }
+    else m.innerHTML=pAdd();
+  }
 }
 function vList(){
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
@@ -1283,7 +1322,7 @@ function pList(){
   const ptabs=`<div class="p-tabs" style="display:flex;align-items:center"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button><button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button></div>`;
   const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
   if(pSub==='stats'){
-    const cm={};D.sessions.forEach(s=>{if(!s.club)return;if(!cm[s.club])cm[s.club]={c:[],h:[],b:[],sf:[],con:[]};const st=ss(s);if(st.avgCarry)cm[s.club].c.push(st.avgCarry);if(st.avgHs)cm[s.club].h.push(st.avgHs);if(st.avgBs)cm[s.club].b.push(st.avgBs);if(st.avgSf)cm[s.club].sf.push(st.avgSf);if(st.consistency!=null)cm[s.club].con.push(st.consistency)});
+    const cm={};D.sessions.forEach(s=>{if(!s.club)return;const nc=normalizeClub(s.club);if(!cm[nc])cm[nc]={c:[],h:[],b:[],sf:[],con:[]};const st=ss(s);if(st.avgCarry)cm[nc].c.push(st.avgCarry);if(st.avgHs)cm[nc].h.push(st.avgHs);if(st.avgBs)cm[nc].b.push(st.avgBs);if(st.avgSf)cm[nc].sf.push(st.avgSf);if(st.consistency!=null)cm[nc].con.push(st.consistency)});
     const rows=Object.entries(cm).map(([club,d])=>{const con=avg(d.con);return`<tr>
       <td><span class="club-badge">${esc(club)}</span></td>
       <td class="vl">${fn(avg(d.c),'m')}</td>
@@ -1308,7 +1347,7 @@ function pList(){
     <div id="growth-result"></div>
     </div>`;
   }
-  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);const con=st.consistency;return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge">${esc(s.club)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
+  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);const con=st.consistency;const nc=normalizeClub(s.club);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
   return`<div class="page">${srow}${ptabs}${cards}</div>`;
 }
 window.setPSub=t=>{
@@ -1351,8 +1390,8 @@ function initCharts(){
     setTimeout(initCharts,100); return;
   }
 
-  // 클럽 목록 (데이터 있는 것만)
-  const clubs=[...new Set(sessions.map(s=>s.club).filter(Boolean))];
+  // 클럽 목록 (normalizeClub으로 정규화, 데이터 있는 것만)
+  const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
 
   // 전체 날짜 라벨 (x축 공유)
   const allDates=[...new Set(sessions.map(s=>s.date||''))].sort();
@@ -1362,7 +1401,8 @@ function initCharts(){
   const makeDatasets=(getValue)=>clubs.map(club=>{
     const col=clubColor(club);
     const data=allDates.map(date=>{
-      const s=sessions.find(x=>x.club===club&&x.date===date);
+      // normalizeClub으로 같은 번호끼리 매칭
+      const s=sessions.find(x=>normalizeClub(x.club)===club&&x.date===date);
       if(!s)return null;
       return getValue(s);
     });
@@ -1437,7 +1477,7 @@ function pDetail(){
       </div>
       <div class="fg">
         <label class="fl-label">클럽</label>
-        <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)">
+        <select class="sel" id="se-club">
           <option value="">선택...</option>
           ${ownedClubOptions(s.club||'')}
           <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${c}"${s.club===c?' selected':''}>${c}</option>`).join('')}</optgroup>
@@ -1450,11 +1490,34 @@ function pDetail(){
     </div>
     <div class="fg" style="margin-bottom:0">
       <label class="fl-label">메모</label>
-      <textarea class="ta" id="se-memo" placeholder="이번 비행의 기록, 개선점..." style="min-height:62px" onblur="saveSessionField('${s.id}','memo',this.value)">${ea(s.memo||'')}</textarea>
+      <textarea class="ta" id="se-memo" placeholder="이번 비행의 기록, 개선점..." style="min-height:62px;resize:vertical;field-sizing:content" onblur="saveSessionField('${s.id}','memo',this.value)">${ea(s.memo||'')}</textarea>
     </div>
   </div>
 
-  ${(s.imageUrls?.length > 1) ? `<div class="sec-label">GDR 데이터 (${s.imageUrls.length}장)</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem;margin-bottom:.9rem">${s.imageUrls.map(url=>`<img src="${ea(url)}" onclick="window.open(this.src,'_blank')" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:pointer" alt="">`).join('')}</div>` : s.imgUrl ? `<div class="sec-label">GDR 데이터</div><img src="${ea(s.imgUrl)}" onclick="window.open(this.src,'_blank')" style="width:100%;max-height:280px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:#000;cursor:pointer;display:block;margin-bottom:.9rem" alt="">` : ''}
+  ${(()=>{
+    const imgs=s.imageUrls?.length>1?s.imageUrls:s.imgUrl?[s.imgUrl]:[];
+    if(!imgs.length)return'';
+    return`<div class="sec-label">GDR 데이터 (${imgs.length}장)</div>
+    <div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.9rem;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch">
+      ${imgs.map((url,i)=>`
+        <div style="position:relative;flex:0 0 auto;width:min(85vw,300px);scroll-snap-align:start" onclick="openPhotoViewer(${i},'${s.id}')">
+          <img src="${ea(url)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:zoom-in;display:block" alt="SHOT ${i+1}">
+          <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:2px;letter-spacing:.06em">SHOT ${i+1}</div>
+        </div>`).join('')}
+    </div>
+    <div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:900;flex-direction:column;align-items:center;justify-content:center" onclick="if(event.target===this)closePhotoViewer()">
+      <div style="position:relative;width:100%;max-width:560px;padding:0 1rem">
+        <div id="pv-counter" style="text-align:center;color:rgba(255,255,255,.6);font-size:.75rem;margin-bottom:.5rem"></div>
+        <img id="pv-img" style="width:100%;max-height:75vh;object-fit:contain;border-radius:2px" alt="">
+        <div id="pv-label" style="text-align:center;margin-top:.5rem;font-size:.8rem;color:rgba(255,255,255,.5)"></div>
+      </div>
+      <div style="display:flex;gap:1.5rem;margin-top:1rem">
+        <button onclick="pvMove(-1)" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer">‹</button>
+        <button onclick="closePhotoViewer()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:0 1rem;border-radius:20px;font-size:.8rem;cursor:pointer">닫기</button>
+        <button onclick="pvMove(1)" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer">›</button>
+      </div>
+    </div>`;
+  })()}
   <div class="sec-label">샷 데이터</div>${shotsH}
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
@@ -1472,6 +1535,41 @@ function pDetail(){
   </div>`;
 }
 function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
+
+// ── 사진 뷰어 ────────────────────────────────────────
+let pvImgs=[], pvIdx=0;
+window.openPhotoViewer=(idx,sid)=>{
+  const s=D.sessions.find(x=>x.id===sid);if(!s)return;
+  pvImgs=s.imageUrls?.length>1?s.imageUrls:s.imgUrl?[s.imgUrl]:[];
+  if(!pvImgs.length)return;
+  pvIdx=idx;
+  const el=$('photo-viewer');if(!el)return;
+  el.style.display='flex';
+  document.body.style.overflow='hidden';
+  pvRender();
+};
+window.closePhotoViewer=()=>{
+  const el=$('photo-viewer');if(el)el.style.display='none';
+  document.body.style.overflow='';
+};
+window.pvMove=(d)=>{
+  pvIdx=(pvIdx+d+pvImgs.length)%pvImgs.length;
+  pvRender();
+};
+function pvRender(){
+  const img=$('pv-img'),counter=$('pv-counter'),label=$('pv-label');
+  if(!img)return;
+  img.src=pvImgs[pvIdx];
+  if(counter)counter.textContent=`${pvIdx+1} / ${pvImgs.length}`;
+  if(label)label.textContent=`SHOT ${pvIdx+1}`;
+}
+// 키보드 좌우 화살표 지원
+document.addEventListener('keydown',e=>{
+  if(!$('photo-viewer')||$('photo-viewer').style.display==='none')return;
+  if(e.key==='ArrowLeft')pvMove(-1);
+  else if(e.key==='ArrowRight')pvMove(1);
+  else if(e.key==='Escape')closePhotoViewer();
+});
 
 // ── 세션 필드 저장 ────────────────────────────────────
 window.saveSessionField = async (id, field, val) => {
@@ -1849,6 +1947,22 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.10.3',
+    date: '2026-04-04',
+    items: [
+      {tag:'improve','title':'보유 클럽 표시 + 통계 정규화', desc:'보유 장비로 기록된 클럽은 목록에 클럽 번호로 표시되고, 비행 통계는 같은 번호끼리 묶어 비교합니다.'},
+      {tag:'improve','title':'메모창 자동 높이',              desc:'비행 기록 메모창이 내용에 따라 자동으로 늘어납니다.'},
+      {tag:'new',    title:'사진 인라인 뷰어',               desc:'GDR 사진을 가로 스크롤로 탐색할 수 있으며, 탭 시 전체화면 뷰어에서 좌우 이동·키보드 방향키로 확인할 수 있습니다. 각 사진에 샷 번호가 오버레이됩니다.'},
+    ]
+  },
+  {
+    version: 'v1.10.2',
+    date: '2026-04-04',
+    items: [
+      {tag:'fix', title:'비행 기록 클럽 변경 저장 수정', desc:'클럽 선택 드롭다운 변경 시 저장이 되지 않던 문제를 수정했습니다. 인라인 이벤트 대신 DOM 바인딩 방식으로 변경해 안정적으로 저장됩니다.'},
+    ]
+  },
+  {
     version: 'v1.10.1',
     date: '2026-04-04',
     items: [
@@ -1932,7 +2046,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.10.1';
+const CURRENT_VERSION = 'v1.10.3';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
