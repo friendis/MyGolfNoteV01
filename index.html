@@ -1015,8 +1015,8 @@ function vList(){
     return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="goDict('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
-  return `<div class="page">${guestBanner()}<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem"><div class="stats-row" style="margin-bottom:0"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><button class="btn btn-s btn-sm" onclick="goDict()" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA">📖 용어 사전</button></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
-  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button></div><div id="vcards">${cards}</div></div>`;
+  return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
 }
 window.filterV=(q,cat)=>{
   const f=D.videos.filter(v=>(!q||v.title.includes(q)||v.kw.some(k=>k.includes(q)))&&(!cat||v.kw.includes(cat)));
@@ -1045,7 +1045,7 @@ function dictList(){
 
   return`<div class="page">
   <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
-    <button class="back-btn" style="margin-bottom:0" onclick="view='list';render()">← 노트 목록</button>
+    <button class="back-btn" style="margin-bottom:0" onclick="dictKw='';dictCat='';view='list';render()">← 노트 목록</button>
     <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--chalk);margin-left:.3rem">📖 골프 용어 사전</div>
     <span style="margin-left:auto;font-size:.72rem;color:var(--muted)">${D_TERMS.terms.length}개</span>
   </div>
@@ -1161,7 +1161,20 @@ window.searchTerm=async(q)=>{
       category:parsed.category||'기타',source:'ai',
       relations:parsed.relations||[]
     }).select().single();
-    if(error)throw error;
+
+    if(error){
+      if(error.code==='42501'||error.message?.includes('row-level security')){
+        // RLS 정책 미설정 시 로컬 캐시에만 저장하고 안내
+        const localId='local-'+Date.now();
+        const localTerm={id:localId,term:parsed.term,definition:parsed.definition,category:parsed.category||'기타',source:'ai',relations:parsed.relations||[]};
+        D_TERMS.terms.push(localTerm);
+        D_TERMS.terms.sort((a,b)=>a.term.localeCompare(b.term,'ko'));
+        toast(`'${parsed.term}' 검색됨 (DB 저장 권한 필요 — Supabase에서 INSERT 정책 추가 필요)`);
+        dictViewDetail(localId);
+        return;
+      }
+      throw error;
+    }
 
     const newTerm={id:inserted.id,term:inserted.term,definition:inserted.definition,category:inserted.category,source:'ai',relations:inserted.relations||[]};
     D_TERMS.terms.push(newTerm);
