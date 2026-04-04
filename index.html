@@ -206,6 +206,22 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .img-upload:hover{border-color:var(--wing2);color:var(--wing)}
 .img-upload input{display:none}
 
+/* GOLF DICTIONARY */
+.dict-entry{padding:.75rem 0;border-bottom:1px solid rgba(240,237,230,.07);cursor:pointer;transition:background .12s}
+.dict-entry:hover{background:rgba(200,137,58,.04)}
+.dict-term{font-size:.95rem;font-weight:600;color:var(--chalk)}
+.dict-cat{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-left:.5rem;vertical-align:middle}
+.dict-def{font-size:.8rem;color:var(--dim);margin-top:3px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dict-rel{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;padding:2px 8px;border-radius:2px;cursor:pointer;border:1px solid;margin:2px}
+.dict-rel.same{color:#7ab0e8;border-color:rgba(122,176,232,.3);background:rgba(122,176,232,.08)}
+.dict-rel.similar{color:#A78BFA;border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.08)}
+.dict-rel.opposite{color:#F07070;border-color:rgba(240,112,112,.3);background:rgba(240,112,112,.08)}
+.dict-rel.related{color:var(--wing2);border-color:rgba(200,137,58,.3);background:rgba(200,137,58,.08)}
+.dict-alpha{font-size:.65rem;font-weight:700;color:var(--muted);letter-spacing:.12em;padding:.5rem 0 .2rem;text-transform:uppercase}
+.term-info-card{background:rgba(200,137,58,.06);border:1px solid rgba(200,137,58,.2);border-radius:2px;padding:.75rem 1rem;margin-bottom:.9rem}
+.term-info-card .term-name{font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--wing2);margin-bottom:.3rem}
+.term-info-card .term-def{font-size:.82rem;color:var(--dim);line-height:1.6}
+
 /* AI STATUS */
 .ai-status{background:rgba(13,17,23,.5);border:1px solid rgba(184,151,58,.2);border-radius:2px;padding:.9rem 1rem;margin-bottom:.75rem}
 .ai-status-title{font-size:.68rem;font-weight:500;color:var(--wing2);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
@@ -521,6 +537,122 @@ function limitMsg(type) {
   return `테스트 계정은 ${n} ${GUEST_LIMITS[type]}개까지 저장 가능합니다.\n회원가입하면 제한 없이 사용할 수 있습니다.`;
 }
 const VCATS=['드라이버','우드/하이브리드','아이언','웨지','퍼팅','숏게임','어프로치','멘탈','피트니스','코스매니지먼트','룰/에티켓','기타'];
+// ── 골프 용어 내장 100개 ─────────────────────────────
+const BUILTIN_TERMS=[
+  // 기초
+  {term:'어드레스',definition:'볼 앞에 서서 샷 준비 자세를 취하는 것. 발의 너비, 체중 분배, 그립, 자세 등이 포함된 골프의 가장 기본적인 준비 동작.',category:'기초'},
+  {term:'그립',definition:'골프 클럽을 쥐는 방법. 오버래핑, 인터로킹, 베이스볼 그립 등 여러 방식이 있으며 스윙의 기초가 된다.',category:'기초'},
+  {term:'스탠스',definition:'어드레스 시 발의 위치와 너비. 클럽과 샷의 종류에 따라 오픈/스퀘어/클로즈드 스탠스로 구분된다.',category:'기초'},
+  {term:'셋업',definition:'어드레스와 동의어. 볼을 향해 자세를 갖추는 모든 준비 과정.',category:'기초'},
+  {term:'에이밍',definition:'목표 방향으로 클럽 페이스와 몸을 정렬하는 것.',category:'기초'},
+  {term:'볼 포지션',definition:'어드레스 시 스탠스 내에서 볼이 위치하는 지점. 클럽마다 다르게 설정한다.',category:'기초'},
+  {term:'체중이동',definition:'스윙 중 체중을 백스윙 시 오른발, 다운스윙과 임팩트 시 왼발로 이동시키는 동작.',category:'기초'},
+  {term:'테이크어웨이',definition:'백스윙의 시작 단계. 클럽헤드를 볼에서 멀리 이동시키는 초기 동작.',category:'기초'},
+  {term:'코킹',definition:'백스윙 시 손목을 꺾어 각도를 만드는 동작. 파워 생성의 핵심.',category:'기초'},
+  {term:'릴리즈',definition:'임팩트 전후로 코킹된 손목을 펴면서 클럽헤드 스피드를 극대화하는 동작.',category:'기초'},
+  // 스윙
+  {term:'백스윙',definition:'다운스윙을 위해 클럽을 뒤로 올리는 동작. 파워를 축적하는 단계.',category:'스윙'},
+  {term:'다운스윙',definition:'백스윙 이후 볼을 향해 클럽을 내려오는 동작.',category:'스윙'},
+  {term:'임팩트',definition:'클럽헤드가 볼에 접촉하는 순간. 스윙의 핵심 구간.',category:'스윙'},
+  {term:'팔로우스루',definition:'임팩트 이후의 스윙 연속 동작.',category:'스윙'},
+  {term:'피니시',definition:'스윙이 완전히 마무리된 최종 자세.',category:'스윙'},
+  {term:'스윙플레인',definition:'클럽이 스윙하는 궤도면. 이상적인 스윙 궤도의 기준.',category:'스윙'},
+  {term:'인사이드아웃',definition:'클럽이 임팩트 구간에서 몸 안쪽에서 바깥쪽으로 움직이는 스윙 경로. 드로우 구질을 만든다.',category:'스윙'},
+  {term:'아웃사이드인',definition:'클럽이 임팩트 구간에서 몸 바깥쪽에서 안쪽으로 움직이는 스윙 경로. 슬라이스나 페이드를 만든다.',category:'스윙'},
+  {term:'힙턴',definition:'스윙 중 엉덩이를 회전시키는 동작. 파워 생성과 스윙 경로에 중요한 역할.',category:'스윙'},
+  {term:'숄더턴',definition:'백스윙 시 어깨를 충분히 회전시키는 동작.',category:'스윙'},
+  {term:'다운블로',definition:'클럽이 아래를 향해 볼을 타격하는 임팩트 형태. 아이언 샷에서 권장된다.',category:'스윙'},
+  {term:'어퍼블로',definition:'클럽이 위를 향해 볼을 타격하는 임팩트 형태. 드라이버 샷에 권장.',category:'스윙'},
+  {term:'레이트히팅',definition:'다운스윙에서 손목의 코킹을 임팩트 직전까지 유지해 파워를 집중시키는 기술.',category:'스윙'},
+  // 구질
+  {term:'드로우',definition:'오른손잡이 기준 오른쪽에서 왼쪽으로 완만하게 휘는 구질.',category:'구질'},
+  {term:'페이드',definition:'오른손잡이 기준 왼쪽에서 오른쪽으로 완만하게 휘는 구질.',category:'구질'},
+  {term:'슬라이스',definition:'페이드보다 심하게 오른쪽으로 휘는 구질. 주로 아웃사이드인 스윙에서 발생.',category:'구질'},
+  {term:'훅',definition:'드로우보다 심하게 왼쪽으로 휘는 구질.',category:'구질'},
+  {term:'푸시',definition:'볼이 처음부터 오른쪽으로 직선으로 날아가는 구질.',category:'구질'},
+  {term:'풀',definition:'볼이 처음부터 왼쪽으로 직선으로 날아가는 구질.',category:'구질'},
+  {term:'스트레이트',definition:'볼이 목표 방향으로 휘지 않고 직선으로 날아가는 구질.',category:'구질'},
+  {term:'토핑',definition:'볼의 위쪽을 클럽이 타격해 볼이 낮고 굴러가는 미스샷.',category:'구질'},
+  {term:'뒤땅',definition:'볼보다 지면을 먼저 타격하는 미스샷.',category:'구질'},
+  {term:'생크',definition:'클럽의 호젤 부분으로 볼을 타격해 오른쪽으로 날카롭게 날아가는 미스샷.',category:'구질'},
+  // 장비
+  {term:'클럽헤드',definition:'볼을 타격하는 클럽의 끝 부분.',category:'장비'},
+  {term:'샤프트',definition:'클럽헤드와 그립을 연결하는 막대 부분. 소재와 플렉스에 따라 스윙 특성이 달라진다.',category:'장비'},
+  {term:'로프트',definition:'클럽 페이스의 기울기 각도. 로프트가 클수록 볼이 높이 뜬다.',category:'장비'},
+  {term:'플렉스',definition:'샤프트의 유연성 등급. L(레이디)/A(아마추어)/R(레귤러)/SR/S(스티프)/X(엑스트라) 순으로 딱딱해진다.',category:'장비'},
+  {term:'페이스',definition:'클럽에서 볼이 닿는 면.',category:'장비'},
+  {term:'스위트스팟',definition:'클럽 페이스에서 가장 효율적으로 에너지를 전달하는 최적 타격 지점.',category:'장비'},
+  {term:'호젤',definition:'샤프트와 클럽헤드를 연결하는 소켓 부분.',category:'장비'},
+  {term:'오프셋',definition:'클럽헤드가 샤프트보다 뒤에 위치하는 설계. 슬라이스 교정에 도움.',category:'장비'},
+  {term:'캐비티백',definition:'아이언 헤드 뒷면이 파여 있는 구조. 관용성이 높아 아마추어에게 적합.',category:'장비'},
+  {term:'머슬백',definition:'아이언 헤드 뒷면이 평평한 전통적 구조. 타구감이 뛰어나고 컨트롤이 용이.',category:'장비'},
+  {term:'스매시팩터',definition:'볼 스피드를 헤드 스피드로 나눈 값. 임팩트 효율을 나타내며 드라이버 기준 이상적인 값은 1.48~1.50.',category:'장비'},
+  {term:'헤드스피드',definition:'임팩트 순간 클럽헤드의 속도. 단위는 m/s 또는 mph.',category:'장비'},
+  {term:'볼스피드',definition:'임팩트 이후 볼이 날아가는 속도.',category:'장비'},
+  // 코스
+  {term:'파',definition:'홀에서 기준 타수. 홀의 길이에 따라 파3/파4/파5로 구분.',category:'코스'},
+  {term:'버디',definition:'파보다 1타 적게 홀아웃하는 것.',category:'코스'},
+  {term:'이글',definition:'파보다 2타 적게 홀아웃하는 것.',category:'코스'},
+  {term:'보기',definition:'파보다 1타 많게 홀아웃하는 것.',category:'코스'},
+  {term:'더블보기',definition:'파보다 2타 많게 홀아웃하는 것.',category:'코스'},
+  {term:'홀인원',definition:'티샷 한 번으로 볼이 홀에 들어가는 것.',category:'코스'},
+  {term:'알바트로스',definition:'파보다 3타 적게 홀아웃하는 것.',category:'코스'},
+  {term:'페어웨이',definition:'티잉 구역과 그린 사이의 짧게 깎인 잔디 구역.',category:'코스'},
+  {term:'러프',definition:'페어웨이 양 옆의 긴 잔디 구역.',category:'코스'},
+  {term:'그린',definition:'퍼팅을 하는 짧게 깎인 잔디 구역. 홀(컵)이 있다.',category:'코스'},
+  {term:'벙커',definition:'모래가 채워진 장애물 구역.',category:'코스'},
+  {term:'해저드',definition:'워터 해저드(물) 등 특별 규정이 적용되는 장애물 구역.',category:'코스'},
+  {term:'OB',definition:'아웃오브바운즈. 코스 경계 밖으로 나간 볼. 1벌타 후 재플레이.',category:'코스'},
+  {term:'캐주얼워터',definition:'코스 내 일시적으로 고인 물. 무벌타 구제 가능.',category:'코스'},
+  {term:'핀',definition:'홀의 위치를 표시하는 깃발 및 폴.',category:'코스'},
+  {term:'그린피',definition:'골프 코스 이용 요금.',category:'코스'},
+  // 퍼팅
+  {term:'퍼팅',definition:'그린 위에서 퍼터로 볼을 굴려 홀에 넣는 동작.',category:'퍼팅'},
+  {term:'라인',definition:'퍼팅에서 볼이 굴러가야 할 경로. 그린의 경사와 잔디결을 고려해 읽는다.',category:'퍼팅'},
+  {term:'그린리딩',definition:'퍼팅 전 그린의 경사, 잔디결, 속도를 파악하는 행위.',category:'퍼팅'},
+  {term:'스트로크',definition:'퍼팅 시 클럽을 움직이는 동작 한 번.',category:'퍼팅'},
+  {term:'브레이크',definition:'퍼팅에서 경사로 인해 볼이 휘는 방향과 양.',category:'퍼팅'},
+  {term:'그레인',definition:'잔디가 자라는 방향. 퍼팅 방향과 속도에 영향을 준다.',category:'퍼팅'},
+  {term:'스티미',definition:'퍼팅 라인 위에 상대방 볼이 있는 상황(과거 규정).',category:'퍼팅'},
+  // 숏게임
+  {term:'칩샷',definition:'그린 주변 짧은 거리에서 볼을 낮게 띄워 굴리는 샷.',category:'숏게임'},
+  {term:'피치샷',definition:'볼을 높이 띄워 그린에 세우는 어프로치 샷.',category:'숏게임'},
+  {term:'로브샷',definition:'SW나 LW로 볼을 수직으로 높이 띄우는 고급 샷.',category:'숏게임'},
+  {term:'벙커샷',definition:'벙커(모래)에서 탈출하는 샷. 볼보다 모래를 먼저 치는 것이 기본.',category:'숏게임'},
+  {term:'러닝어프로치',definition:'볼을 낮게 띄워 많이 굴리는 어프로치 방식.',category:'숏게임'},
+  {term:'어프로치',definition:'그린을 목표로 하는 근거리 샷의 총칭.',category:'숏게임'},
+  // 스코어
+  {term:'핸디캡',definition:'실력 차이를 보정하는 지수. 숫자가 낮을수록 실력이 좋다.',category:'스코어'},
+  {term:'스크래치',definition:'핸디캡이 0인 선수.',category:'스코어'},
+  {term:'네트스코어',definition:'총 타수에서 핸디캡을 뺀 점수.',category:'스코어'},
+  {term:'그로스스코어',definition:'핸디캡을 적용하지 않은 실제 총 타수.',category:'스코어'},
+  {term:'스트로크플레이',definition:'전체 홀의 총 타수로 순위를 결정하는 경기 방식.',category:'스코어'},
+  {term:'매치플레이',definition:'홀별로 승패를 결정해 더 많은 홀을 이긴 선수가 승리하는 경기 방식.',category:'스코어'},
+  // 물리/탄도
+  {term:'캐리',definition:'볼이 공중에서 날아간 거리.',category:'탄도'},
+  {term:'런',definition:'볼이 착지 후 굴러간 거리.',category:'탄도'},
+  {term:'발사각',definition:'볼이 클럽 페이스를 떠나는 각도.',category:'탄도'},
+  {term:'스핀',definition:'볼의 회전량. 백스핀은 볼을 띄우고, 사이드스핀은 구질을 만든다.',category:'탄도'},
+  {term:'백스핀',definition:'볼의 역방향 회전. 백스핀이 많을수록 볼이 높이 뜨고 착지 후 덜 굴러간다.',category:'탄도'},
+  {term:'사이드스핀',definition:'볼의 좌우 회전. 드로우와 페이드 구질을 만드는 원인.',category:'탄도'},
+  // 기타
+  {term:'포어캐디',definition:'코스에서 볼의 낙하 위치를 확인하는 역할.',category:'기타'},
+  {term:'캐디',definition:'골퍼의 가방을 들고 코스 정보와 클럽 선택을 도와주는 동반자.',category:'기타'},
+  {term:'멀리건',definition:'비공식적으로 허용되는 재샷 기회. 공식 경기에서는 인정되지 않는다.',category:'기타'},
+  {term:'워터해저드',definition:'코스 내 연못, 개울 등의 물 장애물. 볼이 빠지면 1벌타를 받는다.',category:'기타'},
+  {term:'드롭',definition:'구제를 받을 때 볼을 손에서 떨어뜨려 코스에 다시 놓는 행위.',category:'기타'},
+  {term:'마크',definition:'그린 위에서 볼의 위치를 표시하기 위해 작은 마커를 놓는 행위.',category:'기타'},
+  {term:'컨시드',definition:'상대방의 퍼팅을 OK 처리해 주는 것. 매치플레이에서 사용.',category:'기타'},
+  {term:'프로비저널볼',definition:'볼이 OB 또는 분실 가능성이 있을 때 잠정적으로 치는 볼.',category:'기타'},
+  {term:'임베디드볼',definition:'자기 자체 충격으로 지면에 박힌 볼. 조건부 무벌타 구제 가능.',category:'기타'},
+  {term:'캐주얼',definition:'골프 코스에서 비공식적으로 즐기는 라운드.',category:'기타'},
+];
+// 용어 데이터 캐시 (앱 전역)
+const D_TERMS = { terms: [], notes: {} }; // notes: { term_id: memo }
+let dictView = 'list'; // 'list' | 'detail'
+let dictSelId = null;  // 선택된 용어 id
+let dictCat = '';      // 선택된 카테고리
+let dictKw = '';       // 태그 클릭 필터 컨텍스트
 const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
@@ -769,17 +901,38 @@ window.doDeleteAccount=async()=>{
 async function loadAll(){
   sync('busy');
   try{
-    const[vR,eR,sR]=await Promise.all([
+    const[vR,eR,sR,tR,tnR]=await Promise.all([
       sb.from('videos').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
       sb.from('equipment').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
-      sb.from('practice_sessions').select('*').eq('user_id',user.id).order('session_date',{ascending:false})
+      sb.from('practice_sessions').select('*').eq('user_id',user.id).order('session_date',{ascending:false}),
+      sb.from('golf_terms').select('*').order('term',{ascending:true}),
+      sb.from('golf_term_notes').select('*').eq('user_id',user.id),
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||''}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||''}));
+    // 용어 사전
+    if(!tR.error) D_TERMS.terms = tR.data.map(r=>({id:r.id,term:r.term,definition:r.definition,category:r.category||'기초',source:r.source||'builtin',relations:r.relations||[]}));
+    if(!tnR.error) { D_TERMS.notes = {}; tnR.data.forEach(r=>{ D_TERMS.notes[r.term_id]=r; }); }
+    // 내장 용어 중 DB에 없는 것 upsert
+    await upsertBuiltinTerms();
     sync('ok');
   }catch(e){sync('err');toast('로드 실패: '+e.message)}
+}
+
+async function upsertBuiltinTerms(){
+  const existing = new Set(D_TERMS.terms.map(t=>t.term));
+  const missing = BUILTIN_TERMS.filter(t=>!existing.has(t.term));
+  if(!missing.length) return;
+  const {data,error} = await sb.from('golf_terms').upsert(
+    missing.map(t=>({term:t.term,definition:t.definition,category:t.category,source:'builtin',relations:[]})),
+    {onConflict:'term'}
+  ).select();
+  if(!error && data) {
+    D_TERMS.terms = [...D_TERMS.terms, ...data.map(r=>({id:r.id,term:r.term,definition:r.definition,category:r.category||'기초',source:r.source||'builtin',relations:r.relations||[]}))];
+    D_TERMS.terms.sort((a,b)=>a.term.localeCompare(b.term,'ko'));
+  }
 }
 function setupRealtime(){
   if(rtCh)sb.removeChannel(rtCh);
@@ -812,24 +965,23 @@ async function enterApp(u){
   await loadAll();setupRealtime();render();
   checkNewVersion();
 }
-window.gotoTab=t=>{
-  tab=t;view='list';selId=null;
-  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));$('tab-'+t).classList.add('on');render();
-};
 window.goList=()=>{view='list';selId=null;render()};
 window.goDetail=id=>{view='detail';selId=id;render()};
 window.goAdd=()=>{view='add';shotCnt=1;upFile=null;render()};
 function render(){
   const m=$('main');
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
-  if(tab==='videos'){if(view==='list')m.innerHTML=vList();else if(view==='detail')m.innerHTML=vDetail();else m.innerHTML=vAdd();}
+  if(tab==='videos'){
+    if(view==='dict') m.innerHTML=dictView==='detail'?dictDetail():dictList();
+    else if(view==='list') m.innerHTML=vList();
+    else if(view==='detail') m.innerHTML=vDetail();
+    else m.innerHTML=vAdd();
+  }
   else if(tab==='equipment'){if(view==='list')m.innerHTML=eList();else if(view==='detail')m.innerHTML=eDetail();else m.innerHTML=eAdd();}
   else{
     if(view==='list'){m.innerHTML=pList();if(pSub==='stats')requestAnimationFrame(()=>requestAnimationFrame(initCharts));}
     else if(view==='detail'){
       m.innerHTML=pDetail();
-      // se-club 이벤트를 DOM 생성 후 바인딩
       requestAnimationFrame(()=>{
         const sel=$('se-club');
         if(sel) sel.addEventListener('change', e=>{
@@ -848,19 +1000,193 @@ function render(){
     }
     else m.innerHTML=pAdd();
   }
-  // pDetail일 때만 sticky 네비 표시
   const nav=$('session-nav');
   if(nav) nav.style.display = (tab==='practice'&&view==='detail') ? 'block' : 'none';
 }
 function vList(){
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
-  const cards=D.videos.length?D.videos.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:isInsta(v.url)?`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);font-size:1.4rem">📸</div>`:`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--dusk2);font-size:1.2rem">🎬</div>`}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div><div class="card-meta">${isInsta(v.url)?'📸 Instagram · ':''}⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>저장된 노트가 없습니다.</div>`;
-  return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button></div><div id="vcards">${cards}</div></div>`;
+  const filtered = dictKw ? D.videos.filter(v=>v.kw.includes(dictKw)) : D.videos;
+  const cards=filtered.length?filtered.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:isInsta(v.url)?`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);font-size:1.4rem">📸</div>`:`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--dusk2);font-size:1.2rem">🎬</div>`}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer" onclick="filterByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div><div class="card-meta">${isInsta(v.url)?'📸 Instagram · ':''}⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>${dictKw?`'${esc(dictKw)}' 태그가 있는 영상이 없습니다.`:'저장된 노트가 없습니다.'}</div>`;
+
+  // 태그 사전 컨텍스트 카드
+  const termCard = dictKw ? (()=>{
+    const t = D_TERMS.terms.find(x=>x.term===dictKw);
+    if(!t) return `<div class="term-info-card"><div class="term-name">📖 ${esc(dictKw)}</div><div class="term-def" style="color:var(--muted);font-size:.78rem">사전에 등록되지 않은 용어입니다. <button onclick="goDict();setTimeout(()=>searchTermFromTag('${esc(dictKw)}'),200)" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.78rem;text-decoration:underline">AI로 검색하기 →</button></div></div>`;
+    return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="goDict('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
+  })() : '';
+
+  return `<div class="page">${guestBanner()}<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem"><div class="stats-row" style="margin-bottom:0"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div><button class="btn btn-s btn-sm" onclick="goDict()" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA">📖 용어 사전</button></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="dictKw='';render()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button></div><div id="vcards">${cards}</div></div>`;
 }
 window.filterV=(q,cat)=>{
   const f=D.videos.filter(v=>(!q||v.title.includes(q)||v.kw.some(k=>k.includes(q)))&&(!cat||v.kw.includes(cat)));
   const c=$('vcards');if(!c)return;
-  c.innerHTML=f.length?f.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`;
+  c.innerHTML=f.length?f.map(v=>`<div class="card" onclick="goDetail('${v.id}')"><div style="display:flex;gap:.7rem;align-items:flex-start">${thumb(v.url)?`<img class="v-thumb" src="${thumb(v.url)}" onerror="this.style.display='none'" alt="">`:''}<div style="flex:1;min-width:0"><div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div><div style="margin:3px 0">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer" onclick="filterByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div></div></div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`;
+};
+
+// ── 용어 사전 화면 ────────────────────────────────────
+const DICT_CATS=['전체','기초','스윙','구질','장비','코스','퍼팅','숏게임','스코어','탄도','기타'];
+const REL_LABELS={same:'= 동의어',similar:'≈ 유사',opposite:'↔ 반대',related:'→ 관련'};
+
+function dictList(){
+  const cats=DICT_CATS;
+  const filtered=D_TERMS.terms.filter(t=>(dictCat===''||dictCat==='전체'||t.category===dictCat));
+  // 가나다 순 알파벳 그룹
+  let prev='';
+  const items=filtered.map(t=>{
+    const first=t.term[0];
+    const header=first!==prev?(prev=first,`<div class="dict-alpha">${first}</div>`):'';
+    const noteN=D_TERMS.notes[t.id];
+    return`${header}<div class="dict-entry" onclick="dictViewDetail('${t.id}')">
+      <div><span class="dict-term">${esc(t.term)}</span><span class="dict-cat">${t.category}</span>${noteN?'<span style="font-size:.65rem;color:#A78BFA;margin-left:.4rem">📝</span>':''}</div>
+      <div class="dict-def">${esc(t.definition)}</div>
+    </div>`;
+  }).join('');
+
+  return`<div class="page">
+  <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem">
+    <button class="back-btn" style="margin-bottom:0" onclick="view='list';render()">← 노트 목록</button>
+    <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--chalk);margin-left:.3rem">📖 골프 용어 사전</div>
+    <span style="margin-left:auto;font-size:.72rem;color:var(--muted)">${D_TERMS.terms.length}개</span>
+  </div>
+  <div style="margin-bottom:.75rem">
+    <div style="display:flex;gap:.3rem;align-items:center">
+      <input class="inp" id="dict-search" placeholder="🔍 용어 검색..." style="flex:1" oninput="dictSearchInput(this.value)" onkeydown="if(event.key==='Enter')searchTerm(document.getElementById('dict-search').value)">
+      <button class="btn btn-p btn-sm" onclick="searchTerm(document.getElementById('dict-search').value)">검색</button>
+    </div>
+    <div id="dict-search-result" style="margin-top:.5rem"></div>
+  </div>
+  <div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.75rem">
+    ${cats.map(c=>`<button onclick="dictCat='${c}';render()" style="padding:3px 10px;border-radius:2px;border:1px solid ${dictCat===c||(c==='전체'&&!dictCat)?'rgba(200,137,58,.5)':'var(--border)'};background:${dictCat===c||(c==='전체'&&!dictCat)?'rgba(200,137,58,.1)':'none'};color:${dictCat===c||(c==='전체'&&!dictCat)?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans)">${c}</button>`).join('')}
+  </div>
+  <div>${items||`<div class="empty"><div class="empty-icon">📖</div>용어가 없습니다.</div>`}</div>
+  </div>`;
+}
+
+window.dictViewDetail=(id)=>{ dictSelId=id; dictView='detail'; render(); };
+
+function dictDetail(){
+  const t=D_TERMS.terms.find(x=>x.id===dictSelId);
+  if(!t)return`<div class="page"><button class="back-btn" onclick="dictView='list';render()">← 사전 목록</button><div class="empty">용어를 찾을 수 없습니다.</div></div>`;
+  const note=D_TERMS.notes[t.id];
+  const relH=t.relations?.length?`<div class="sec-label">연관 용어</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.9rem">${t.relations.map(r=>`<button class="dict-rel ${r.type}" onclick="goToRelTerm('${esc(r.term)}')">${REL_LABELS[r.type]||r.type} ${esc(r.term)}</button>`).join('')}</div>`:'';
+  const linkedVideos=D.videos.filter(v=>v.kw.includes(t.term));
+  const videosH=linkedVideos.length?`<div class="sec-label">관련 노트 (${linkedVideos.length}개)</div><div>${linkedVideos.map(v=>`<div class="card" onclick="view='detail';selId='${v.id}';render()" style="padding:.5rem .7rem"><div class="card-title" style="font-size:.84rem">📹 ${esc(v.title)}</div></div>`).join('')}</div>`:'';
+
+  return`<div class="page">
+  <button class="back-btn" onclick="dictView='list';render()">← 사전 목록</button>
+  <div style="margin-bottom:1rem">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <h2 style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk);margin:0 0 .3rem">${esc(t.term)}</h2>
+        <span class="badge b-blue" style="font-size:.67rem">${t.category}</span>
+        ${t.source==='ai'?'<span class="badge" style="font-size:.62rem;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:#A78BFA;margin-left:3px">AI</span>':''}
+      </div>
+    </div>
+    <div style="font-size:.9rem;color:var(--dim);line-height:1.75;margin-top:.75rem">${esc(t.definition)}</div>
+  </div>
+  ${relH}
+  <div class="sec-label">📝 내 메모</div>
+  <div style="margin-bottom:.9rem">
+    <textarea class="ta" id="term-memo-ta" style="min-height:80px" placeholder="이 용어에 대해 내가 이해한 내용, 경험 등을 메모하세요..." onblur="saveTermNote('${t.id}',this.value)">${ea(note?.memo||'')}</textarea>
+    <div style="font-size:.7rem;color:var(--muted);margin-top:3px">포커스를 벗어날 때 자동 저장됩니다.</div>
+  </div>
+  ${videosH}
+  </div>`;
+}
+
+// 연관 용어 클릭 이동
+window.goToRelTerm=term=>{
+  const t=D_TERMS.terms.find(x=>x.term===term);
+  if(t){dictSelId=t.id;dictView='detail';render();}
+  else{dictView='list';render();setTimeout(()=>searchTerm(term),200);}
+};
+
+// 검색창 입력 힌트
+window.dictSearchInput=(q)=>{
+  const res=$('dict-search-result');if(!res)return;
+  if(!q.trim()){res.innerHTML='';return;}
+  const matches=D_TERMS.terms.filter(t=>t.term.includes(q)||t.definition.includes(q)).slice(0,5);
+  if(matches.length) res.innerHTML=`<div style="background:var(--dusk2);border:1px solid var(--border);border-radius:2px">${matches.map(t=>`<div onclick="dictViewDetail('${t.id}')" style="padding:.45rem .8rem;cursor:pointer;font-size:.83rem;border-bottom:1px solid rgba(240,237,230,.06)">${esc(t.term)} <span style="color:var(--muted);font-size:.72rem">${t.category}</span></div>`).join('')}</div>`;
+  else res.innerHTML=`<div style="font-size:.78rem;color:var(--muted);padding:.3rem 0">사전에 없는 용어입니다. Enter 또는 검색 버튼으로 AI 검색</div>`;
+};
+
+// 태그에서 직접 AI 검색 연계
+window.searchTermFromTag=(term)=>{
+  const inp=$('dict-search');
+  if(inp)inp.value=term;
+  searchTerm(term);
+};
+
+// AI 검색 + DB 저장
+window.searchTerm=async(q)=>{
+  if(!q||!q.trim())return;
+  const term=q.trim();
+  const res=$('dict-search-result');
+  // 이미 사전에 있으면 바로 표시
+  const existing=D_TERMS.terms.find(t=>t.term===term||t.term.toLowerCase()===term.toLowerCase());
+  if(existing){dictViewDetail(existing.id);return;}
+  if(res)res.innerHTML=`<div class="analysis-box"><div class="analysis-loading"><div class="spinner" style="width:16px;height:16px;border-width:1.5px"></div>"${esc(term)}" AI 검색 중...</div></div>`;
+
+  try{
+    const existingTermsList=D_TERMS.terms.map(t=>t.term).join(', ');
+    const prompt=`골프 용어 전문가로서 아래 용어를 설명하고 기존 사전의 연관 용어를 분류해주세요.
+
+검색 용어: ${term}
+기존 사전 용어(연관성 분석용): ${existingTermsList}
+
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만:
+{
+  "term": "용어명(한글)",
+  "definition": "2~3문장의 골프 맥락 설명",
+  "category": "기초|스윙|구질|장비|코스|퍼팅|숏게임|스코어|탄도|기타 중 하나",
+  "relations": [
+    {"term": "기존용어명", "type": "same|similar|opposite|related"}
+  ]
+}`;
+    const resp=await fetch('https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({prompt,type:'swing'})
+    });
+    if(!resp.ok)throw new Error(`서버 오류 ${resp.status}`);
+    const data=await resp.json();
+    const text=data.content?.[0]?.text||data.text||'';
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    if(!parsed.term||!parsed.definition)throw new Error('응답 형식 오류');
+
+    // DB 저장
+    const{data:inserted,error}=await sb.from('golf_terms').insert({
+      term:parsed.term,definition:parsed.definition,
+      category:parsed.category||'기타',source:'ai',
+      relations:parsed.relations||[]
+    }).select().single();
+    if(error)throw error;
+
+    const newTerm={id:inserted.id,term:inserted.term,definition:inserted.definition,category:inserted.category,source:'ai',relations:inserted.relations||[]};
+    D_TERMS.terms.push(newTerm);
+    D_TERMS.terms.sort((a,b)=>a.term.localeCompare(b.term,'ko'));
+    toast(`'${inserted.term}' 사전에 추가됨`);
+    dictViewDetail(inserted.id);
+  }catch(e){
+    if(res)res.innerHTML=`<div style="color:var(--red);font-size:.82rem;padding:.3rem 0">검색 실패: ${esc(e.message)}</div>`;
+  }
+};
+
+// 개인 메모 저장
+window.saveTermNote=async(termId,memo)=>{
+  const existing=D_TERMS.notes[termId];
+  if((existing?.memo||'')===(memo||''))return;
+  const{data,error}=await sb.from('golf_term_notes').upsert({user_id:user.id,term_id:termId,memo,updated_at:new Date().toISOString()},{onConflict:'user_id,term_id'}).select().single();
+  if(error){toast('메모 저장 실패');return;}
+  D_TERMS.notes[termId]=data;toast('메모 저장됨');
+};
+window.filterByTag=(e,kw)=>{e.stopPropagation();dictKw=kw;render();};
+window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';render();};
+window.gotoTab=t=>{
+  tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));$('tab-'+t).classList.add('on');render();
 };
 function vDetail(){
   const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
@@ -1970,6 +2296,16 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.11.0',
+    date: '2026-04-04',
+    items: [
+      {tag:'new',    title:'골프 용어 사전',             desc:'학습 노트 탭에서 📖 용어 사전 버튼으로 진입할 수 있습니다. 기본 100개 용어가 내장되며, 카테고리·가나다 순 탐색, 검색, 연관 용어 하이퍼링크를 제공합니다.'},
+      {tag:'new',    title:'AI 용어 검색 + 사전 추가',   desc:'사전에 없는 용어를 검색하면 Gemini가 설명과 연관 용어를 생성해 공용 사전에 자동 추가합니다.'},
+      {tag:'new',    title:'용어별 개인 메모',           desc:'각 용어 상세 페이지에서 내가 이해한 내용을 메모로 남길 수 있습니다. 메모는 개인별로 독립 저장됩니다.'},
+      {tag:'new',    title:'태그 클릭 → 노트 필터 + 사전 연동', desc:'학습 노트의 태그를 클릭하면 같은 태그 영상만 필터링되고, 상단에 해당 용어의 사전 설명이 표시됩니다.'},
+    ]
+  },
+  {
     version: 'v1.10.4',
     date: '2026-04-04',
     items: [
@@ -2076,7 +2412,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.10.4';
+const CURRENT_VERSION = 'v1.11.0';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
