@@ -1440,7 +1440,7 @@ function pDetail(){
         <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)">
           <option value="">선택...</option>
           ${ownedClubOptions(s.club||'')}
-          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option ${s.club===c?'selected':''}>${c}</option>`).join('')}</optgroup>
+          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${c}"${s.club===c?' selected':''}>${c}</option>`).join('')}</optgroup>
         </select>
       </div>
     </div>
@@ -1476,15 +1476,18 @@ function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class=
 // ── 세션 필드 저장 ────────────────────────────────────
 window.saveSessionField = async (id, field, val) => {
   const s = D.sessions.find(x => x.id === id); if(!s) return;
-  const trimmed = val.trim();
-  // 변경 없으면 스킵
-  const cur = field === 'date' ? s.date : field === 'club' ? s.club : field === 'location' ? s.loc : s.memo;
-  if(trimmed === (cur||'')) return;
+  // club은 select value 그대로 사용 (trim 불필요, 빈값도 허용)
+  const trimmed = field === 'club' ? val : val.trim();
+  // club은 항상 저장, 나머지는 변경 없으면 스킵
+  if(field !== 'club') {
+    const cur = field === 'date' ? s.date : field === 'location' ? s.loc : s.memo;
+    if(trimmed === (cur||'')) return;
+  }
+  if(field === 'club' && trimmed === (s.club||'')) return; // club도 동일값은 스킵
   const dbField = field === 'location' ? 'location' : field === 'date' ? 'session_date' : field;
   sync('busy');
-  const {error} = await sb.from('practice_sessions').update({[dbField]: trimmed}).eq('id', id).eq('user_id', user.id);
+  const {error} = await sb.from('practice_sessions').update({[dbField]: trimmed||null}).eq('id', id).eq('user_id', user.id);
   if(error){ toast('저장 실패'); sync('err'); return; }
-  // 메모리 반영
   if(field === 'date')     s.date  = trimmed;
   if(field === 'club')     s.club  = trimmed;
   if(field === 'location') s.loc   = trimmed;
@@ -1846,6 +1849,13 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.10.1',
+    date: '2026-04-04',
+    items: [
+      {tag:'fix', title:'비행 기록 클럽 변경 오류 수정', desc:'비행 기록 상세에서 클럽을 변경해도 저장되지 않던 문제를 수정했습니다.'},
+    ]
+  },
+  {
     version: 'v1.10.0',
     date: '2026-04-04',
     items: [
@@ -1922,7 +1932,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.10.0';
+const CURRENT_VERSION = 'v1.10.1';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
