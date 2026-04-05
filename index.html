@@ -714,6 +714,24 @@ let dictSelId = null;  // 선택된 용어 id
 let dictCat = '';      // 선택된 카테고리
 let dictKw = '';       // 태그 클릭 필터 컨텍스트
 let selectedCharts = {carry:true, hs:true, con:true}; // 차트 표시 선택
+
+// ── 클럽별 실력대 기준 (캐리 m) ──────────────────────
+const CLUB_BENCH={
+  '드라이버':{carry:[{l:'프로',min:250,max:300,c:'rgba(228,168,85,.07)'},{l:'상급',min:210,max:250,c:'rgba(122,176,232,.06)'},{l:'중급',min:170,max:210,c:'rgba(167,139,250,.05)'},{l:'초급',min:120,max:170,c:'rgba(138,155,170,.04)'}],hs:[{l:'프로',min:48,max:60,c:'rgba(228,168,85,.07)'},{l:'상급',min:42,max:48,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:42,c:'rgba(167,139,250,.05)'},{l:'초급',min:28,max:36,c:'rgba(138,155,170,.04)'}]},
+  '3W':{carry:[{l:'프로',min:220,max:260,c:'rgba(228,168,85,.07)'},{l:'상급',min:185,max:220,c:'rgba(122,176,232,.06)'},{l:'중급',min:150,max:185,c:'rgba(167,139,250,.05)'},{l:'초급',min:110,max:150,c:'rgba(138,155,170,.04)'}]},
+  '5W':{carry:[{l:'프로',min:205,max:245,c:'rgba(228,168,85,.07)'},{l:'상급',min:172,max:205,c:'rgba(122,176,232,.06)'},{l:'중급',min:138,max:172,c:'rgba(167,139,250,.05)'},{l:'초급',min:100,max:138,c:'rgba(138,155,170,.04)'}]},
+  '유틸리티':{carry:[{l:'프로',min:195,max:230,c:'rgba(228,168,85,.07)'},{l:'상급',min:162,max:195,c:'rgba(122,176,232,.06)'},{l:'중급',min:128,max:162,c:'rgba(167,139,250,.05)'},{l:'초급',min:90,max:128,c:'rgba(138,155,170,.04)'}]},
+  '5I':{carry:[{l:'프로',min:175,max:200,c:'rgba(228,168,85,.07)'},{l:'상급',min:145,max:175,c:'rgba(122,176,232,.06)'},{l:'중급',min:112,max:145,c:'rgba(167,139,250,.05)'},{l:'초급',min:80,max:112,c:'rgba(138,155,170,.04)'}]},
+  '6I':{carry:[{l:'프로',min:162,max:188,c:'rgba(228,168,85,.07)'},{l:'상급',min:135,max:162,c:'rgba(122,176,232,.06)'},{l:'중급',min:103,max:135,c:'rgba(167,139,250,.05)'},{l:'초급',min:72,max:103,c:'rgba(138,155,170,.04)'}]},
+  '7I':{carry:[{l:'프로',min:148,max:175,c:'rgba(228,168,85,.07)'},{l:'상급',min:123,max:148,c:'rgba(122,176,232,.06)'},{l:'중급',min:93,max:123,c:'rgba(167,139,250,.05)'},{l:'초급',min:65,max:93,c:'rgba(138,155,170,.04)'}]},
+  '8I':{carry:[{l:'프로',min:135,max:160,c:'rgba(228,168,85,.07)'},{l:'상급',min:112,max:135,c:'rgba(122,176,232,.06)'},{l:'중급',min:85,max:112,c:'rgba(167,139,250,.05)'},{l:'초급',min:58,max:85,c:'rgba(138,155,170,.04)'}]},
+  '9I':{carry:[{l:'프로',min:122,max:148,c:'rgba(228,168,85,.07)'},{l:'상급',min:100,max:122,c:'rgba(122,176,232,.06)'},{l:'중급',min:75,max:100,c:'rgba(167,139,250,.05)'},{l:'초급',min:50,max:75,c:'rgba(138,155,170,.04)'}]},
+  'PW':{carry:[{l:'프로',min:110,max:138,c:'rgba(228,168,85,.07)'},{l:'상급',min:90,max:110,c:'rgba(122,176,232,.06)'},{l:'중급',min:68,max:90,c:'rgba(167,139,250,.05)'},{l:'초급',min:45,max:68,c:'rgba(138,155,170,.04)'}]},
+  'GW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
+  'SW':{carry:[{l:'프로',min:80,max:105,c:'rgba(228,168,85,.07)'},{l:'상급',min:64,max:80,c:'rgba(122,176,232,.06)'},{l:'중급',min:48,max:64,c:'rgba(167,139,250,.05)'},{l:'초급',min:32,max:48,c:'rgba(138,155,170,.04)'}]},
+  'LW':{carry:[{l:'프로',min:65,max:88,c:'rgba(228,168,85,.07)'},{l:'상급',min:50,max:65,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:50,c:'rgba(167,139,250,.05)'},{l:'초급',min:22,max:36,c:'rgba(138,155,170,.04)'}]},
+};
+const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
@@ -2048,28 +2066,41 @@ function pList(){
   const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
   if(pSub==='stats'){
     const cm={};D.sessions.forEach(s=>{if(!s.club)return;const nc=normalizeClub(s.club);if(!cm[nc])cm[nc]={c:[],h:[],b:[],sf:[],con:[]};const st=ss(s);if(st.avgCarry)cm[nc].c.push(st.avgCarry);if(st.avgHs)cm[nc].h.push(st.avgHs);if(st.avgBs)cm[nc].b.push(st.avgBs);if(st.avgSf)cm[nc].sf.push(st.avgSf);if(st.consistency!=null)cm[nc].con.push(st.consistency)});
-    const rows=Object.entries(cm).map(([club,d])=>{const con=avg(d.con);return`<tr>
-      <td><span class="club-badge">${esc(club)}</span></td>
-      <td class="vl">${fn(avg(d.c),'m')}</td>
-      <td class="vl best">${fn(best(d.c),'m')}</td>
-      <td class="vl">${fn(avg(d.h))}</td>
-      <td class="vl">${fn(avg(d.b))}</td>
-      <td class="vl">${avg(d.sf)!=null?avg(d.sf).toFixed(2):'—'}</td>
-      <td class="vl" style="color:${consistencyColor(con&&Math.round(con))}">${con!=null?Math.round(con)+'점':'—'}<div style="font-size:.7rem;opacity:.8">${consistencyLabel(con&&Math.round(con))}</div></td>
-      <td><button class="btn-analyze" style="padding:.2rem .6rem;font-size:.65rem" onclick="analyzeClubRec('${esc(club)}')" id="btn-club-${esc(club)}">✦ 추천</button></td>
-    </tr>
-    <tr id="club-rec-row-${esc(club)}" style="display:none"><td colspan="8" style="padding:.5rem 0"><div id="club-rec-result-${esc(club)}"></div></td></tr>`}).join('');
+
+
+    // 클럽 순서 (CLUBS 배열 순)
+    const clubOrder=CLUBS.map(c=>c);
+    const sortedClubs=Object.keys(cm).sort((a,b)=>{const ia=clubOrder.indexOf(a),ib=clubOrder.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
+
+    const clubSections=sortedClubs.map(club=>{
+      const d=cm[club];const con=avg(d.con);
+      const hasCon=d.con.length>=2;
+      return`<div style="margin-bottom:1.4rem">
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem">
+          <span class="club-badge" style="font-size:.72rem">${esc(club)}</span>
+          ${d.c.length?`<span style="font-size:.75rem;color:var(--muted)">캐리 평균 <span style="color:var(--wing2);font-weight:600">${fn(avg(d.c),'m')}</span> · 베스트 <span style="color:var(--wing2);font-weight:600">${fn(best(d.c),'m')}</span></span>`:''}
+          ${d.h.length?`<span style="font-size:.75rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:600">${fn(avg(d.h))}</span></span>`:''}
+          ${con!=null?`<span style="font-size:.75rem;color:${consistencyColor(Math.round(con))}">🎯 ${Math.round(con)}점</span>`:''}
+          <button class="btn-analyze" style="padding:.2rem .6rem;font-size:.62rem;margin-left:auto" onclick="analyzeClubRec('${esc(club)}')" id="btn-club-${esc(club)}">✦ 추천</button>
+        </div>
+        <div id="club-rec-row-${esc(club)}" style="display:none;margin-bottom:.5rem"><div id="club-rec-result-${esc(club)}"></div></div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          ${selectedCharts.carry&&d.c.length>=2?`<div class="chart-wrap" style="flex:1;min-width:240px"><div class="chart-title" style="font-size:.68rem">📏 캐리 (m)</div><div style="position:relative;height:150px"><canvas id="chart-carry-${esc(club)}"></canvas></div></div>`:''}
+          ${selectedCharts.hs&&d.h.length>=2?`<div class="chart-wrap" style="flex:1;min-width:240px"><div class="chart-title" style="font-size:.68rem">⚡ 헤드스피드</div><div style="position:relative;height:150px"><canvas id="chart-hs-${esc(club)}"></canvas></div></div>`:''}
+          ${selectedCharts.con&&hasCon?`<div class="chart-wrap" style="flex:1;min-width:240px"><div class="chart-title" style="font-size:.68rem">🎯 일관성</div><div style="position:relative;height:150px"><canvas id="chart-con-${esc(club)}"></canvas></div></div>`:''}
+        </div>
+        ${(!selectedCharts.carry||d.c.length<2)&&(!selectedCharts.hs||d.h.length<2)&&(!selectedCharts.con||!hasCon)?`<div style="font-size:.75rem;color:var(--muted);padding:.3rem 0">그래프를 그리려면 같은 클럽의 세션이 2개 이상 필요합니다.</div>`:''}
+      </div>`;
+    }).join('<div class="divider"></div>');
+
     return`<div class="page">${srow}${ptabs}
-    ${rows?`<div class="sec-label">클럽별 분석</div><div style="overflow-x:auto;margin-bottom:1rem"><table class="stbl"><thead><tr><th>클럽</th><th>캐리 평균</th><th>베스트</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>일관성</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
-    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem;align-items:center">
       <span style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">그래프 선택</span>
-      <button id="toggle-carry" onclick="toggleChart('carry')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.carry?'border-color:rgba(200,137,58,.5);color:var(--wing2);background:rgba(200,137,58,.08)':''}">📏 캐리</button>
-      <button id="toggle-hs" onclick="toggleChart('hs')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.hs?'border-color:rgba(61,158,116,.5);color:var(--turf);background:rgba(61,158,116,.08)':''}">⚡ 헤드스피드</button>
-      <button id="toggle-con" onclick="toggleChart('con')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.con?'border-color:rgba(167,139,250,.5);color:#A78BFA;background:rgba(167,139,250,.08)':''}">🎯 일관성</button>
+      <button onclick="toggleChart('carry')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.carry?'border-color:rgba(200,137,58,.5);color:var(--wing2);background:rgba(200,137,58,.08)':''}">📏 캐리</button>
+      <button onclick="toggleChart('hs')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.hs?'border-color:rgba(61,158,116,.5);color:var(--turf);background:rgba(61,158,116,.08)':''}">⚡ 헤드스피드</button>
+      <button onclick="toggleChart('con')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.con?'border-color:rgba(167,139,250,.5);color:#A78BFA;background:rgba(167,139,250,.08)':''}">🎯 일관성</button>
     </div>
-    ${selectedCharts.carry?`<div class="chart-wrap"><div class="chart-title">📏 캐리 평균 추이 (m)</div><div style="position:relative;height:220px"><canvas id="chart-carry"></canvas></div></div>`:''}
-    ${selectedCharts.hs?`<div class="chart-wrap"><div class="chart-title">⚡ 헤드스피드 추이</div><div style="position:relative;height:220px"><canvas id="chart-hs"></canvas></div></div>`:''}
-    ${selectedCharts.con?`<div class="chart-wrap"><div class="chart-title">🎯 샷 일관성 추이 (점수)</div><div style="position:relative;height:220px"><canvas id="chart-con"></canvas></div><div style="font-size:.7rem;color:var(--muted);margin-top:.4rem">85+ 매우높음 · 70+ 높음 · 55+ 보통 · 40+ 낮음 · ~40 불안정</div></div>`:''}
+    ${clubSections||`<div class="empty">클럽 기록이 없습니다.</div>`}
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <div style="font-size:.75rem;color:var(--dim)">전체 ${D.sessions.length}개 세션을 기반으로 성장 추이를 분석합니다.</div>
@@ -2123,43 +2154,16 @@ function clubColor(club) {
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
 
-  // 선택된 차트의 canvas만 존재 확인
-  const needCarry=selectedCharts.carry, needHs=selectedCharts.hs, needCon=selectedCharts.con;
-  if((needCarry&&!$('chart-carry'))||(needHs&&!$('chart-hs'))||(needCon&&!$('chart-con'))){
-    setTimeout(initCharts,100); return;
-  }
-
+  // 클럽별로 canvas가 준비됐는지 확인
   const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
-  const allDates=[...new Set(sessions.map(s=>s.date||''))].sort();
-  const labels=allDates.map(d=>d.slice(5));
+  const anyReady=clubs.some(c=>$(`chart-carry-${c}`)||$(`chart-hs-${c}`)||$(`chart-con-${c}`));
+  if(!anyReady){setTimeout(initCharts,100);return;}
 
-  // 날짜+클럽 → session id 맵 (클릭 이동용)
+  const allDates=[...new Set(sessions.map(s=>s.date||''))].sort();
   const sessionMap={};
   sessions.forEach(s=>{sessionMap[`${s.date}__${normalizeClub(s.club)}`]=s.id;});
 
-  const makeDatasets=(getValue)=>clubs.map(club=>{
-    const col=clubColor(club);
-    const data=allDates.map(date=>{
-      const s=sessions.find(x=>normalizeClub(x.club)===club&&x.date===date);
-      return s?getValue(s):null;
-    });
-    return{label:club,data,borderColor:col.line,backgroundColor:col.bg,
-      borderWidth:2,tension:.35,fill:false,
-      pointBackgroundColor:col.line,pointBorderColor:'#0D1117',pointBorderWidth:1,
-      pointRadius:4,pointHoverRadius:7,spanGaps:true};
-  }).filter(ds=>ds.data.some(v=>v!=null));
-
-  // 클릭 → 세션 상세 이동
-  const clickHandler=(evt,elements,chart)=>{
-    if(!elements.length)return;
-    const el=elements[0];
-    const date=allDates[el.index];
-    const club=chart.data.datasets[el.datasetIndex].label;
-    const sid=sessionMap[`${date}__${club}`];
-    if(sid){tab='practice';view='detail';selId=sid;render();}
-  };
-
-  // 실력대 음영 플러그인 (annotation 없이 직접 Canvas 드로잉)
+  // 실력대 음영 플러그인
   const benchPlugin=(zones)=>({
     id:'benchZone',
     beforeDraw(chart){
@@ -2173,74 +2177,60 @@ function initCharts(){
         const yBot=Math.min(Math.max(y1,y2),bottom);
         if(yTop>=yBot)return;
         ctx.save();
-        ctx.fillStyle=z.color;
+        ctx.fillStyle=z.c;
         ctx.fillRect(left,yTop,right-left,yBot-yTop);
-        ctx.fillStyle=z.labelColor||'rgba(255,255,255,.2)';
-        ctx.font='9px sans-serif';
-        ctx.fillText(z.label,left+4,yTop+10);
+        ctx.fillStyle='rgba(255,255,255,.22)';
+        ctx.font='8px sans-serif';
+        ctx.fillText(z.l,left+3,yTop+9);
         ctx.restore();
       });
     }
   });
 
-  const baseOpts=(yLabel,showLegend=true)=>({
-    responsive:true,maintainAspectRatio:false,
-    onClick:clickHandler,
-    plugins:{
-      legend:{display:showLegend&&clubs.length>1,position:'bottom',
-        labels:{color:'#7A9AAA',font:{size:10},boxWidth:10,padding:8}},
-      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}${yLabel}`}}
-    },
-    scales:{
-      x:{ticks:{color:'#5A7A8A',font:{size:10},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},
-      y:{ticks:{color:'#5A7A8A',font:{size:10}},grid:{color:'rgba(240,237,230,.06)'}}
-    }
-  });
 
-  const mkMulti=(id,datasets,opts,plugins=[])=>{
+  const mkChart=(id,labels,data,color,yOpts,zones,onClick)=>{
     const c=$(id); if(!c)return;
     if(charts[id]){try{charts[id].destroy()}catch(e){}}
-    charts[id]=new Chart(c,{type:'line',data:{labels,datasets},options:opts,plugins});
+    const col=clubColor(data.label||'');
+    charts[id]=new Chart(c,{
+      type:'line',
+      data:{labels,datasets:[{label:data.label,data:data.vals,borderColor:color||col.line,backgroundColor:(color||col.line).replace(')',', .15)').replace('rgb','rgba'),borderWidth:2,tension:.35,fill:false,pointBackgroundColor:color||col.line,pointBorderColor:'#0D1117',pointBorderWidth:1,pointRadius:4,pointHoverRadius:7,spanGaps:true}]},
+      options:{responsive:true,maintainAspectRatio:false,onClick,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yOpts.unit||''}`}}},scales:{x:{ticks:{color:'#5A7A8A',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},y:{...yOpts,ticks:{color:'#5A7A8A',font:{size:9},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.06)'}}}},
+      plugins:zones?[benchPlugin(zones)]:[]
+    });
   };
 
-  // 캐리 음영
-  const carryZones=[
-    {min:250,max:300,color:'rgba(228,168,85,.07)',label:'프로',labelColor:'rgba(228,168,85,.4)'},
-    {min:210,max:250,color:'rgba(122,176,232,.06)',label:'상급',labelColor:'rgba(122,176,232,.35)'},
-    {min:170,max:210,color:'rgba(167,139,250,.05)',label:'중급',labelColor:'rgba(167,139,250,.3)'},
-    {min:120,max:170,color:'rgba(138,155,170,.04)',label:'초급',labelColor:'rgba(138,155,170,.25)'},
-  ];
-  // HS 음영
-  const hsZones=[
-    {min:48,max:60,color:'rgba(228,168,85,.07)',label:'프로',labelColor:'rgba(228,168,85,.4)'},
-    {min:42,max:48,color:'rgba(122,176,232,.06)',label:'상급',labelColor:'rgba(122,176,232,.35)'},
-    {min:36,max:42,color:'rgba(167,139,250,.05)',label:'중급',labelColor:'rgba(167,139,250,.3)'},
-    {min:28,max:36,color:'rgba(138,155,170,.04)',label:'초급',labelColor:'rgba(138,155,170,.25)'},
-  ];
-  // 일관성 음영
-  const conZones=[
-    {min:85,max:100,color:'rgba(61,158,116,.07)',label:'매우높음',labelColor:'rgba(61,158,116,.35)'},
-    {min:70,max:85, color:'rgba(122,176,232,.06)',label:'높음',labelColor:'rgba(122,176,232,.3)'},
-    {min:55,max:70, color:'rgba(200,137,58,.05)', label:'보통',labelColor:'rgba(200,137,58,.25)'},
-    {min:40,max:55, color:'rgba(228,168,85,.04)', label:'낮음',labelColor:'rgba(228,168,85,.2)'},
-  ];
+  clubs.forEach(club=>{
+    const clubSessions=sessions.filter(s=>normalizeClub(s.club)===club);
+    const dates=clubSessions.map(s=>s.date).sort();
+    const labels=dates.map(d=>d.slice(5));
 
-  if(needCarry) mkMulti('chart-carry',
-    makeDatasets(s=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null}),
-    baseOpts('m'), [benchPlugin(carryZones)]);
+    const clickHandler=(evt,elements,chart)=>{
+      if(!elements.length)return;
+      const date=dates[elements[0].index];
+      const sid=sessionMap[`${date}__${club}`];
+      if(sid){tab='practice';view='detail';selId=sid;render();}
+    };
 
-  if(needHs) mkMulti('chart-hs',
-    makeDatasets(s=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null}),
-    baseOpts(''), [benchPlugin(hsZones)]);
+    const bench=CLUB_BENCH[club]||CLUB_BENCH['7I'];
+    const col=clubColor(club);
 
-  if(needCon){
-    const conOpts={...baseOpts('점'),onClick:clickHandler,
-      scales:{
-        x:{ticks:{color:'#5A7A8A',font:{size:10},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},
-        y:{min:0,max:100,ticks:{color:'#5A7A8A',font:{size:10},callback:v=>`${v}점`},grid:{color:'rgba(240,237,230,.06)'}}
-      }};
-    mkMulti('chart-con',makeDatasets(s=>{const st=ss(s);return st.consistency}),conOpts,[benchPlugin(conZones)]);
-  }
+    // 캐리
+    if(selectedCharts.carry&&$(`chart-carry-${club}`)){
+      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);if(!s)return null;const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null;});
+      mkChart(`chart-carry-${club}`,labels,{label:club,vals},col.line,{unit:'m'},bench?.carry||[],clickHandler);
+    }
+    // 헤드스피드
+    if(selectedCharts.hs&&$(`chart-hs-${club}`)){
+      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);if(!s)return null;const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null;});
+      mkChart(`chart-hs-${club}`,labels,{label:club,vals},col.line,{unit:''},bench?.hs||[],clickHandler);
+    }
+    // 일관성
+    if(selectedCharts.con&&$(`chart-con-${club}`)){
+      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);if(!s)return null;return ss(s).consistency;});
+      mkChart(`chart-con-${club}`,labels,{label:club,vals},'#A78BFA',{min:0,max:100,unit:'점',callback:v=>`${v}점`},STATS_CON_ZONES,clickHandler);
+    }
+  });
 }
 function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
