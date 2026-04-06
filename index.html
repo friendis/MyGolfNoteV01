@@ -713,7 +713,32 @@ let dictView = 'list'; // 'list' | 'detail'
 let dictSelId = null;  // 선택된 용어 id
 let dictCat = '';      // 선택된 카테고리
 let dictKw = '';       // 태그 클릭 필터 컨텍스트
-let selectedCharts = {carry:true, hs:true, con:true}; // 차트 표시 선택
+// 차트 선택 상태 - localStorage 유지 (최대 3개)
+const CHART_DEFS = [
+  {key:'carry', label:'캐리',       icon:'📏', unit:'m',  color:'rgba(200,137,58,.5)',  bg:'rgba(200,137,58,.08)',  lineColor:'#C8893A'},
+  {key:'total', label:'총거리',      icon:'🚀', unit:'m',  color:'rgba(228,168,85,.5)',  bg:'rgba(228,168,85,.08)',  lineColor:'#E4A855'},
+  {key:'hs',    label:'헤드스피드',  icon:'⚡', unit:'',   color:'rgba(61,158,116,.5)',  bg:'rgba(61,158,116,.08)',  lineColor:'#3D9E74'},
+  {key:'bs',    label:'볼스피드',    icon:'💨', unit:'',   color:'rgba(122,176,232,.5)', bg:'rgba(122,176,232,.08)', lineColor:'#7AB0E8'},
+  {key:'sf',    label:'스매시팩터',  icon:'🎯', unit:'',   color:'rgba(167,139,250,.5)', bg:'rgba(167,139,250,.08)', lineColor:'#A78BFA'},
+  {key:'con',   label:'일관성',      icon:'🎯', unit:'점', color:'rgba(167,139,250,.5)', bg:'rgba(167,139,250,.08)', lineColor:'#A78BFA'},
+];
+const CHART_STORAGE_KEY = 'birdyard_chart_sel';
+function loadChartSel(){
+  try{
+    const saved = localStorage.getItem(CHART_STORAGE_KEY);
+    if(saved){const parsed=JSON.parse(saved); if(Array.isArray(parsed))return new Set(parsed);}
+  }catch(e){}
+  return new Set(['carry','hs','con']); // 기본값
+}
+function saveChartSel(){
+  try{ localStorage.setItem(CHART_STORAGE_KEY, JSON.stringify([...selectedChartKeys])); }catch(e){}
+}
+let selectedChartKeys = loadChartSel();
+// 하위 호환 (selectedCharts 객체 → 키 Set으로 교체)
+const selectedCharts = new Proxy({},{
+  get:(_,k)=>selectedChartKeys.has(k),
+  set:(_,k,v)=>{ v?selectedChartKeys.add(k):selectedChartKeys.delete(k); return true; }
+});
 let homeTermIdx = -1; // 홈화면 오늘의 용어 인덱스 (-1이면 날짜 기반 자동)
 
 // ── 클럽별 실력대 기준 (캐리 m) ──────────────────────
@@ -2102,8 +2127,19 @@ function pList(){
   const ptabs=`<div class="p-tabs" style="display:flex;align-items:center"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button><button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button></div>`;
   const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
   if(pSub==='stats'){
-    const cm={};D.sessions.forEach(s=>{if(!s.club)return;const nc=normalizeClub(s.club);if(!cm[nc])cm[nc]={c:[],h:[],b:[],sf:[],con:[]};const st=ss(s);if(st.avgCarry)cm[nc].c.push(st.avgCarry);if(st.avgHs)cm[nc].h.push(st.avgHs);if(st.avgBs)cm[nc].b.push(st.avgBs);if(st.avgSf)cm[nc].sf.push(st.avgSf);if(st.consistency!=null)cm[nc].con.push(st.consistency)});
-
+    // 클럽별 데이터 수집 (6종)
+    const cm={};D.sessions.forEach(s=>{
+      if(!s.club)return;
+      const nc=normalizeClub(s.club);
+      if(!cm[nc])cm[nc]={c:[],tot:[],h:[],b:[],sf:[],con:[]};
+      const st=ss(s);
+      if(st.avgCarry)cm[nc].c.push(st.avgCarry);
+      if(st.avgTotal)cm[nc].tot.push(st.avgTotal);
+      if(st.avgHs)cm[nc].h.push(st.avgHs);
+      if(st.avgBs)cm[nc].b.push(st.avgBs);
+      if(st.avgSf)cm[nc].sf.push(st.avgSf);
+      if(st.consistency!=null)cm[nc].con.push(st.consistency);
+    });
 
     // 클럽 순서 (CLUBS 배열 순)
     const clubOrder=CLUBS.map(c=>c);
@@ -2111,32 +2147,46 @@ function pList(){
 
     const clubSections=sortedClubs.map(club=>{
       const d=cm[club];const con=avg(d.con);
-      const hasCon=d.con.length>=2;
+      // 선택된 차트 중 2개 이상 데이터 있는 것만 canvas 생성
+      const chartDatas={carry:d.c,total:d.tot,hs:d.h,bs:d.b,sf:d.sf,con:d.con};
+      const canvases=CHART_DEFS.filter(cd=>selectedChartKeys.has(cd.key)&&(chartDatas[cd.key]||[]).length>=2)
+        .map(cd=>`<div class="chart-wrap" style="flex:1;min-width:220px"><div class="chart-title" style="font-size:.68rem">${cd.icon} ${cd.label}${cd.unit?' ('+cd.unit+')':''}</div><div style="position:relative;height:150px"><canvas id="chart-${cd.key}-${esc(club)}"></canvas></div></div>`)
+        .join('');
+      const hasAnyChart = canvases.length > 0;
       return`<div style="margin-bottom:1.4rem">
-        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">
           <span class="club-badge" style="font-size:.72rem">${esc(club)}</span>
-          ${d.c.length?`<span style="font-size:.75rem;color:var(--muted)">캐리 평균 <span style="color:var(--wing2);font-weight:600">${fn(avg(d.c),'m')}</span> · 베스트 <span style="color:var(--wing2);font-weight:600">${fn(best(d.c),'m')}</span></span>`:''}
-          ${d.h.length?`<span style="font-size:.75rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:600">${fn(avg(d.h))}</span></span>`:''}
-          ${con!=null?`<span style="font-size:.75rem;color:${consistencyColor(Math.round(con))}">🎯 ${Math.round(con)}점</span>`:''}
-          <button class="btn-analyze" style="padding:.2rem .6rem;font-size:.62rem;margin-left:auto" onclick="analyzeClubRec('${esc(club)}','equipment')" id="btn-club-${esc(club)}-equipment">✦ 장비·스윙</button>
-          <button class="btn-analyze" style="padding:.2rem .6rem;font-size:.62rem;margin-left:.3rem;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="analyzeClubRec('${esc(club)}','growth')" id="btn-club-${esc(club)}-growth">✦ 성장 추이</button>
+          ${d.c.length?`<span style="font-size:.73rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:600">${fn(avg(d.c),'m')}</span></span>`:''}
+          ${d.h.length?`<span style="font-size:.73rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:600">${fn(avg(d.h))}</span></span>`:''}
+          ${d.b.length?`<span style="font-size:.73rem;color:var(--muted)">BS <span style="color:#7ab0e8;font-weight:600">${fn(avg(d.b))}</span></span>`:''}
+          ${d.sf.length?`<span style="font-size:.73rem;color:var(--muted)">SF <span style="color:#A78BFA;font-weight:600">${avg(d.sf).toFixed(2)}</span></span>`:''}
+          ${con!=null?`<span style="font-size:.73rem;color:${consistencyColor(Math.round(con))};font-weight:600">🎯${Math.round(con)}점</span>`:''}
+          <div style="margin-left:auto;display:flex;gap:.3rem">
+            <button class="btn-analyze" style="padding:.2rem .6rem;font-size:.62rem" onclick="analyzeClubRec('${esc(club)}','equipment')" id="btn-club-${esc(club)}-equipment">✦ 장비·스윙</button>
+            <button class="btn-analyze" style="padding:.2rem .6rem;font-size:.62rem;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="analyzeClubRec('${esc(club)}','growth')" id="btn-club-${esc(club)}-growth">✦ 성장 추이</button>
+          </div>
         </div>
         <div id="club-rec-row-${esc(club)}" style="display:none;margin-bottom:.5rem"><div id="club-rec-result-${esc(club)}"></div></div>
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-          ${selectedCharts.carry&&d.c.length>=2?`<div class="chart-wrap" style="flex:1;min-width:240px"><div class="chart-title" style="font-size:.68rem">📏 캐리 (m)</div><div style="position:relative;height:150px"><canvas id="chart-carry-${esc(club)}"></canvas></div></div>`:''}
-          ${selectedCharts.hs&&d.h.length>=2?`<div class="chart-wrap" style="flex:1;min-width:240px"><div class="chart-title" style="font-size:.68rem">⚡ 헤드스피드</div><div style="position:relative;height:150px"><canvas id="chart-hs-${esc(club)}"></canvas></div></div>`:''}
-          ${selectedCharts.con&&hasCon?`<div class="chart-wrap" style="flex:1;min-width:240px"><div class="chart-title" style="font-size:.68rem">🎯 일관성</div><div style="position:relative;height:150px"><canvas id="chart-con-${esc(club)}"></canvas></div></div>`:''}
-        </div>
-        ${(!selectedCharts.carry||d.c.length<2)&&(!selectedCharts.hs||d.h.length<2)&&(!selectedCharts.con||!hasCon)?`<div style="font-size:.75rem;color:var(--muted);padding:.3rem 0">그래프를 그리려면 같은 클럽의 세션이 2개 이상 필요합니다.</div>`:''}
+        ${hasAnyChart?`<div style="display:flex;gap:.4rem;flex-wrap:wrap">${canvases}</div>`:
+          `<div style="font-size:.73rem;color:var(--muted);padding:.25rem 0">선택한 그래프를 그리려면 같은 클럽 세션이 2개 이상 필요합니다.</div>`}
       </div>`;
     }).join('<div class="divider"></div>');
 
+    const selCount = selectedChartKeys.size;
     return`<div class="page">${srow}${ptabs}
-    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem;align-items:center">
-      <span style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">그래프 선택</span>
-      <button onclick="toggleChart('carry')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.carry?'border-color:rgba(200,137,58,.5);color:var(--wing2);background:rgba(200,137,58,.08)':''}">📏 캐리</button>
-      <button onclick="toggleChart('hs')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.hs?'border-color:rgba(61,158,116,.5);color:var(--turf);background:rgba(61,158,116,.08)':''}">⚡ 헤드스피드</button>
-      <button onclick="toggleChart('con')" class="btn btn-s btn-sm" style="padding:2px 10px;font-size:.7rem;${selectedCharts.con?'border-color:rgba(167,139,250,.5);color:#A78BFA;background:rgba(167,139,250,.08)':''}">🎯 일관성</button>
+    <div style="margin-bottom:.9rem">
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem">
+        <span style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">그래프 선택</span>
+        <span style="font-size:.65rem;color:${selCount>=3?'var(--amber)':'var(--muted)'};">(${selCount}/3 선택됨)</span>
+      </div>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+        ${CHART_DEFS.map(cd=>{
+          const on=selectedChartKeys.has(cd.key);
+          const disabled=!on&&selCount>=3;
+          return`<button onclick="toggleChart('${cd.key}')" class="btn btn-s btn-sm" style="padding:3px 10px;font-size:.7rem;${on?`border-color:${cd.color};color:${cd.lineColor};background:${cd.bg}`:disabled?'opacity:.38;cursor:not-allowed':''}${disabled?' pointer-events:none':''}">${cd.icon} ${cd.label}</button>`;
+        }).join('')}
+      </div>
+      ${selCount>=3?`<div style="font-size:.65rem;color:var(--amber);margin-top:.3rem">최대 3개까지 선택 가능 · 다른 항목을 보려면 선택된 것을 먼저 해제하세요</div>`:''}
     </div>
     ${clubSections||`<div class="empty">클럽 기록이 없습니다.</div>`}
     <div class="divider"></div>
@@ -2151,7 +2201,12 @@ function pList(){
   return`<div class="page">${srow}${ptabs}${cards}</div>`;
 }
 window.toggleChart=key=>{
-  selectedCharts[key]=!selectedCharts[key];
+  const isOn = selectedChartKeys.has(key);
+  if(!isOn && selectedChartKeys.size >= 3){
+    toast('그래프는 최대 3개까지 선택할 수 있습니다'); return;
+  }
+  isOn ? selectedChartKeys.delete(key) : selectedChartKeys.add(key);
+  saveChartSel();
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   const m=$('main');m.innerHTML=pList();
   requestAnimationFrame(()=>requestAnimationFrame(initCharts));
@@ -2192,16 +2247,16 @@ function clubColor(club) {
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
 
-  // 클럽별로 canvas가 준비됐는지 확인
+  // 선택된 차트의 canvas가 하나라도 준비됐는지 확인
   const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
-  const anyReady=clubs.some(c=>$(`chart-carry-${c}`)||$(`chart-hs-${c}`)||$(`chart-con-${c}`));
+  const anyReady=clubs.some(c=>CHART_DEFS.some(cd=>selectedChartKeys.has(cd.key)&&$(`chart-${cd.key}-${c}`)));
   if(!anyReady){setTimeout(initCharts,100);return;}
 
   const allDates=[...new Set(sessions.map(s=>s.date||''))].sort();
   const sessionMap={};
   sessions.forEach(s=>{sessionMap[`${s.date}__${normalizeClub(s.club)}`]=s.id;});
 
-  // 실력대 음영 플러그인
+  // 실력대 음영 플러그인 — 가독성 개선 (테두리+라벨)
   const benchPlugin=(zones)=>({
     id:'benchZone',
     beforeDraw(chart){
@@ -2215,16 +2270,26 @@ function initCharts(){
         const yBot=Math.min(Math.max(y1,y2),bottom);
         if(yTop>=yBot)return;
         ctx.save();
-        ctx.fillStyle=z.c;
+        // 배경 음영 (기존보다 진하게)
+        ctx.fillStyle=z.c.replace(/[\d.]+\)$/,'0.14)');
         ctx.fillRect(left,yTop,right-left,yBot-yTop);
-        ctx.fillStyle='rgba(255,255,255,.22)';
-        ctx.font='8px sans-serif';
-        ctx.fillText(z.l,left+3,yTop+9);
+        // 상단 경계선
+        ctx.strokeStyle=z.c.replace(/[\d.]+\)$/,'0.5)');
+        ctx.lineWidth=1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();ctx.moveTo(left,yTop);ctx.lineTo(right,yTop);ctx.stroke();
+        ctx.setLineDash([]);
+        // 라벨 (흰색 배경 박스)
+        ctx.font='bold 8px sans-serif';
+        const lw=ctx.measureText(z.l).width+6;
+        ctx.fillStyle='rgba(13,17,23,.75)';
+        ctx.fillRect(right-lw-2,yTop+1,lw+2,11);
+        ctx.fillStyle=z.c.replace(/[\d.]+\)$/,'0.9)');
+        ctx.fillText(z.l,right-lw,yTop+10);
         ctx.restore();
       });
     }
   });
-
 
   const mkChart=(id,labels,data,color,yOpts,zones,onClick)=>{
     const c=$(id); if(!c)return;
@@ -2233,8 +2298,13 @@ function initCharts(){
     charts[id]=new Chart(c,{
       type:'line',
       data:{labels,datasets:[{label:data.label,data:data.vals,borderColor:color||col.line,backgroundColor:(color||col.line).replace(')',', .15)').replace('rgb','rgba'),borderWidth:2,tension:.35,fill:false,pointBackgroundColor:color||col.line,pointBorderColor:'#0D1117',pointBorderWidth:1,pointRadius:4,pointHoverRadius:7,spanGaps:true}]},
-      options:{responsive:true,maintainAspectRatio:false,onClick,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yOpts.unit||''}`}}},scales:{x:{ticks:{color:'#5A7A8A',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.04)'}},y:{...yOpts,ticks:{color:'#5A7A8A',font:{size:9},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.06)'}}}},
-      plugins:zones?[benchPlugin(zones)]:[]
+      options:{responsive:true,maintainAspectRatio:false,onClick,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yOpts.unit||''}`}}},
+        scales:{
+          x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+          y:{...yOpts,ticks:{color:'#8AABBB',font:{size:9},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.09)'}}
+        }},
+      plugins:zones&&zones.length?[benchPlugin(zones)]:[]
     });
   };
 
@@ -2242,32 +2312,33 @@ function initCharts(){
     const clubSessions=sessions.filter(s=>normalizeClub(s.club)===club);
     const dates=clubSessions.map(s=>s.date).sort();
     const labels=dates.map(d=>d.slice(5));
-
-    const clickHandler=(evt,elements,chart)=>{
+    const clickHandler=(evt,elements)=>{
       if(!elements.length)return;
       const date=dates[elements[0].index];
       const sid=sessionMap[`${date}__${club}`];
       if(sid){tab='practice';view='detail';selId=sid;render();}
     };
-
     const bench=CLUB_BENCH[club]||CLUB_BENCH['7I'];
     const col=clubColor(club);
 
-    // 캐리
-    if(selectedCharts.carry&&$(`chart-carry-${club}`)){
-      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);if(!s)return null;const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null;});
-      mkChart(`chart-carry-${club}`,labels,{label:club,vals},col.line,{unit:'m'},bench?.carry||[],clickHandler);
-    }
-    // 헤드스피드
-    if(selectedCharts.hs&&$(`chart-hs-${club}`)){
-      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);if(!s)return null;const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null;});
-      mkChart(`chart-hs-${club}`,labels,{label:club,vals},col.line,{unit:''},bench?.hs||[],clickHandler);
-    }
-    // 일관성
-    if(selectedCharts.con&&$(`chart-con-${club}`)){
-      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);if(!s)return null;return ss(s).consistency;});
-      mkChart(`chart-con-${club}`,labels,{label:club,vals},'#A78BFA',{min:0,max:100,unit:'점',callback:v=>`${v}점`},STATS_CON_ZONES,clickHandler);
-    }
+    // 6종 차트 데이터 정의
+    const chartDataMap={
+      carry:{get:(s)=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null;}, yOpts:{unit:'m'}, zones:bench?.carry||[], color:col.line},
+      total:{get:(s)=>{const st=ss(s);return st.avgTotal?Math.round(st.avgTotal):null;}, yOpts:{unit:'m'}, zones:bench?.carry?.map(z=>({...z,min:z.min+10,max:z.max+10}))||[], color:'#E4A855'},
+      hs:   {get:(s)=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null;}, yOpts:{unit:''}, zones:bench?.hs||[], color:'#3D9E74'},
+      bs:   {get:(s)=>{const st=ss(s);return st.avgBs?Math.round(st.avgBs*10)/10:null;}, yOpts:{unit:''}, zones:[], color:'#7AB0E8'},
+      sf:   {get:(s)=>{const st=ss(s);return st.avgSf?Math.round(st.avgSf*100)/100:null;}, yOpts:{unit:''}, zones:[{l:'이상적',min:1.44,max:1.5,c:'rgba(61,158,116,.5)'},{l:'보통',min:1.38,max:1.44,c:'rgba(200,137,58,.4)'}], color:'#A78BFA'},
+      con:  {get:(s)=>{return ss(s).consistency;}, yOpts:{min:0,max:100,unit:'점',callback:v=>`${v}점`}, zones:STATS_CON_ZONES, color:'#A78BFA'},
+    };
+
+    CHART_DEFS.forEach(cd=>{
+      if(!selectedChartKeys.has(cd.key)) return;
+      const canvasId=`chart-${cd.key}-${club}`;
+      if(!$(canvasId)) return;
+      const def=chartDataMap[cd.key];
+      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);return s?def.get(s):null;});
+      mkChart(canvasId,labels,{label:club,vals},def.color,def.yOpts,def.zones,clickHandler);
+    });
   });
 }
 function pDetail(){
