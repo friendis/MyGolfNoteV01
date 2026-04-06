@@ -740,6 +740,7 @@ const selectedCharts = new Proxy({},{
   set:(_,k,v)=>{ v?selectedChartKeys.add(k):selectedChartKeys.delete(k); return true; }
 });
 let homeTermIdx = -1; // 홈화면 오늘의 용어 인덱스 (-1이면 날짜 기반 자동)
+let homeBenchClub = '드라이버'; // 홈화면 실력 비교 기준 클럽
 
 // ── 클럽별 실력대 기준 (캐리 m) ──────────────────────
 const CLUB_BENCH={
@@ -1095,6 +1096,7 @@ window.shuffleHomeTerm=()=>{
   homeTermIdx=next;
   render();
 };
+window.toggleBenchClub=()=>{ homeBenchClub=homeBenchClub==='드라이버'?'7I':'드라이버'; render(); };
 
 // ── 온보딩 저장 ──────────────────────────────────────
 window.saveOnboarding=async()=>{
@@ -1190,16 +1192,13 @@ function homeView(){
   const freqLabel = freqPerWeek>=3?'매우 활발':freqPerWeek>=1.5?'활발':freqPerWeek>=0.5?'보통':'시작 단계';
   const freqColor = freqPerWeek>=3?'var(--turf)':freqPerWeek>=1.5?'#7ab0e8':freqPerWeek>=0.5?'var(--wing2)':'var(--muted)';
 
-  // ── 전체 스윙 통계 (드라이버 기준 캐리, 전체 기준 HS/SF)
-  const driverSessions = D.sessions.filter(s=>{
-    const nc=normalizeClub(s.club); return nc==='드라이버';
-  });
-  const driverShots = driverSessions.flatMap(s=>s.shots||[]);
+  // ── 전체 스윙 통계 (homeBenchClub 기준)
+  const is7I = homeBenchClub === '7I';
+  const benchSessions = D.sessions.filter(s=>normalizeClub(s.club)===(is7I?'7I':'드라이버'));
+  const benchShots = benchSessions.flatMap(s=>s.shots||[]);
   const allShots = D.sessions.flatMap(s=>s.shots||[]);
-  // 캐리는 드라이버 샷 기준
-  const allCarries = driverShots.map(sh=>sh.carry).filter(v=>v>0);
-  // HS/SF는 전체 기준 (드라이버 데이터 없을 때 폴백)
-  const hsSource = driverShots.length>=3 ? driverShots : allShots;
+  const allCarries = benchShots.map(sh=>sh.carry).filter(v=>v>0);
+  const hsSource = benchShots.length>=3 ? benchShots : allShots;
   const allHs = hsSource.map(sh=>sh.headSpeed).filter(v=>v>0);
   const allSf = hsSource.map(sh=>sh.smashFactor).filter(v=>v>0);
   const myCarry = avg(allCarries);
@@ -1208,19 +1207,30 @@ function homeView(){
   const allCon = D.sessions.map(s=>ss(s).consistency).filter(v=>v!=null);
   const myCon = avg(allCon);
 
-  // ── 실력 벤치마크 (드라이버 캐리 기준)
-  const benchmarks = [
-    {label:'프로',   carry:270, hs:52, color:'#E4A855'},
-    {label:'상급',   carry:230, hs:44, color:'#7ab0e8'},
-    {label:'중급',   carry:190, hs:38, color:'#A78BFA'},
-    {label:'초급',   carry:150, hs:33, color:'var(--muted)'},
-  ];
-  const myLevel = !myCarry ? '데이터 없음'
-    : myCarry>=250?'상급자':myCarry>=210?'중급자':myCarry>=170?'초급자':'입문';
-  const myLevelColor = !myCarry?'var(--muted)'
-    : myCarry>=250?'#7ab0e8':myCarry>=210?'#A78BFA':myCarry>=170?'var(--wing2)':'var(--muted)';
+  // ── 실력 벤치마크 — 드라이버 / 7I 별도 기준
+  const benchmarksByClub = {
+    '드라이버': [
+      {label:'프로',  carry:270, hs:52, color:'#E4A855'},
+      {label:'상급',  carry:230, hs:44, color:'#7ab0e8'},
+      {label:'중급',  carry:190, hs:38, color:'#A78BFA'},
+      {label:'초급',  carry:150, hs:33, color:'var(--muted)'},
+    ],
+    '7I': [
+      {label:'프로',  carry:165, hs:42, color:'#E4A855'},
+      {label:'상급',  carry:140, hs:37, color:'#7ab0e8'},
+      {label:'중급',  carry:115, hs:32, color:'#A78BFA'},
+      {label:'초급',  carry:88,  hs:27, color:'var(--muted)'},
+    ],
+  };
+  const benchmarks = benchmarksByClub[homeBenchClub] || benchmarksByClub['드라이버'];
+  const maxCarry = is7I ? 190 : 290;
 
-  const maxCarry = 290;
+  const myLevel = !myCarry ? '데이터 없음'
+    : is7I
+      ? myCarry>=155?'상급자':myCarry>=125?'중급자':myCarry>=95?'초급자':'입문'
+      : myCarry>=250?'상급자':myCarry>=210?'중급자':myCarry>=170?'초급자':'입문';
+  const myLevelColor = !myCarry?'var(--muted)'
+    : myCarry>=(is7I?155:250)?'#7ab0e8':myCarry>=(is7I?125:210)?'#A78BFA':myCarry>=(is7I?95:170)?'var(--wing2)':'var(--muted)';
   const benchHtml = benchmarks.map(b=>{
     const pct = Math.min(100,Math.round(b.carry/maxCarry*100));
     const myPct = myCarry?Math.min(100,Math.round(myCarry/maxCarry*100)):0;
@@ -1235,7 +1245,7 @@ function homeView(){
   }).join('');
 
   const noDriverNote = !myCarry&&allShots.length>0
-    ? `<div style="font-size:.73rem;color:var(--muted);margin-top:.5rem">💡 드라이버 기록이 없어 비교할 수 없습니다. 드라이버 세션을 추가해주세요.</div>` : '';
+    ? `<div style="font-size:.73rem;color:var(--muted);margin-top:.5rem">💡 ${homeBenchClub} 기록이 없어 비교할 수 없습니다.</div>` : '';
 
   const myCarryRow = myCarry ? `<div class="bench-row" style="background:rgba(200,137,58,.06);border-radius:2px;padding:.3rem .2rem">
     <span class="bench-label" style="color:var(--wing2)">내 캐리</span>
@@ -1367,11 +1377,16 @@ function homeView(){
   </div>
 
   <!-- 실력 벤치마크 -->
-  ${allCarries.length>=3?`<div class="home-section">
-    <div class="home-section-title">📊 실력 비교 <span style="font-size:.6rem;font-weight:400;text-transform:none;letter-spacing:0">(드라이버 캐리 기준)</span></div>
+  ${allCarries.length>=3||allShots.length>0?`<div class="home-section">
+    <div class="home-section-title">
+      📊 실력 비교
+      <div style="margin-left:auto;display:flex;gap:3px">
+        <button onclick="toggleBenchClub()" style="background:${!is7I?'rgba(200,137,58,.15)':'none'};border:1px solid ${!is7I?'rgba(200,137,58,.4)':'var(--border)'};color:${!is7I?'var(--wing2)':'var(--muted)'};padding:1px 8px;border-radius:2px;font-size:.65rem;cursor:pointer;font-family:var(--sans);letter-spacing:.04em">드라이버</button>
+        <button onclick="toggleBenchClub()" style="background:${is7I?'rgba(122,176,232,.15)':'none'};border:1px solid ${is7I?'rgba(122,176,232,.4)':'var(--border)'};color:${is7I?'#7ab0e8':'var(--muted)'};padding:1px 8px;border-radius:2px;font-size:.65rem;cursor:pointer;font-family:var(--sans);letter-spacing:.04em">7번 아이언</button>
+      </div>
+    </div>
     <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem">
-      ${benchHtml}${myCarryRow}
-      ${noDriverNote}
+      ${allCarries.length>=3?`${benchHtml}${myCarryRow}`:noDriverNote||`<div style="font-size:.73rem;color:var(--muted)">${homeBenchClub} 기록이 3개 이상 필요합니다.</div>`}
       <div style="margin-top:.6rem;display:flex;gap:.75rem;flex-wrap:wrap">
         ${myHs?`<div><span style="font-size:.68rem;color:var(--muted)">헤드스피드 </span><span style="font-size:.82rem;color:var(--turf);font-weight:600">${Math.round(myHs*10)/10}</span></div>`:''}
         ${mySf?`<div><span style="font-size:.68rem;color:var(--muted)">스매시팩터 </span><span style="font-size:.82rem;color:#7ab0e8;font-weight:600">${mySf.toFixed(2)}</span></div>`:''}
