@@ -1300,7 +1300,7 @@ function homeView(){
         <button onclick="goDict()" title="용어 사전" style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:0 8px;height:26px;border-radius:2px;cursor:pointer;font-size:.65rem;font-family:var(--sans);letter-spacing:.06em">📖 사전</button>
       </div>
     </div>
-    <div onclick="goDict('${todayTerm.id}')" style="cursor:pointer">
+    <div onclick="goCurrentTerm()" style="cursor:pointer">
       <div style="display:flex;align-items:baseline;gap:.5rem;margin-bottom:.3rem">
         <div style="font-size:.95rem;font-weight:600;color:var(--chalk)">${esc(todayTerm.term)}</div>
         <span style="font-size:.62rem;color:var(--muted);letter-spacing:.06em">${todayTerm.category}</span>
@@ -1382,7 +1382,7 @@ function vList(){
   const termCard = dictKw ? (()=>{
     const t = D_TERMS.terms.find(x=>x.term===dictKw);
     if(!t) return `<div class="term-info-card"><div class="term-name">📖 ${esc(dictKw)}</div><div class="term-def" style="color:var(--muted);font-size:.78rem">사전에 등록되지 않은 용어입니다. <button onclick="goDict();setTimeout(()=>searchTermFromTag('${esc(dictKw)}'),200)" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.78rem;text-decoration:underline">AI로 검색하기 →</button></div></div>`;
-    return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="goDict('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
+    return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="dictViewDetail('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
   return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
@@ -1610,7 +1610,13 @@ window.saveTermNote=async(termId,memo)=>{
 window.filterByTag=(e,kw)=>{e.stopPropagation();dictKw=kw;render();};
 window.clearTagFilter=()=>{dictKw='';render();};
 window.goNoteDetail=id=>{tab='videos';view='detail';selId=id;render();};
-window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';render();};
+window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';tab='videos';document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));const tb=$('tab-videos');if(tb)tb.classList.add('on');render();};
+// homeView에서 안전하게 용어 상세로 이동 (인라인 onclick에서 id 전달 문제 우회)
+window.goCurrentTerm=()=>{
+  const pool=D_TERMS.terms.filter(t=>t.definition);
+  if(!pool.length||homeTermIdx<0||homeTermIdx>=pool.length)return;
+  goDict(pool[homeTermIdx].id);
+};
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
   if(t!=='home') homeTermIdx=-1; // 홈 아닌 탭 이동 시 용어 리셋
