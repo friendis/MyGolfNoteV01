@@ -1752,13 +1752,45 @@ window.delVideo=async id=>{
   if(!confirm('영상을 삭제하시겠습니까?'))return;
   sync('busy');const{error}=await sb.from('videos').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.videos=D.videos.filter(v=>v.id!==id);sync('ok');toast('삭제됨');goList();
 };
-function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
-window.prevThumb=()=>{const t=thumb($('vu').value),img=$('vthumb');if(t){img.src=t;img.style.display='block'}else img.style.display='none'};
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+window.prevThumb=()=>{
+  const url=$('vu').value.trim();
+  const t=thumb(url),img=$('vthumb');
+  if(t){img.src=t;img.style.display='block'}else img.style.display='none';
+  // 중복 영상 체크
+  const dupWrap=$('vu-dup');
+  if(!dupWrap)return;
+  if(!url){dupWrap.innerHTML='';return;}
+  // URL 정규화: YouTube는 videoId, Instagram은 전체 URL 비교
+  const vid=vidId(url);
+  const dup=D.videos.find(v=>{
+    if(vid) return vidId(v.url)===vid;
+    return v.url.trim()===url;
+  });
+  if(dup){
+    dupWrap.innerHTML=`<div style="display:flex;align-items:center;gap:.5rem;background:rgba(228,168,85,.1);border:1px solid rgba(228,168,85,.3);border-radius:2px;padding:.45rem .7rem;margin-top:.4rem">
+      <span style="font-size:.8rem">⚠️</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.75rem;color:var(--amber);font-weight:600">이미 저장된 영상입니다</div>
+        <div style="font-size:.72rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(dup.title)}</div>
+      </div>
+      <button onclick="view='detail';selId='${dup.id}';render()" style="background:rgba(228,168,85,.15);border:1px solid rgba(228,168,85,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;white-space:nowrap;font-family:var(--sans)">노트 보기</button>
+    </div>`;
+  } else {
+    dupWrap.innerHTML='';
+  }
+};
 window.addKw=c=>{const e=$('vk');e.value=e.value.trim()?(e.value.trim()+', '+c):c};
 window.saveVideo=async()=>{
   const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}
   if(!vidId(url)&&!isInsta(url)){toast('YouTube 또는 Instagram URL을 입력하세요');return}
   if(overLimit('videos')){toast(limitMsg('videos'));return}
+  // 중복 최종 확인
+  const vid=vidId(url);
+  const dup=D.videos.find(v=>vid?vidId(v.url)===vid:v.url.trim()===url);
+  if(dup){
+    if(!confirm(`"${dup.title}" 이 영상이 이미 저장돼 있습니다.\n그래도 새로 추가하시겠습니까?`))return;
+  }
   const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim();
   const btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
