@@ -714,6 +714,7 @@ let dictSelId = null;  // 선택된 용어 id
 let dictCat = '';      // 선택된 카테고리
 let dictKw = '';       // 태그 클릭 필터 컨텍스트
 let selectedCharts = {carry:true, hs:true, con:true}; // 차트 표시 선택
+let homeTermIdx = -1; // 홈화면 오늘의 용어 인덱스 (-1이면 날짜 기반 자동)
 
 // ── 클럽별 실력대 기준 (캐리 m) ──────────────────────
 const CLUB_BENCH={
@@ -1060,6 +1061,15 @@ window.goHome=()=>{
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   render();
 };
+window.shuffleHomeTerm=()=>{
+  const pool=D_TERMS.terms.filter(t=>t.definition);
+  if(!pool.length)return;
+  // 현재와 다른 인덱스로
+  let next;
+  do { next=Math.floor(Math.random()*pool.length); } while(next===homeTermIdx && pool.length>1);
+  homeTermIdx=next;
+  render();
+};
 
 // ── 온보딩 저장 ──────────────────────────────────────
 window.saveOnboarding=async()=>{
@@ -1270,14 +1280,34 @@ function homeView(){
   </div>`;
 
   // ── 오늘의 용어
-  const todayTerm = D_TERMS.terms.length ? D_TERMS.terms[Math.floor((now.getDate()+now.getMonth()*31)%D_TERMS.terms.length)] : null;
-  const termHtml = todayTerm ? `<div class="today-term" onclick="goDict('${todayTerm.id}')">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="font-size:.65rem;color:#A78BFA;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">오늘의 골프 용어</div>
-      <span style="font-size:.65rem;color:var(--muted)">${todayTerm.category}</span>
+  // 오늘의 용어: homeTermIdx가 설정돼 있으면 그 값, 아니면 시간 기반 (10분마다 바뀜)
+  const termPool = D_TERMS.terms.filter(t=>t.definition);
+  let todayTermIdx;
+  if(homeTermIdx >= 0 && homeTermIdx < termPool.length){
+    todayTermIdx = homeTermIdx;
+  } else {
+    // 10분(600초) 단위로 다른 용어 — 날짜+시간 블록 기반
+    const timeBlock = Math.floor(Date.now() / (10 * 60 * 1000));
+    todayTermIdx = termPool.length ? timeBlock % termPool.length : 0;
+    homeTermIdx = todayTermIdx;
+  }
+  const todayTerm = termPool.length ? termPool[todayTermIdx] : null;
+  const termHtml = todayTerm ? `<div style="background:linear-gradient(135deg,rgba(167,139,250,.06),rgba(200,137,58,.05));border:1px solid rgba(167,139,250,.2);border-radius:3px;padding:.8rem 1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div style="font-size:.65rem;color:#A78BFA;letter-spacing:.1em;text-transform:uppercase">오늘의 골프 용어</div>
+      <div style="display:flex;gap:.3rem">
+        <button onclick="shuffleHomeTerm()" title="다른 용어" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);color:#A78BFA;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;line-height:1">↻</button>
+        <button onclick="goDict()" title="용어 사전" style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:0 8px;height:26px;border-radius:2px;cursor:pointer;font-size:.65rem;font-family:var(--sans);letter-spacing:.06em">📖 사전</button>
+      </div>
     </div>
-    <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem">${esc(todayTerm.term)}</div>
-    <div style="font-size:.78rem;color:var(--dim);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(todayTerm.definition)}</div>
+    <div onclick="goDict('${todayTerm.id}')" style="cursor:pointer">
+      <div style="display:flex;align-items:baseline;gap:.5rem;margin-bottom:.3rem">
+        <div style="font-size:.95rem;font-weight:600;color:var(--chalk)">${esc(todayTerm.term)}</div>
+        <span style="font-size:.62rem;color:var(--muted);letter-spacing:.06em">${todayTerm.category}</span>
+      </div>
+      <div style="font-size:.78rem;color:var(--dim);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(todayTerm.definition)}</div>
+      <div style="font-size:.68rem;color:#A78BFA;margin-top:.4rem">자세히 보기 →</div>
+    </div>
   </div>` : '';
 
   return `<div class="page" style="padding-bottom:1rem">
@@ -1583,6 +1613,7 @@ window.goNoteDetail=id=>{tab='videos';view='detail';selId=id;render();};
 window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';render();};
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
+  if(t!=='home') homeTermIdx=-1; // 홈 아닌 탭 이동 시 용어 리셋
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   if($('tab-'+t))$('tab-'+t).classList.add('on');
