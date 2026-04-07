@@ -1020,6 +1020,13 @@ async function loadAll(){
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||''}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18}));
     D.profile=pR.data||null;
+    // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
+    if(D.profile && !D.profile.ai_cache){
+      try{
+        const local=JSON.parse(localStorage.getItem(AI_CACHE_KEY)||'{}');
+        if(Object.keys(local).length>0) saveAiCache(local);
+      }catch(e){}
+    }
     // 용어 사전
     if(!tR.error) D_TERMS.terms = tR.data.map(r=>({id:r.id,term:r.term,definition:r.definition,category:r.category||'기초',source:r.source||'builtin',relations:r.relations||[]}));
     if(!tnR.error) { D_TERMS.notes = {}; tnR.data.forEach(r=>{ D_TERMS.notes[r.term_id]=r; }); }
@@ -2857,19 +2864,33 @@ ${wishList}
 };
 
 // ── 클럽별 개별 추천 분석 ─────────────────────────────
-// ── AI 분석 결과 영구 캐시 (localStorage) ────────────
+// ── AI 분석 결과 캐시 (DB 우선, localStorage 폴백) ──
 const AI_CACHE_KEY = 'birdyard_ai_cache';
 function loadAiCache(){
+  // DB 프로필에 ai_cache가 있으면 우선 사용
+  if(D.profile?.ai_cache && typeof D.profile.ai_cache === 'object') return D.profile.ai_cache;
   try{ return JSON.parse(localStorage.getItem(AI_CACHE_KEY)||'{}'); }
   catch(e){ return {}; }
 }
 function saveAiCache(cache){
+  // localStorage에 즉시 저장
   try{ localStorage.setItem(AI_CACHE_KEY, JSON.stringify(cache)); }catch(e){}
+  // DB에 비동기 저장 (user_profiles.ai_cache)
+  if(user && !isGuest){
+    sb.from('user_profiles').upsert({
+      user_id: user.id,
+      ai_cache: cache,
+      updated_at: new Date().toISOString()
+    },{onConflict:'user_id'}).then(({error})=>{
+      if(error) console.warn('AI 캐시 DB 저장 실패:', error.message);
+      else if(D.profile) D.profile.ai_cache = cache;
+    });
+  }
 }
 function getAiCache(key){ return loadAiCache()[key]||null; }
 function setAiCache(key, result){
   const cache=loadAiCache();
-  cache[key]={result, analyzedAt:today(), dataHash: cache[key]?.dataHash||''};
+  cache[key]={result, analyzedAt:today()};
   saveAiCache(cache);
 }
 function setAiCacheWithHash(key, result, dataHash){
@@ -2877,7 +2898,7 @@ function setAiCacheWithHash(key, result, dataHash){
   cache[key]={result, analyzedAt:today(), dataHash};
   saveAiCache(cache);
 }
-// 하위호환: 메모리 캐시 (화면 이동 없이 빠른 재표시용)
+// 하위호환: 메모리 캐시
 const clubRecCache = {};
 
 function clubDataHash(club) {
@@ -3147,6 +3168,16 @@ window.saveApiKeys = () => {
 // ── 릴리즈 노트 ─────────────────────────────────────
 const RELEASE_NOTES = [
   {
+    version: 'v1.12.3',
+    date: '2026-04-07',
+    items: [
+      {tag:'new',     title:'AI 분석 결과 기기 간 동기화',   desc:'클럽별 분석·장비 궁합·성장 분석 결과가 서버에 저장됩니다. 다른 기기에서 로그인해도 마지막 분석 내용을 확인할 수 있습니다.'},
+      {tag:'new',     title:'장소 자동 기억',               desc:'사진의 GPS 위치로 장소를 자동 입력하고, 한 번 방문한 곳은 이름을 기억해 다음 방문 시 자동으로 채워줍니다.'},
+      {tag:'new',     title:'처음 방문 장소 알림',           desc:'처음 찍힌 GPS 위치면 장소 입력란이 보라색으로 강조되고 안내 문구가 표시됩니다.'},
+      {tag:'improve', title:'비행 기록 추가 상단 저장 버튼', desc:'제목 오른쪽에 저장/취소 버튼이 추가되어 사진 업로드 후 스크롤 없이 바로 저장할 수 있습니다.'},
+    ]
+  },
+  {
     version: 'v1.12.2',
     date: '2026-04-06',
     items: [
@@ -3297,7 +3328,7 @@ const RELEASE_NOTES = [
   },
 ];
 
-const CURRENT_VERSION = 'v1.12.2';
+const CURRENT_VERSION = 'v1.12.3';
 const RN_KEY = 'birdyard_seen_version';
 
 function renderReleaseNotes() {
@@ -3680,8 +3711,42 @@ async function analyzeOne(idx) {
   if(exif.gps?.lat && exif.gps?.lon) {
     const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
     const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
-    const addr = await gpsToAddress(lat, lon);
-    if(addr) { const pl = $('pl'); if(pl && !pl.value) pl.value = addr; }
+
+    // GPS 해시 (소수점 3자리 반올림 → 약 111m 오차 범위)
+    const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
+
+    // 저장된 장소 목록 조회
+    const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+    const knownPlace = gpsMemory[gpsKey];
+    const pl = $('pl');
+
+    if(knownPlace && pl && !pl.value) {
+      // 알려진 장소 → 자동 입력
+      pl.value = knownPlace;
+      toast(`📍 ${knownPlace}`);
+    } else if(!knownPlace) {
+      // 처음 가보는 장소 → 주소 조회 후 알림
+      const addr = await gpsToAddress(lat, lon);
+      if(addr && pl && !pl.value) pl.value = addr;
+      // 장소 입력 완료 시 GPS 매핑 저장하도록 이벤트 등록
+      if(pl) {
+        pl.dataset.gpsKey = gpsKey;
+        pl.dataset.isNewPlace = '1';
+        // 입력창에 포커스 유도
+        setTimeout(()=>{
+          const existing = pl.value.trim();
+          pl.style.borderColor = 'rgba(167,139,250,.5)';
+          pl.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
+          if(!$('pl-new-hint')){
+            const hint = document.createElement('div');
+            hint.id = 'pl-new-hint';
+            hint.style.cssText = 'font-size:.72rem;color:#A78BFA;margin-top:3px';
+            hint.textContent = '✨ 처음 방문한 장소입니다. 장소 이름을 확인하거나 직접 입력해주세요.';
+            pl.parentNode.insertBefore(hint, pl.nextSibling);
+          }
+        }, 300);
+      }
+    }
   }
 
   // AI 분석
@@ -3734,7 +3799,13 @@ function pAdd() {
   multiFiles = []; shotCnt = 1;
   return `<div class="page"><button class="back-btn" onclick="goList()">← 비행 기록 목록</button>
   <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem">
-    <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">비행 기록 추가</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2)">비행 기록 추가</div>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn btn-s btn-sm" onclick="goList()">취소</button>
+        <button class="btn btn-p btn-sm" id="psavebtn-top" onclick="saveSession()">저장</button>
+      </div>
+    </div>
 
     <!-- 기록 타입 선택 -->
     <div class="fg" style="margin-bottom:.8rem">
@@ -3811,8 +3882,16 @@ window.saveSession = async () => {
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
   const holes = recType!=='gdr'?parseInt($('p-holes')?.value||18):18;
   const shots = recType==='gdr'?collectShots():[];
-  const btn = $('psavebtn'); btn.disabled = true; btn.textContent = '저장 중...';
+  const btn = $('psavebtn'); if(btn){ btn.disabled = true; btn.textContent = '저장 중...'; }
+  const btn2 = $('psavebtn-top'); if(btn2){ btn2.disabled = true; btn2.textContent = '저장 중...'; }
   sync('busy');
+  // GPS ↔ 장소 매핑 저장
+  const pl = $('pl');
+  if(pl?.dataset.gpsKey && loc) {
+    const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+    gpsMemory[pl.dataset.gpsKey] = loc;
+    localStorage.setItem('birdyard_gps_memory', JSON.stringify(gpsMemory));
+  }
   const imageUrls = [];
   if(!isGuest && recType==='gdr') {
     for(const item of multiFiles) {
@@ -3844,7 +3923,13 @@ window.saveSession = async () => {
     course_name: courseName,
     holes: holes,
   });
-  if(error){ toast('저장 실패: '+error.message); btn.disabled=false; btn.textContent='저장'; sync('err'); return; }
+  if(error){
+    toast('저장 실패: '+error.message);
+    const b=$('psavebtn'),bt=$('psavebtn-top');
+    if(b){b.disabled=false;b.textContent='저장';}
+    if(bt){bt.disabled=false;bt.textContent='저장';}
+    sync('err'); return;
+  }
   multiFiles = []; upFile = null; shotCnt = 1;
   await loadAll(); toast('기록 저장됨'); goList();
 };
