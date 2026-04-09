@@ -2046,8 +2046,9 @@ ${overallStats}
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
     const data = await resp.json();
     if(data.error) throw new Error(data.error);
+    if(data.error) throw new Error(data.error);
     const text = data.content?.[0]?.text || data.text || '';
-    if(!text) throw new Error('응답이 비어있습니다');
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
 
     if(!isGuest) {
       await sb.from('equipment').update({ ai_info: text }).eq('id', eid).eq('user_id', user.id);
@@ -2855,8 +2856,9 @@ ${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} 스매
     const data = await resp.json();
     if(data.error) throw new Error(data.error);
 
+    if(data.error) throw new Error(data.error);
     const text = data.content?.[0]?.text || data.text || '';
-    if(!text) throw new Error('응답이 비어있습니다');
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
 
     // DB에 저장 (게스트 모드 제외)
     if(!isGuest) {
@@ -2943,8 +2945,9 @@ ${wishList}
     });
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
     const data = await resp.json();
+    if(data.error) throw new Error(data.error);
     const text = data.content?.[0]?.text || data.text || '';
-    if(!text) throw new Error('응답이 비어있습니다');
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
     const analyzedAt = today();
     setAiCache('equip_fit', text);
     const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
@@ -3135,8 +3138,9 @@ ${trendRows}
     });
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
     const data = await resp.json();
+    if(data.error) throw new Error(data.error);
     const text = data.content?.[0]?.text || data.text || '';
-    if(!text) throw new Error('응답이 비어있습니다');
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
 
     const analyzedAt = today();
     setAiCacheWithHash(cacheKey, text, currentHash);
@@ -3236,8 +3240,9 @@ ${sessionSummaries}
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
     const data = await resp.json();
     if(data.error) throw new Error(data.error);
+    if(data.error) throw new Error(data.error);
     const text = data.content?.[0]?.text || data.text || '';
-    if(!text) throw new Error('응답이 비어있습니다');
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
 
     const analyzedAt = today();
     setAiCache(cacheKey, text);
