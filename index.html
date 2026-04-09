@@ -2280,31 +2280,59 @@ window.setPClubFilter=c=>{pClubFilter=c;const m=$('main');m.innerHTML=pList();};
 
 // 성장 분석 결과에서 골프 키워드 태그 추출
 function extractGrowthTags(text){
-  // 굵은 글씨(**...**) 내용 + 자주 나오는 골프 키워드 추출
   const boldMatches = [...text.matchAll(/\*\*([^*]{2,12})\*\*/g)].map(m=>m[1]);
-  const golfKeywords = ['드라이버','7번 아이언','아이언','웨지','퍼팅','백스윙','다운스윙','임팩트','팔로우스루','코킹','릴리즈','어드레스','그립','스탠스','힙턴','숄더턴','일관성','비거리','헤드스피드','스매시팩터','발사각','스핀','방향','슬라이스','훅','드로우','페이드'];
+  const golfKeywords = ['드라이버','7번 아이언','아이언','웨지','퍼팅','백스윙','다운스윙','임팩트','팔로우스루','코킹','릴리즈','어드레스','그립','스탠스','힙턴','숄더턴','일관성','비거리','헤드스피드','스매시팩터','발사각','스핀','방향','슬라이스','훅','드로우','페이드','템포','리듬','체중이동','인사이드아웃','아웃사이드인'];
   const found = new Set();
-  // 굵은 글씨에서 섹션 제목 제외, 짧은 키워드만
   boldMatches.forEach(m=>{
-    if(!m.includes('✓') && !m.includes('향상') && !m.includes('분석') && !m.includes('목표') && m.length<=8) found.add(m);
+    if(!m.includes('✓')&&!m.includes('향상')&&!m.includes('분석')&&!m.includes('목표')&&!m.includes('추천')&&!m.includes('개선')&&m.length<=8) found.add(m);
   });
-  // 본문에서 골프 키워드 감지
   golfKeywords.forEach(k=>{ if(text.includes(k)) found.add(k); });
   return [...found].slice(0,8);
 }
 
-function renderGrowthTags(tags){
-  if(!tags.length) return '';
-  return `<div style="margin-top:.75rem">
-    <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.35rem">💡 관련 학습 키워드</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.3rem">
-      ${tags.map(tag=>{
-        const hasNotes = D.videos.some(v=>v.kw.includes(tag)||v.title.includes(tag));
-        return `<button onclick="goGrowthTag('${esc(tag)}')" style="padding:3px 10px;border-radius:2px;border:1px solid ${hasNotes?'rgba(200,137,58,.35)':'rgba(240,237,230,.15)'};background:${hasNotes?'rgba(200,137,58,.08)':'none'};color:${hasNotes?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans)">${esc(tag)}${hasNotes?'':' +'}</button>`;
-      }).join('')}
-    </div>
-    <div style="font-size:.65rem;color:var(--muted);margin-top:.3rem">금색 = 관련 노트 있음 · + = 노트 없음(YouTube 검색)</div>
+// 드릴/연습법 키워드 추출 — "집중 연습 추천" 섹션에서
+function extractDrillTags(text){
+  const drillSection = text.match(/집중.*?연습[^\n]*\n([\s\S]*?)(?:\n\*\*|$)/);
+  const searchIn = drillSection ? drillSection[1] : text;
+  const drillKeywords = ['어깨 회전','힙 회전','체중이동','코킹 연습','릴리즈 드릴','임팩트 백','슬로우 스윙','하프 스윙','미러 드릴','페이드 드릴','드로우 드릴','인사이드 어웨이','다운스윙 드릴','스탠스 연습','그립 교정','어드레스 교정','백스윙 드릴','피니시 연습','템포 연습','리듬 훈련','퍼팅 연습','칩샷 연습','벙커 연습','숏게임','어프로치 드릴'];
+  const found = new Set();
+  // 명사구로 끝나는 패턴 ("~ 드릴", "~ 연습", "~ 훈련")
+  const drillMatches = [...searchIn.matchAll(/([가-힣\s]{4,12}(?:드릴|연습|훈련|교정))/g)];
+  drillMatches.forEach(m=>{ if(m[1].trim().length<=10) found.add(m[1].trim()); });
+  drillKeywords.forEach(k=>{ if(searchIn.includes(k)) found.add(k); });
+  return [...found].slice(0,5);
+}
+
+function renderTagSection(keywordTags, drillTags){
+  if(!keywordTags.length && !drillTags.length) return '';
+  return `<div style="margin-top:.75rem;border-top:1px solid rgba(240,237,230,.07);padding-top:.65rem">
+    ${keywordTags.length?`<div style="margin-bottom:.5rem">
+      <div style="font-size:.63rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.3rem">💡 관련 학습 키워드</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+        ${keywordTags.map(tag=>{
+          const hasNotes=D.videos.some(v=>v.kw.includes(tag)||v.title.includes(tag));
+          return`<button onclick="goGrowthTag('${esc(tag)}')" style="padding:3px 9px;border-radius:2px;border:1px solid ${hasNotes?'rgba(200,137,58,.35)':'rgba(240,237,230,.14)'};background:${hasNotes?'rgba(200,137,58,.08)':'none'};color:${hasNotes?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${esc(tag)}${hasNotes?'':' +'}</button>`;
+        }).join('')}
+      </div>
+    </div>`:''}
+    ${drillTags.length?`<div>
+      <div style="font-size:.63rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.3rem">🏌️ 추천 연습 드릴</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+        ${drillTags.map(drill=>{
+          const hasNotes=D.videos.some(v=>v.kw.includes(drill)||v.title.includes(drill));
+          return`<button onclick="goGrowthTag('${esc(drill)}')" style="padding:3px 9px;border-radius:2px;border:1px solid ${hasNotes?'rgba(61,158,116,.35)':'rgba(167,139,250,.2)'};background:${hasNotes?'rgba(61,158,116,.08)':'rgba(167,139,250,.05)'};color:${hasNotes?'var(--turf)':'#A78BFA'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${esc(drill)}${hasNotes?'':' +'}</button>`;
+        }).join('')}
+      </div>
+    </div>`:''}
+    <div style="font-size:.62rem;color:var(--muted);margin-top:.35rem">금색·초록 = 관련 노트 있음 · + = YouTube 검색</div>
   </div>`;
+}
+
+// 하위호환: 기존 renderGrowthTags 유지
+function renderGrowthTags(text_or_tags){
+  const tags = Array.isArray(text_or_tags) ? text_or_tags : extractGrowthTags(text_or_tags);
+  const drills = Array.isArray(text_or_tags) ? [] : extractDrillTags(text_or_tags);
+  return renderTagSection(tags, drills);
 }
 window.goGrowthTag=tag=>{
   const hasNotes = D.videos.some(v=>v.kw.includes(tag)||v.title.includes(tag));
@@ -2336,8 +2364,7 @@ window.setPSub=t=>{
       const resultEl=$('growth-result'),btn=$('btn-growth');
       if(cached&&resultEl&&resultEl.innerHTML.trim()===''){
         const formatted=cached.result.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-        const tags=extractGrowthTags(cached.result);
-        resultEl.innerHTML=`<div class="analysis-box"><div class="analysis-box-title">✦ 성장 분석</div><div class="analysis-content">${formatted}</div>${renderGrowthTags(tags)}<div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${cached.analyzedAt} 분석</div></div>`;
+        resultEl.innerHTML=`<div class="analysis-box"><div class="analysis-box-title">✦ 성장 분석</div><div class="analysis-content">${formatted}</div>${renderGrowthTags(cached.result)}<div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${cached.analyzedAt} 분석</div></div>`;
         if(btn)btn.textContent=`✦ 성장 분석 (${cached.analyzedAt?.slice(5)}) ↺`;
       }
     });
@@ -3131,6 +3158,8 @@ function updateAnalysisBtn(btn, analysisType, analyzedAt){
 function renderClubRecResult(club, analysisType, resultEl, btn, text, analyzedAt) {
   const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
   const title = analysisType==='equipment'?`✦ ${esc(club)} 장비·스윙 분석`:`✦ ${esc(club)} 성장 추이 분석`;
+  // 성장 추이 분석에는 키워드 + 드릴 태그 추가
+  const tagHtml = analysisType==='growth' ? renderGrowthTags(text) : '';
   resultEl.innerHTML = `
     <div class="analysis-box analysis-cached" style="margin:.3rem 0">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -3138,6 +3167,7 @@ function renderClubRecResult(club, analysisType, resultEl, btn, text, analyzedAt
         <button onclick="analyzeClubRec('${esc(club)}','${analysisType}',true)" style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;font-family:var(--sans)">↺ 다시 분석</button>
       </div>
       <div class="analysis-content">${formatted}</div>
+      ${tagHtml}
       <div style="margin-top:.6rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash${analyzedAt?' · '+analyzedAt+' 분석':''}</div>
     </div>`;
   updateAnalysisBtn(btn, analysisType, analyzedAt);
@@ -3159,11 +3189,10 @@ window.analyzeGrowth = async () => {
   } else if(cached && !resultEl.innerHTML.includes('analysis-box')) {
     // 캐시 복원
     const formatted = cached.result.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    const tags = extractGrowthTags(cached.result);
     resultEl.innerHTML = `<div class="analysis-box">
       <div class="analysis-box-title">✦ 성장 분석 — ${sessions.length}개 세션</div>
       <div class="analysis-content">${formatted}</div>
-      ${renderGrowthTags(tags)}
+      ${renderGrowthTags(cached.result)}
       <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${cached.analyzedAt} 분석</div>
     </div>`;
     btn.textContent = `✦ 성장 분석 (${cached.analyzedAt?.slice(5)}) ↺`;
@@ -3213,11 +3242,10 @@ ${sessionSummaries}
     const analyzedAt = today();
     setAiCache(cacheKey, text);
     const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    const tags = extractGrowthTags(text);
     resultEl.innerHTML = `<div class="analysis-box">
       <div class="analysis-box-title">✦ 성장 분석 — ${sessions.length}개 세션</div>
       <div class="analysis-content">${formatted}</div>
-      ${renderGrowthTags(tags)}
+      ${renderGrowthTags(text)}
       <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${analyzedAt} 분석</div>
     </div>`;
     btn.textContent = `✦ 성장 분석 (${analyzedAt.slice(5)}) ↺`;
