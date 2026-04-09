@@ -582,7 +582,7 @@ Chart.register(...registerables);
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 const sb=createClient(SB_URL,SB_KEY);
-let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='sessions',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
+let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='stats',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
 let isGuest=false;
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
@@ -734,6 +734,7 @@ function saveChartSel(){
   try{ localStorage.setItem(CHART_STORAGE_KEY, JSON.stringify([...selectedChartKeys])); }catch(e){}
 }
 let selectedChartKeys = loadChartSel();
+let pClubFilter = ''; // 비행 목록 클럽 필터
 // 하위 호환 (selectedCharts 객체 → 키 Set으로 교체)
 const selectedCharts = new Proxy({},{
   get:(_,k)=>selectedChartKeys.has(k),
@@ -1665,7 +1666,7 @@ window.goCurrentTerm=()=>{
   goDict(pool[homeTermIdx].id);
 };
 window.gotoTab=t=>{
-  tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';
+  tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';pClubFilter='';
   if(t!=='home') homeTermIdx=-1; // 홈 아닌 탭 이동 시 용어 리셋
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
@@ -2251,8 +2252,18 @@ function pList(){
     <div id="growth-result"></div>
     </div>`;
   }
-  const cards=D.sessions.length?D.sessions.map(s=>{const st=ss(s);const con=st.consistency;const nc=normalizeClub(s.club);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>비행 기록이 없습니다.</div>`;
-  return`<div class="page">${srow}${ptabs}${cards}</div>`;
+  // 비행 목록 클럽 필터
+  const sessionClubs = [...new Set(D.sessions.map(s=>normalizeClub(s.club)).filter(Boolean))].sort((a,b)=>{
+    const ia=CLUBS.indexOf(a),ib=CLUBS.indexOf(b); return(ia<0?999:ia)-(ib<0?999:ib);
+  });
+  const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
+    <span style="font-size:.65rem;color:var(--muted);letter-spacing:.08em">클럽</span>
+    <button onclick="setPClubFilter('')" style="padding:2px 9px;border-radius:2px;border:1px solid ${!pClubFilter?'rgba(200,137,58,.4)':'var(--border)'};background:${!pClubFilter?'rgba(200,137,58,.08)':'none'};color:${!pClubFilter?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">전체</button>
+    ${sessionClubs.map(c=>{const col=clubColor(c);const on=pClubFilter===c;return`<button onclick="setPClubFilter('${c}')" style="padding:2px 9px;border-radius:2px;border:1px solid ${on?col.line:'var(--border)'};background:${on?col.bg:'none'};color:${on?col.line:'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${c}</button>`;}).join('')}
+  </div>` : '';
+  const filteredSessions = pClubFilter ? D.sessions.filter(s=>normalizeClub(s.club)===pClubFilter) : D.sessions;
+  const cards=filteredSessions.length?filteredSessions.map(s=>{const st=ss(s);const con=st.consistency;const nc=normalizeClub(s.club);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 기록이 없습니다.'}</div>`;
+  return`<div class="page">${srow}${ptabs}${filterBar}${cards}</div>`;
 }
 window.toggleChart=key=>{
   const isOn = selectedChartKeys.has(key);
@@ -2264,6 +2275,52 @@ window.toggleChart=key=>{
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   const m=$('main');m.innerHTML=pList();
   requestAnimationFrame(()=>requestAnimationFrame(initCharts));
+};
+window.setPClubFilter=c=>{pClubFilter=c;const m=$('main');m.innerHTML=pList();};
+
+// 성장 분석 결과에서 골프 키워드 태그 추출
+function extractGrowthTags(text){
+  // 굵은 글씨(**...**) 내용 + 자주 나오는 골프 키워드 추출
+  const boldMatches = [...text.matchAll(/\*\*([^*]{2,12})\*\*/g)].map(m=>m[1]);
+  const golfKeywords = ['드라이버','7번 아이언','아이언','웨지','퍼팅','백스윙','다운스윙','임팩트','팔로우스루','코킹','릴리즈','어드레스','그립','스탠스','힙턴','숄더턴','일관성','비거리','헤드스피드','스매시팩터','발사각','스핀','방향','슬라이스','훅','드로우','페이드'];
+  const found = new Set();
+  // 굵은 글씨에서 섹션 제목 제외, 짧은 키워드만
+  boldMatches.forEach(m=>{
+    if(!m.includes('✓') && !m.includes('향상') && !m.includes('분석') && !m.includes('목표') && m.length<=8) found.add(m);
+  });
+  // 본문에서 골프 키워드 감지
+  golfKeywords.forEach(k=>{ if(text.includes(k)) found.add(k); });
+  return [...found].slice(0,8);
+}
+
+function renderGrowthTags(tags){
+  if(!tags.length) return '';
+  return `<div style="margin-top:.75rem">
+    <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.35rem">💡 관련 학습 키워드</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+      ${tags.map(tag=>{
+        const hasNotes = D.videos.some(v=>v.kw.includes(tag)||v.title.includes(tag));
+        return `<button onclick="goGrowthTag('${esc(tag)}')" style="padding:3px 10px;border-radius:2px;border:1px solid ${hasNotes?'rgba(200,137,58,.35)':'rgba(240,237,230,.15)'};background:${hasNotes?'rgba(200,137,58,.08)':'none'};color:${hasNotes?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans)">${esc(tag)}${hasNotes?'':' +'}</button>`;
+      }).join('')}
+    </div>
+    <div style="font-size:.65rem;color:var(--muted);margin-top:.3rem">금색 = 관련 노트 있음 · + = 노트 없음(YouTube 검색)</div>
+  </div>`;
+}
+window.goGrowthTag=tag=>{
+  const hasNotes = D.videos.some(v=>v.kw.includes(tag)||v.title.includes(tag));
+  if(hasNotes){
+    // 학습 노트로 이동 + 태그 필터
+    dictKw=tag; tab='videos'; view='list';
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+    const tb=$('tab-videos'); if(tb) tb.classList.add('on');
+    render();
+  } else {
+    // 노트 없음 → YouTube 검색
+    const q = encodeURIComponent(`골프 ${tag} 레슨`);
+    if(confirm(`"${tag}" 관련 학습 노트가 없습니다.\nYouTube에서 "${tag}" 레슨을 검색할까요?`)){
+      window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
+    }
+  }
 };
 window.setPSub=t=>{
   pSub=t;
@@ -2279,7 +2336,8 @@ window.setPSub=t=>{
       const resultEl=$('growth-result'),btn=$('btn-growth');
       if(cached&&resultEl&&resultEl.innerHTML.trim()===''){
         const formatted=cached.result.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-        resultEl.innerHTML=`<div class="analysis-box"><div class="analysis-box-title">✦ 성장 분석</div><div class="analysis-content">${formatted}</div><div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${cached.analyzedAt} 분석</div></div>`;
+        const tags=extractGrowthTags(cached.result);
+        resultEl.innerHTML=`<div class="analysis-box"><div class="analysis-box-title">✦ 성장 분석</div><div class="analysis-content">${formatted}</div>${renderGrowthTags(tags)}<div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${cached.analyzedAt} 분석</div></div>`;
         if(btn)btn.textContent=`✦ 성장 분석 (${cached.analyzedAt?.slice(5)}) ↺`;
       }
     });
@@ -2363,9 +2421,18 @@ function initCharts(){
     const col=clubColor(data.label||'');
     charts[id]=new Chart(c,{
       type:'line',
-      data:{labels,datasets:[{label:data.label,data:data.vals,borderColor:color||col.line,backgroundColor:(color||col.line).replace(')',', .15)').replace('rgb','rgba'),borderWidth:2,tension:.35,fill:false,pointBackgroundColor:color||col.line,pointBorderColor:'#0D1117',pointBorderWidth:1,pointRadius:4,pointHoverRadius:7,spanGaps:true}]},
+      data:{labels,datasets:[{label:data.label,data:data.vals,borderColor:color||col.line,backgroundColor:(color||col.line).replace(')',', .15)').replace('rgb','rgba'),borderWidth:2.5,tension:.35,fill:false,
+        pointBackgroundColor:color||col.line,pointBorderColor:'#0D1117',pointBorderWidth:1.5,
+        pointRadius:6,pointHoverRadius:10,pointHitRadius:20,spanGaps:true}]},
       options:{responsive:true,maintainAspectRatio:false,onClick,
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${yOpts.unit||''}`}}},
+        interaction:{mode:'nearest',axis:'x',intersect:false},
+        plugins:{legend:{display:false},tooltip:{
+          enabled:true,
+          callbacks:{label:ctx=>`${ctx.parsed.y}${yOpts.unit||''} (탭하면 상세보기)`},
+          backgroundColor:'rgba(13,17,23,.92)',
+          titleColor:'#C8D8E0',bodyColor:'#8AABBB',
+          padding:8,cornerRadius:3,
+        }},
         scales:{
           x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
           y:{...yOpts,ticks:{color:'#8AABBB',font:{size:9},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.09)'}}
@@ -3092,9 +3159,11 @@ window.analyzeGrowth = async () => {
   } else if(cached && !resultEl.innerHTML.includes('analysis-box')) {
     // 캐시 복원
     const formatted = cached.result.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    const tags = extractGrowthTags(cached.result);
     resultEl.innerHTML = `<div class="analysis-box">
       <div class="analysis-box-title">✦ 성장 분석 — ${sessions.length}개 세션</div>
       <div class="analysis-content">${formatted}</div>
+      ${renderGrowthTags(tags)}
       <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${cached.analyzedAt} 분석</div>
     </div>`;
     btn.textContent = `✦ 성장 분석 (${cached.analyzedAt?.slice(5)}) ↺`;
@@ -3144,9 +3213,11 @@ ${sessionSummaries}
     const analyzedAt = today();
     setAiCache(cacheKey, text);
     const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    const tags = extractGrowthTags(text);
     resultEl.innerHTML = `<div class="analysis-box">
       <div class="analysis-box-title">✦ 성장 분석 — ${sessions.length}개 세션</div>
       <div class="analysis-content">${formatted}</div>
+      ${renderGrowthTags(tags)}
       <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${analyzedAt} 분석</div>
     </div>`;
     btn.textContent = `✦ 성장 분석 (${analyzedAt.slice(5)}) ↺`;
