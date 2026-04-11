@@ -2502,6 +2502,215 @@ function initCharts(){
     });
   });
 }
+// ── 샷 분포 차트 (인라인 SVG) ────────────────────────
+function renderShotChart(shots){
+  if(!shots||shots.length<2) return '';
+
+  // ── 통계 유틸
+  const vals=(k)=>shots.map(s=>s[k]).filter(v=>v!=null&&v!==0&&!isNaN(v));
+  const mean=(arr)=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  const std=(arr)=>{if(arr.length<2)return null;const m=mean(arr);return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length);};
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+
+  const carries=vals('carry'), dirs=vals('direction'), hsList=vals('headSpeed'), sfList=vals('smashFactor');
+  const hasDir=dirs.length>=2, hasCarry=carries.length>=2, hasHs=hsList.length>=2;
+  if(!hasDir&&!hasCarry) return '';
+
+  const mc=mean(carries)||0, sc=std(carries)||1;
+  const md=mean(dirs)||0,   sd=std(dirs)||1;
+
+  // ── 탄도 분포도 SVG (390×300)
+  const W=390,H=280, PL=48,PR=16,PT=28,PB=36;
+  const cw=W-PL-PR, ch=H-PT-PB;
+
+  // 스케일: carry Y, direction X
+  const cMin=hasCarry?Math.max(0,Math.floor((mc-sc*3-10)/10)*10):0;
+  const cMax=hasCarry?Math.ceil((mc+sc*3+10)/10)*10:300;
+  const dRange=hasDir?Math.max(Math.abs(md)+sd*3+3,10):10;
+  const cy2y=(c)=>PT+ch-((c-cMin)/(cMax-cMin)*ch);
+  const dx2x=(d)=>PL+cw/2+(d/dRange*(cw/2));
+
+  // 타원 반경 (SVG 좌표계로 변환)
+  const ellRx1=(sd/dRange)*(cw/2), ellRx2=ellRx1*2;
+  const ellRy1=(sc/(cMax-cMin))*ch, ellRy2=ellRy1*2;
+  const ecx=dx2x(md), ecy=cy2y(mc);
+
+  // Y 그리드 틱 생성
+  const step=Math.round((cMax-cMin)/4/10)*10||10;
+  const ticks=[];for(let v=Math.ceil(cMin/step)*step;v<=cMax;v+=step)ticks.push(v);
+
+  const dots=shots.map((sh,i)=>{
+    const c=sh.carry,d=sh.direction;
+    if(c==null||d==null) return '';
+    const x=clamp(dx2x(d),PL,PL+cw), y=clamp(cy2y(c),PT,PT+ch);
+    return `<circle cx="${x}" cy="${y}" r="5.5" fill="rgba(55,138,221,.6)" stroke="rgba(13,17,23,.5)" stroke-width="1.5">
+      <title>SHOT ${i+1}: 캐리 ${c}m / 방향 ${d>0?'R+':'L'}${Math.abs(d)}</title></circle>`;
+  }).join('');
+
+  const gridLines=ticks.map(v=>{
+    const y=cy2y(v);
+    return `<line x1="${PL}" y1="${y}" x2="${PL+cw}" y2="${y}" stroke="rgba(240,237,230,.06)" stroke-width="0.5"/>
+    <text x="${PL-5}" y="${y+4}" text-anchor="end" font-size="9" fill="#5A7A8A">${v}</text>`;
+  }).join('');
+
+  const chartA=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
+  <!-- 배경 -->
+  <rect x="${PL}" y="${PT}" width="${cw}" height="${ch}" fill="rgba(240,237,230,.025)" rx="2"/>
+  <!-- 그리드 -->
+  ${gridLines}
+  <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${PT+ch}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
+  <line x1="${PL}" y1="${PT+ch}" x2="${PL+cw}" y2="${PT+ch}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
+  <!-- 중앙선 (방향=0) -->
+  <line x1="${dx2x(0)}" y1="${PT}" x2="${dx2x(0)}" y2="${PT+ch}" stroke="rgba(240,237,230,.12)" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <!-- 타원 95% -->
+  ${hasDir&&hasCarry?`<ellipse cx="${ecx}" cy="${ecy}" rx="${clamp(ellRx2,5,cw/2)}" ry="${clamp(ellRy2,4,ch/2)}" fill="rgba(186,117,23,.06)" stroke="#BA7517" stroke-width="0.8" stroke-dasharray="4 3"/>`:'' }
+  <!-- 타원 68% -->
+  ${hasDir&&hasCarry?`<ellipse cx="${ecx}" cy="${ecy}" rx="${clamp(ellRx1,3,cw/3)}" ry="${clamp(ellRy1,3,ch/3)}" fill="rgba(186,117,23,.12)" stroke="#BA7517" stroke-width="1.2"/>`:'' }
+  <!-- 샷 점 -->
+  ${dots}
+  <!-- 평균점 -->
+  ${hasDir&&hasCarry?`<circle cx="${ecx}" cy="${ecy}" r="6" fill="#BA7517" stroke="rgba(13,17,23,.5)" stroke-width="2"/><text x="${ecx+9}" y="${ecy-5}" font-size="9" fill="#BA7517">평균</text>`:'' }
+  <!-- 축 레이블 -->
+  <text x="${PL+cw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="#5A7A8A">방향  L← 0 →R</text>
+  <text x="10" y="${PT+ch/2}" text-anchor="middle" font-size="10" fill="#5A7A8A" transform="rotate(-90,10,${PT+ch/2})">캐리 (m)</text>
+  <!-- 범례 -->
+  <circle cx="${PL+4}" cy="${PT-10}" r="4" fill="rgba(55,138,221,.6)" stroke="rgba(13,17,23,.4)" stroke-width="1"/>
+  <text x="${PL+12}" y="${PT-7}" font-size="9" fill="#5A7A8A">개별 샷</text>
+  <circle cx="${PL+60}" cy="${PT-10}" r="4" fill="#BA7517"/>
+  <text x="${PL+68}" y="${PT-7}" font-size="9" fill="#5A7A8A">평균</text>
+  <ellipse cx="${PL+118}" cy="${PT-10}" rx="9" ry="4" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+  <text x="${PL+130}" y="${PT-7}" font-size="9" fill="#5A7A8A">68%</text>
+  <ellipse cx="${PL+162}" cy="${PT-10}" rx="9" ry="4" fill="none" stroke="#BA7517" stroke-width="0.8" stroke-dasharray="4 2"/>
+  <text x="${PL+174}" y="${PT-7}" font-size="9" fill="#5A7A8A">95%</text>
+</svg>`;
+
+  // ── 방향 히스토그램 (200×150)
+  let histHtml='';
+  if(hasDir){
+    const buckets=[[-15,-10],[-10,-5],[-5,0],[0,5],[5,10],[10,15]];
+    const counts=buckets.map(([lo,hi])=>dirs.filter(d=>d>=lo&&d<hi).length);
+    const maxC=Math.max(...counts,1);
+    const bW=26,bGap=4,hLeft=22,hTop=12,hBot=24,hH=134;
+    const barH=hH-hTop-hBot;
+    const bars=counts.map((c,i)=>{
+      const bh=Math.round((c/maxC)*barH);
+      const x=hLeft+i*(bW+bGap);
+      const y=hTop+barH-bh;
+      const isMid=i===2||i===3;
+      const clr=i<2?'rgba(122,176,232,.7)':i>3?'rgba(228,168,85,.7)':'rgba(61,158,116,.6)';
+      return `<rect x="${x}" y="${y}" width="${bW}" height="${bh}" rx="2" fill="${clr}"/>
+      <text x="${x+bW/2}" y="${hTop+barH+12}" text-anchor="middle" font-size="8" fill="#5A7A8A">${buckets[i][0]}</text>
+      ${c>0?`<text x="${x+bW/2}" y="${y-3}" text-anchor="middle" font-size="9" fill="rgba(240,237,230,.6)">${c}</text>`:''}`;
+    }).join('');
+    histHtml=`<div style="flex:1;min-width:160px">
+      <div style="font-size:.65rem;color:var(--muted);letter-spacing:.06em;margin-bottom:.3rem">방향 분포</div>
+      <svg viewBox="0 0 200 ${hH}" style="width:100%;display:block">
+        <line x1="${hLeft}" y1="${hTop}" x2="${hLeft}" y2="${hTop+barH}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
+        <line x1="${hLeft}" y1="${hTop+barH}" x2="${hLeft+(bW+bGap)*6}" y2="${hTop+barH}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
+        ${bars}
+        <text x="${hLeft+(bW+bGap)*3}" y="${hH-2}" text-anchor="middle" font-size="8" fill="#5A7A8A">방향 (R+)</text>
+        <text x="${hLeft-3}" y="${hTop+barH/2}" text-anchor="end" font-size="8" fill="#5A7A8A" transform="rotate(-90,${hLeft-3},${hTop+barH/2})">샷 수</text>
+      </svg>
+    </div>`;
+  }
+
+  // ── HS × 캐리 산점도 (200×150)
+  let hsHtml='';
+  if(hasHs&&hasCarry){
+    const hsPairs=shots.filter(sh=>sh.headSpeed&&sh.carry);
+    if(hsPairs.length>=2){
+      const hsMin=Math.min(...hsPairs.map(s=>s.headSpeed))-2;
+      const hsMax=Math.max(...hsPairs.map(s=>s.headSpeed))+2;
+      const cMn=Math.min(...hsPairs.map(s=>s.carry))-5;
+      const cMx=Math.max(...hsPairs.map(s=>s.carry))+5;
+      const sW=200,sH=150,sPL=28,sPR=8,sPT=12,sPB=24;
+      const sw=sW-sPL-sPR,sh2=sH-sPT-sPB;
+      const hx=(h)=>sPL+(h-hsMin)/(hsMax-hsMin)*sw;
+      const hy=(c)=>sPT+sh2-(c-cMn)/(cMx-cMn)*sh2;
+      const pts=hsPairs.map((s,i)=>
+        `<circle cx="${clamp(hx(s.headSpeed),sPL,sPL+sw)}" cy="${clamp(hy(s.carry),sPT,sPT+sh2)}" r="4.5" fill="rgba(61,158,116,.65)" stroke="rgba(13,17,23,.4)" stroke-width="1.2">
+          <title>SHOT: HS ${s.headSpeed} / 캐리 ${s.carry}m</title></circle>`
+      ).join('');
+      // 단순 추세선 (최소제곱)
+      const n=hsPairs.length;
+      const sumX=hsPairs.reduce((a,s)=>a+s.headSpeed,0);
+      const sumY=hsPairs.reduce((a,s)=>a+s.carry,0);
+      const sumXY=hsPairs.reduce((a,s)=>a+s.headSpeed*s.carry,0);
+      const sumX2=hsPairs.reduce((a,s)=>a+s.headSpeed**2,0);
+      const slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX**2)||0;
+      const intercept=(sumY-slope*sumX)/n;
+      const tx1=hsMin+1,tx2=hsMax-1;
+      const ty1=slope*tx1+intercept,ty2=slope*tx2+intercept;
+      hsHtml=`<div style="flex:1;min-width:160px">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.06em;margin-bottom:.3rem">헤드스피드 × 캐리</div>
+        <svg viewBox="0 0 ${sW} ${sH}" style="width:100%;display:block">
+          <line x1="${sPL}" y1="${sPT}" x2="${sPL}" y2="${sPT+sh2}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
+          <line x1="${sPL}" y1="${sPT+sh2}" x2="${sPL+sw}" y2="${sPT+sh2}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
+          <line x1="${clamp(hx(tx1),sPL,sPL+sw)}" y1="${clamp(hy(ty1),sPT,sPT+sh2)}" x2="${clamp(hx(tx2),sPL,sPL+sw)}" y2="${clamp(hy(ty2),sPT,sPT+sh2)}" stroke="#BA7517" stroke-width="1" stroke-dasharray="4 2"/>
+          ${pts}
+          <text x="${sPL+sw/2}" y="${sH-4}" text-anchor="middle" font-size="9" fill="#5A7A8A">헤드스피드</text>
+          <text x="9" y="${sPT+sh2/2}" text-anchor="middle" font-size="9" fill="#5A7A8A" transform="rotate(-90,9,${sPT+sh2/2})">캐리</text>
+        </svg>
+      </div>`;
+    }
+  }
+
+  // ── SF 바차트 (샷별)
+  let sfHtml='';
+  if(sfList.length>=2){
+    const sfw=Math.max(140,shots.length*24+40);
+    const sfBars=shots.map((sh,i)=>{
+      if(!sh.smashFactor) return '';
+      const sf=Number(sh.smashFactor);
+      const bh=Math.round(clamp((sf-1.2)/0.4,0,1)*70);
+      const x=24+i*24,y=84-bh;
+      const clr=sf>=1.44?'rgba(61,158,116,.7)':sf>=1.38?'rgba(186,117,23,.7)':'rgba(193,123,106,.7)';
+      return `<rect x="${x}" y="${y}" width="16" height="${bh}" rx="2" fill="${clr}"/>
+        <text x="${x+8}" y="97" text-anchor="middle" font-size="8" fill="#5A7A8A">${i+1}</text>`;
+    }).join('');
+    sfHtml=`<div style="flex:1;min-width:120px">
+      <div style="font-size:.65rem;color:var(--muted);letter-spacing:.06em;margin-bottom:.3rem">스매시팩터</div>
+      <svg viewBox="0 0 ${sfw} 104" style="width:100%;display:block">
+        <line x1="20" y1="14" x2="${sfw-8}" y2="14" stroke="#0F6E56" stroke-width="0.8" stroke-dasharray="3 2" opacity=".5"/>
+        <text x="18" y="18" text-anchor="end" font-size="8" fill="#0F6E56">1.44</text>
+        ${sfBars}
+        <text x="${(sfw)/2}" y="103" text-anchor="middle" font-size="8" fill="#5A7A8A">SHOT #</text>
+      </svg>
+    </div>`;
+  }
+
+  // ── 요약 카드
+  const avgDir=mean(dirs),stdDir=std(dirs);
+  const dirLabel=avgDir==null?'—':Math.abs(avgDir)<1?'직진':avgDir>0?`R편향 +${Math.round(avgDir*10)/10}`:`L편향 ${Math.round(avgDir*10)/10}`;
+  const spreadLabel=stdDir==null?'—':`±${Math.round(stdDir*10)/10}`;
+  const avgSf=mean(sfList);
+
+  const summaryCards=`<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem">
+    ${hasCarry?`<div style="flex:1;min-width:80px;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.4rem .6rem">
+      <div style="font-size:.62rem;color:var(--muted)">캐리 평균</div>
+      <div style="font-size:1.1rem;font-weight:600;color:var(--wing2)">${Math.round(mc)}m</div>
+      <div style="font-size:.65rem;color:var(--muted)">편차 ±${Math.round(sc)}m</div>
+    </div>`:''}
+    ${hasDir?`<div style="flex:1;min-width:80px;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.4rem .6rem">
+      <div style="font-size:.62rem;color:var(--muted)">방향 편향</div>
+      <div style="font-size:1.1rem;font-weight:600;color:${Math.abs(avgDir||0)<2?'var(--turf)':Math.abs(avgDir||0)<5?'var(--wing2)':'var(--red)'}">${dirLabel}</div>
+      <div style="font-size:.65rem;color:var(--muted)">분산 ${spreadLabel}</div>
+    </div>`:''}
+    ${avgSf?`<div style="flex:1;min-width:80px;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.4rem .6rem">
+      <div style="font-size:.62rem;color:var(--muted)">스매시팩터</div>
+      <div style="font-size:1.1rem;font-weight:600;color:${avgSf>=1.44?'var(--turf)':avgSf>=1.38?'var(--wing2)':'var(--red)'}">${avgSf.toFixed(2)}</div>
+      <div style="font-size:.65rem;color:var(--muted)">${avgSf>=1.44?'이상적':'개선 필요'}</div>
+    </div>`:''}
+  </div>`;
+
+  return `<div style="margin-bottom:.9rem">
+    <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem">샷 분포 분석</div>
+    ${summaryCards}
+    <div style="margin-bottom:.5rem">${chartA}</div>
+    ${(histHtml||hsHtml||sfHtml)?`<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">${histHtml}${hsHtml}${sfHtml}</div>`:''}
+  </div>`;
+}
+
 function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
   const st=ss(s);
@@ -2584,7 +2793,9 @@ function pDetail(){
       }
       return '';
     })()}
-  </div>${shotsH}
+  </div>
+  ${renderShotChart(s.shots)}
+  ${shotsH}
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
     <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
