@@ -2713,8 +2713,8 @@ function renderShotChart(shots){
   return `<div style="margin-bottom:.9rem">
     <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem">샷 분포 분석</div>
     ${summaryCards}
-    <div style="margin-bottom:.5rem">${chartA}</div>
-    ${(histHtml||hsHtml||sfHtml)?`<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">${histHtml}${hsHtml}${sfHtml}</div>`:''}
+    <div style="max-width:480px">${chartA}</div>
+    ${(histHtml||hsHtml||sfHtml)?`<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem;max-width:480px">${histHtml}${hsHtml}${sfHtml}</div>`:''}
   </div>`;
 }
 
@@ -2769,18 +2769,8 @@ function pDetail(){
   </div>
 
   ${(()=>{
-    const imgs=s.imageUrls?.length>1?s.imageUrls:s.imgUrl?[s.imgUrl]:[];
-    if(!imgs.length)return'';
-    return`<div class="sec-label">GDR 데이터 (${imgs.length}장)</div>
-    <div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.9rem;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch">
-      ${imgs.map((url,i)=>`
-        <div style="position:relative;flex:0 0 auto;width:min(85vw,300px);scroll-snap-align:start" onclick="openPhotoViewer(${i},'${s.id}')">
-          <img src="${ea(url)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:zoom-in;display:block" alt="SHOT ${i+1}">
-          <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:2px;letter-spacing:.06em">SHOT ${i+1}</div>
-        </div>`).join('')}
-    </div>
-    <div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:900;flex-direction:column;user-select:none;-webkit-user-select:none">
-      <!-- 상단 바 -->
+    // photo-viewer HTML은 여기에 두되, 실제 사진 스트립은 맨 아래로 이동
+    return`<div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:900;flex-direction:column;user-select:none;-webkit-user-select:none">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:.55rem .9rem;flex-shrink:0;background:rgba(0,0,0,.4)">
         <div id="pv-counter" style="color:rgba(255,255,255,.7);font-size:.78rem;font-weight:500"></div>
         <div style="display:flex;gap:.5rem;align-items:center">
@@ -2791,11 +2781,9 @@ function pDetail(){
           <button onclick="closePhotoViewer()" style="background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);padding:0 .7rem;height:32px;border-radius:16px;font-size:.72rem;cursor:pointer">닫기</button>
         </div>
       </div>
-      <!-- 이미지 영역 -->
       <div id="pv-canvas" style="flex:1;overflow:hidden;position:relative;cursor:grab;touch-action:none">
         <img id="pv-img" style="position:absolute;transform-origin:0 0;max-width:none;pointer-events:none" alt="" draggable="false">
       </div>
-      <!-- 하단 바 -->
       <div style="display:flex;justify-content:center;align-items:center;gap:1.4rem;padding:.6rem;flex-shrink:0;background:rgba(0,0,0,.4)">
         <button onclick="pvMove(-1)" style="background:rgba(255,255,255,.12);border:none;color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.3rem;cursor:pointer">‹</button>
         <div id="pv-label" style="color:rgba(255,255,255,.5);font-size:.8rem;min-width:60px;text-align:center"></div>
@@ -2803,6 +2791,23 @@ function pDetail(){
       </div>
     </div>`;
   })()}
+
+  <!-- AI 스윙 분석 (샷 데이터 위) -->
+  <div style="margin-bottom:.8rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+      <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
+        ${s.aiAnalysis ? '✦ 다시 분석' : '✦ AI 스윙 분석'}
+      </button>
+    </div>
+    <div id="analysis-result-${s.id}">${s.aiAnalysis ? `
+      <div class="analysis-box">
+        <div class="analysis-box-title">✦ AI 스윙 분석</div>
+        <div class="analysis-content">${s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+        <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash · 저장된 분석</div>
+      </div>` : ''}</div>
+  </div>
+
+  <!-- 샷 데이터 -->
   <div class="sec-label">샷 데이터
     ${(()=>{
       const imgs=s.imageUrls?.length||0;
@@ -2812,21 +2817,28 @@ function pDetail(){
       return '';
     })()}
   </div>
-  ${renderShotChart(s.shots)}
+  <div style="max-width:560px">${renderShotChart(s.shots)}</div>
   ${shotsH}
+
+  <!-- GDR 사진 (하단) -->
+  ${(()=>{
+    const imgs=s.imageUrls?.length>1?s.imageUrls:s.imgUrl?[s.imgUrl]:[];
+    if(!imgs.length)return'';
+    return`<div class="divider"></div>
+    <div class="sec-label">GDR 사진 (${imgs.length}장)</div>
+    <div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.9rem;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch">
+      ${imgs.map((url,i)=>`
+        <div style="position:relative;flex:0 0 auto;width:min(72vw,240px);scroll-snap-align:start" onclick="openPhotoViewer(${i},'${s.id}')">
+          <img src="${ea(url)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:zoom-in;display:block" alt="SHOT ${i+1}">
+          <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,.65);color:#fff;font-size:.65rem;font-weight:600;padding:2px 6px;border-radius:2px;letter-spacing:.06em">SHOT ${i+1}</div>
+        </div>`).join('')}
+    </div>`;
+  })()}
+
   <div class="divider"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
-      ${s.aiAnalysis ? '✦ 다시 분석' : '✦ AI 스윙 분석'}
-    </button>
+  <div style="display:flex;justify-content:flex-end">
     <button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button>
   </div>
-  <div id="analysis-result-${s.id}">${s.aiAnalysis ? `
-    <div class="analysis-box">
-      <div class="analysis-box-title">✦ AI 스윙 분석</div>
-      <div class="analysis-content">${s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
-      <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash · 저장된 분석</div>
-    </div>` : ''}</div>
   </div>`;
 }
 function mkShotRow(idx){return`<div class="shot-row" id="sr-${idx}"><span class="shot-num">SHOT ${idx+1}</span><button class="shot-del" onclick="rmRow(${idx})">✕</button>${[['carry','캐리(m)'],['total','총거리(m)'],['headSpeed','헤드속도'],['ballSpeed','볼속도'],['smashFactor','스매시팩터'],['launchAngle','발사각(°)'],['spin','스핀(rpm)'],['direction','방향(R+/L-)']].map(([k,l])=>`<div class="shot-field" style="margin-top:.2rem"><label>${l}</label><input type="number" id="sh-${k}-${idx}" step="${k==='smashFactor'?'.01':k==='launchAngle'||k==='headSpeed'||k==='ballSpeed'||k==='direction'?'.1':'1'}"></div>`).join('')}</div>`}
