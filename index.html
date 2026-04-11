@@ -2898,28 +2898,25 @@ function pvApplyTransform(){
   const cw=canvas.clientWidth,ch=canvas.clientHeight;
   const iw=img.naturalWidth||1,ih=img.naturalHeight||1;
   const sw=iw*pvScale,sh=ih*pvScale;
-  const fitS=Math.min(cw/iw,ch/ih);
-  const isZoomed=pvScale>fitS*1.001; // fit 배율 초과 시 드래그 허용
+  const canDragX=sw>cw+1, canDragY=sh>ch+1;
 
-  if(!isZoomed){
-    // fit 상태: 중앙 고정
-    pvOffX=(cw-sw)/2;
-    pvOffY=(ch-sh)/2;
-  } else {
-    // 확대 상태: 이미지 가장자리가 캔버스 안쪽으로 들어오지 않도록 클램핑
-    pvOffX=Math.min((cw-sw)/2, Math.max(-(sw-cw)-(cw-sw)/2, pvOffX));
-    pvOffY=Math.min((ch-sh)/2, Math.max(-(sh-ch)-(ch-sh)/2, pvOffY));
-    // 더 단순하게: 이미지가 캔버스를 넘어가도 빈 공간이 안 생기게
-    pvOffX=Math.min(0,Math.max(cw-sw,pvOffX));
-    pvOffY=Math.min(0,Math.max(ch-sh,pvOffY));
-  }
+  // X 클램핑: 이미지가 캔버스보다 크면 드래그 허용, 작으면 중앙 고정
+  if(canDragX) pvOffX=Math.min(0,Math.max(cw-sw,pvOffX));
+  else pvOffX=(cw-sw)/2;
+
+  // Y 클램핑
+  if(canDragY) pvOffY=Math.min(0,Math.max(ch-sh,pvOffY));
+  else pvOffY=(ch-sh)/2;
+
   img.style.width=iw+'px';
   img.style.height=ih+'px';
   img.style.transform=`translate(${pvOffX}px,${pvOffY}px) scale(${pvScale})`;
   img.style.transformOrigin='0 0';
+
+  const fitS=Math.min(cw/iw,ch/ih);
   const label=$('pv-zoom-label');
   if(label) label.textContent=Math.round(pvScale/fitS*100)+'%';
-  canvas.style.cursor=isZoomed?'grab':'default';
+  canvas.style.cursor=(canDragX||canDragY)?'grab':'default';
 }
 
 function pvRender(keepZoom=false){
@@ -2944,7 +2941,7 @@ function pvBindCanvas(){
 
   // 마우스 드래그
   canvas.addEventListener('mousedown',e=>{
-    {const _c=$("pv-canvas"),_i=$("pv-img");if(!_c||!_i)return;const _fs=Math.min(_c.clientWidth/(_i.naturalWidth||1),_c.clientHeight/(_i.naturalHeight||1));if(pvScale<=_fs*1.001)return;}
+    if(!(()=>{const _ci=$("pv-canvas"),_ii=$("pv-img");return _ci&&_ii&&(_ii.naturalWidth*pvScale>_ci.clientWidth+1||_ii.naturalHeight*pvScale>_ci.clientHeight+1);})())return;
     pvDragging=true;pvDragSX=e.clientX;pvDragSY=e.clientY;
     pvDragOX=pvOffX;pvDragOY=pvOffY;
     canvas.style.cursor='grabbing';e.preventDefault();
@@ -2956,7 +2953,7 @@ function pvBindCanvas(){
     pvApplyTransform();
   });
   document.addEventListener('mouseup',()=>{
-    if(pvDragging){pvDragging=false;const c=$('pv-canvas'),i=$('pv-img');if(c&&i){const fs=Math.min(c.clientWidth/(i.naturalWidth||1),c.clientHeight/(i.naturalHeight||1));c.style.cursor=pvScale>fs*1.001?'grab':'default';}}
+    if(pvDragging){pvDragging=false;const _cv=$('pv-canvas');if(_cv)_cv.style.cursor=(()=>{const _ci=$("pv-canvas"),_ii=$("pv-img");return _ci&&_ii&&(_ii.naturalWidth*pvScale>_ci.clientWidth+1||_ii.naturalHeight*pvScale>_ci.clientHeight+1);})()?'grab':'default';}
   });
 
   // 마우스 휠 줌
@@ -2971,13 +2968,12 @@ function pvBindCanvas(){
     pvOffY=my-(my-pvOffY)*(newScale/pvScale);
     pvScale=newScale;
     pvApplyTransform();
-    {const _i=$('pv-img');if(_i){const _fs=Math.min(canvas.clientWidth/(_i.naturalWidth||1),canvas.clientHeight/(_i.naturalHeight||1));canvas.style.cursor=pvScale>_fs*1.001?'grab':'default';}}
+    canvas.style.cursor=(()=>{const _ci=$("pv-canvas"),_ii=$("pv-img");return _ci&&_ii&&(_ii.naturalWidth*pvScale>_ci.clientWidth+1||_ii.naturalHeight*pvScale>_ci.clientHeight+1);})()?'grab':'default';
   },{passive:false});
 
   // 터치 핀치 & 드래그
   canvas.addEventListener('touchstart',e=>{
-    const _tCanvas=$("pv-canvas"),_tImg=$("pv-img");const _tFs=_tCanvas&&_tImg?Math.min(_tCanvas.clientWidth/(_tImg.naturalWidth||1),_tCanvas.clientHeight/(_tImg.naturalHeight||1)):1;
-    if(e.touches.length===1&&pvScale>_tFs*1.001){
+    if(e.touches.length===1&&(()=>{const _ci=$("pv-canvas"),_ii=$("pv-img");return _ci&&_ii&&(_ii.naturalWidth*pvScale>_ci.clientWidth+1||_ii.naturalHeight*pvScale>_ci.clientHeight+1);})()){
       pvDragging=true;
       pvDragSX=e.touches[0].clientX;pvDragSY=e.touches[0].clientY;
       pvDragOX=pvOffX;pvDragOY=pvOffY;
@@ -3037,7 +3033,7 @@ function pvBindCanvas(){
       pvScale=ns;
     }
     pvApplyTransform();
-    {const _i=$('pv-img');if(_i){const _fs=Math.min(canvas.clientWidth/(_i.naturalWidth||1),canvas.clientHeight/(_i.naturalHeight||1));canvas.style.cursor=pvScale>_fs*1.001?'grab':'default';}}
+    canvas.style.cursor=(()=>{const _ci=$("pv-canvas"),_ii=$("pv-img");return _ci&&_ii&&(_ii.naturalWidth*pvScale>_ci.clientWidth+1||_ii.naturalHeight*pvScale>_ci.clientHeight+1);})()?'grab':'default';
   });
   canvas.addEventListener('touchend',e=>{
     const now=Date.now();
