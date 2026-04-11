@@ -2576,7 +2576,15 @@ function pDetail(){
       </div>
     </div>`;
   })()}
-  <div class="sec-label">샷 데이터</div>${shotsH}
+  <div class="sec-label">샷 데이터
+    ${(()=>{
+      const imgs=s.imageUrls?.length||0;
+      if(imgs>0 && s.shots.length < imgs){
+        return `<button id="btn-reanalyze-${s.id}" onclick="reAnalyzeSession('${s.id}')" style="margin-left:.6rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.65rem;cursor:pointer;font-family:var(--sans);vertical-align:middle">📡 GDR 재분석 (${s.shots.length}/${imgs})</button>`;
+      }
+      return '';
+    })()}
+  </div>${shotsH}
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
     <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
@@ -3985,10 +3993,20 @@ window.saveSession = async () => {
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
   const holes = recType!=='gdr'?parseInt($('p-holes')?.value||18):18;
+
+  // 분석 중인 사진이 있으면 사용자에게 알림 (저장은 계속 진행)
+  const pendingCount = multiFiles.filter(f=>f.status==='busy'||f.status==='wait').length;
+  if(pendingCount>0){
+    toast(`📡 ${pendingCount}장 분석 중 — 저장 후 자동으로 완료됩니다`);
+  }
+
+  // 현재까지 완료된 샷만 수집
   const shots = recType==='gdr'?collectShots():[];
+
   const btn = $('psavebtn'); if(btn){ btn.disabled = true; btn.textContent = '저장 중...'; }
   const btn2 = $('psavebtn-top'); if(btn2){ btn2.disabled = true; btn2.textContent = '저장 중...'; }
   sync('busy');
+
   // GPS ↔ 장소 매핑 저장
   const pl = $('pl');
   if(pl?.dataset.gpsKey && loc) {
@@ -3996,6 +4014,8 @@ window.saveSession = async () => {
     gpsMemory[pl.dataset.gpsKey] = loc;
     localStorage.setItem('birdyard_gps_memory', JSON.stringify(gpsMemory));
   }
+
+  // 이미지 전부 업로드 (분석 완료 여부와 무관)
   const imageUrls = [];
   if(!isGuest && recType==='gdr') {
     for(const item of multiFiles) {
@@ -4017,7 +4037,8 @@ window.saveSession = async () => {
       }
     }
   }
-  const { error } = await sb.from('practice_sessions').insert({
+
+  const { error, data: inserted } = await sb.from('practice_sessions').insert({
     user_id: user.id, session_date: date, club, location: loc, memo,
     total_shots: shots.length, shots,
     image_url: imageUrls[0] || '',
@@ -4026,7 +4047,8 @@ window.saveSession = async () => {
     score: score,
     course_name: courseName,
     holes: holes,
-  });
+  }).select().single();
+
   if(error){
     toast('저장 실패: '+error.message);
     const b=$('psavebtn'),bt=$('psavebtn-top');
@@ -4034,9 +4056,85 @@ window.saveSession = async () => {
     if(bt){bt.disabled=false;bt.textContent='저장';}
     sync('err'); return;
   }
+
+  // 미분석 사진이 있으면 백그라운드에서 계속 분석 후 DB 업데이트
+  const pendingFiles = multiFiles.filter(f=>!f.gdrData&&f.file);
+  const sessionId = inserted?.id;
   multiFiles = []; upFile = null; shotCnt = 1;
-  await loadAll(); toast('기록 저장됨'); goList();
+  await loadAll(); sync('ok'); toast('기록 저장됨'); goList();
+
+  if(pendingFiles.length && sessionId){
+    analyzeAndUpdateSession(sessionId, pendingFiles, shots);
+  }
 };
+// 백그라운드 분석 후 DB 업데이트
+async function analyzeAndUpdateSession(sessionId, pendingFiles, existingShots){
+  const newShots = [...existingShots];
+  let completed = 0;
+  for(const item of pendingFiles){
+    try{
+      const gdrData = await analyzeGDRImage(item.file, ()=>{});
+      if(gdrData){
+        const shot = {};
+        ['carry','total','headSpeed','ballSpeed','smashFactor','launchAngle','spin','direction'].forEach(k=>{
+          if(gdrData[k]!=null) shot[k]=gdrData[k];
+        });
+        newShots.push(shot);
+        completed++;
+        await sb.from('practice_sessions').update({
+          shots: newShots, total_shots: newShots.length,
+        }).eq('id', sessionId).eq('user_id', user.id);
+        if(tab==='practice' && view==='detail' && selId===sessionId){
+          await loadAll(); render();
+        } else {
+          const sObj = D.sessions.find(x=>x.id===sessionId);
+          if(sObj){ sObj.shots=newShots; }
+        }
+      }
+    }catch(e){ console.warn('백그라운드 분석 실패:', e.message); }
+  }
+  if(completed>0){
+    toast(`📡 GDR 분석 완료 — ${completed}샷 추가됨`);
+    await loadAll();
+    if(tab==='practice') render();
+  }
+}
+
+window.reAnalyzeSession = async (sessionId) => {
+  const s = D.sessions.find(x=>x.id===sessionId);
+  if(!s || !s.imageUrls?.length){ toast('저장된 이미지가 없습니다'); return; }
+  const btn = $(`btn-reanalyze-${sessionId}`);
+  if(btn){ btn.disabled=true; btn.textContent=`분석 중... (0/${s.imageUrls.length})`; }
+  try {
+    const newShots = [];
+    for(let i=0; i<s.imageUrls.length; i++){
+      if(btn) btn.textContent=`분석 중... (${i+1}/${s.imageUrls.length})`;
+      const res = await fetch(s.imageUrls[i]);
+      const blob = await res.blob();
+      const file = new File([blob], `shot_${i+1}.jpg`, {type: blob.type||'image/jpeg'});
+      const gdrData = await analyzeGDRImage(file, ()=>{});
+      if(gdrData){
+        const shot = {};
+        ['carry','total','headSpeed','ballSpeed','smashFactor','launchAngle','spin','direction'].forEach(k=>{
+          if(gdrData[k]!=null) shot[k]=gdrData[k];
+        });
+        newShots.push(shot);
+      }
+    }
+    if(!newShots.length){ toast('분석 결과가 없습니다'); if(btn){btn.disabled=false;btn.textContent='📡 GDR 재분석';} return; }
+    const {error} = await sb.from('practice_sessions').update({
+      shots: newShots, total_shots: newShots.length
+    }).eq('id', sessionId).eq('user_id', user.id);
+    if(error){ toast('저장 실패: '+error.message); if(btn){btn.disabled=false;btn.textContent='📡 GDR 재분석';} return; }
+    await loadAll();
+    toast(`✓ ${newShots.length}개 샷 데이터 갱신됨`);
+    render();
+  } catch(e){
+    toast('재분석 실패: '+e.message);
+    if(btn){ btn.disabled=false; btn.textContent='📡 GDR 재분석'; }
+  }
+};
+
 window.addRow = () => {
   const w = $('shots-wrap'), d = document.createElement('div');
   d.innerHTML = mkShotRow(shotCnt);
