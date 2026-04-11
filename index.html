@@ -1088,6 +1088,13 @@ async function enterApp(u){
 }
 window.goList=()=>{view='list';selId=null;render()};
 window.goDetail=id=>{view='detail';selId=id;render()};
+window.goSessionDetail=id=>{
+  tab='practice';view='detail';selId=id;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  const tb=$('tab-practice');if(tb)tb.classList.add('on');
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  render();
+};
 window.goAdd=()=>{view='add';shotCnt=1;upFile=null;render()};
 window.gotoStats=()=>{tab='practice';view='list';pSub='stats';render();requestAnimationFrame(()=>requestAnimationFrame(initCharts));};
 window.goHome=()=>{
@@ -1273,7 +1280,7 @@ function homeView(){
     // 게임 기록
     if(s.gameType==='screen'||s.gameType==='field'){
       const icon=s.gameType==='screen'?'🖥️':'⛳';
-      return `<div class="perf-card">
+      return `<div class="perf-card" onclick="goSessionDetail('${s.id}')" style="cursor:pointer">
         <div class="perf-icon">${icon}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:.78rem;color:var(--muted)">${s.date} ${s.courseName?'· '+esc(s.courseName):''}</div>
@@ -1281,7 +1288,7 @@ function homeView(){
         </div>
       </div>`;
     }
-    return `<div class="perf-card">
+    return `<div class="perf-card" onclick="goSessionDetail('${s.id}')" style="cursor:pointer">
       <div class="perf-icon" style="font-size:1rem;font-weight:700;color:var(--wing2)">${nc||'—'}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:.78rem;color:var(--muted)">${s.date}${s.loc?' · '+esc(s.loc):''}</div>
