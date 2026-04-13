@@ -1832,7 +1832,7 @@ window.filterE=(q,cat,st)=>{const f=D.equip.filter(e=>(!q||e.name.includes(q))&&
 function eDetail(){
   const e=D.equip.find(x=>x.id===selId);if(!e)return'<div class="empty">장비를 찾을 수 없습니다.</div>';
   const lp=e.links.length?e.links[e.links.length-1].price:null;
-  const linksH=e.links.length?e.links.map((l,i)=>`<div class="link-item"><div style="display:flex;justify-content:space-between;align-items:center"><a href="${ea(l.url)}" target="_blank" rel="noopener">🔗 ${esc(l.label)}</a>${l.price?`<span class="link-price">${fmtP(l.price)}</span>`:''}</div><div class="link-date">확인일: ${l.checkedAt||'—'} <button class="btn btn-s btn-sm" style="margin-left:.5rem;padding:1px 7px;font-size:.7rem" onclick="updLinkP('${e.id}',${i})">가격 업데이트</button></div></div>`).join(''):'<div style="color:var(--muted);font-size:.84rem">저장된 링크 없음</div>';
+  const linksH=e.links.length?e.links.map((l,i)=>`<div class="link-item"><div style="display:flex;justify-content:space-between;align-items:center"><a href="${ea(l.url)}" target="_blank" rel="noopener">🔗 ${esc(l.label)}</a>${l.price?`<span class="link-price">${fmtP(l.price)}</span>`:''}</div><div class="link-date" style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">확인일: ${l.checkedAt||'—'} <button class="btn btn-s btn-sm" style="padding:1px 7px;font-size:.7rem" onclick="updLinkP('${e.id}',${i})">가격 수정</button><button class="btn btn-s btn-sm" style="padding:1px 7px;font-size:.7rem" onclick="updLinkLabel('${e.id}',${i})">이름 수정</button><button class="btn btn-s btn-sm" style="padding:1px 7px;font-size:.7rem;color:var(--red);border-color:rgba(193,123,106,.3)" onclick="delLink('${e.id}',${i})">삭제</button></div></div>`).join(''):'<div style="color:var(--muted);font-size:.84rem">저장된 링크 없음</div>';
   const histH=e.priceH.length?`<div class="sec-label" style="margin-top:.9rem">가격 동향</div><div>${e.priceH.slice().reverse().map((h,i,a)=>{const d=a[i+1]?h.price-a[i+1].price:0;return`<div class="price-entry"><span>${h.date}</span><span>${fmtP(h.price)} ${d?`<span style="color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</span>`:''}</span></div>`}).join('')}</div>`:'';
 
   // 태그 (category + 커스텀 tags)
@@ -1912,6 +1912,27 @@ function eDetail(){
 }
 window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
 window.updLinkP=async(eid,idx)=>{const e=D.equip.find(x=>x.id===eid);if(!e)return;const p=prompt(`새 가격 (현재: ${fmtP(e.links[idx].price)}):`,e.links[idx].price||'');if(p===null)return;const np=Number(p),newLinks=e.links.map((l,i)=>i===idx?{...l,price:np,checkedAt:today()}:l),newH=[...e.priceH,{date:today(),price:np}];sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',eid).eq('user_id',user.id);if(error){toast('업데이트 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('업데이트됨');goDetail(eid)};
+window.updLinkLabel=async(eid,idx)=>{
+  const e=D.equip.find(x=>x.id===eid);if(!e)return;
+  const cur=e.links[idx].label||'';
+  const p=prompt('링크 이름 수정:', cur);
+  if(p===null)return;
+  const newLabel=p.trim()||'링크';
+  const newLinks=e.links.map((l,i)=>i===idx?{...l,label:newLabel}:l);
+  sync('busy');
+  const{error}=await sb.from('equipment').update({links:newLinks}).eq('id',eid).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return}
+  e.links=newLinks;sync('ok');toast('이름 변경됨');goDetail(eid);
+};
+window.delLink=async(eid,idx)=>{
+  const e=D.equip.find(x=>x.id===eid);if(!e)return;
+  if(!confirm('이 링크를 삭제하시겠습니까?'))return;
+  const newLinks=e.links.filter((_,i)=>i!==idx);
+  sync('busy');
+  const{error}=await sb.from('equipment').update({links:newLinks}).eq('id',eid).eq('user_id',user.id);
+  if(error){toast('삭제 실패');sync('err');return}
+  e.links=newLinks;sync('ok');toast('링크 삭제됨');goDetail(eid);
+};
 window.saveEMemo=async(id,val)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   if(val===e.memo)return;
