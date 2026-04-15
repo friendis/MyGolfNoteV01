@@ -390,7 +390,14 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
     </div>
     <div class="msg err" id="auth-err"></div>
     <div class="msg ok" id="auth-ok"></div>
-    <div class="fg">
+    <!-- 이메일 인증 대기 화면 -->
+    <div id="verify-pending" style="display:none;text-align:center;padding:1.2rem 0">
+      <div style="font-size:2rem;margin-bottom:.7rem">📧</div>
+      <div style="font-family:var(--serif);font-size:1.1rem;font-weight:700;color:var(--chalk);margin-bottom:.5rem">인증 메일을 확인해주세요</div>
+      <div style="font-size:.82rem;color:var(--dim);line-height:1.7;margin-bottom:1rem" id="verify-email-msg"></div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:1rem">메일이 오지 않았다면 스팸 폴더를 확인하거나<br>잠시 후 다시 시도해주세요</div>
+      <button class="btn btn-s btn-sm" onclick="$('verify-pending').style.display='none';setAuthMode('login')">로그인 화면으로 돌아가기</button>
+    </div>
       <label class="fl-label">이메일</label>
       <input class="inp" type="email" id="a-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')doAuth()">
     </div>
@@ -905,12 +912,14 @@ document.addEventListener('click',e=>{const p=$('acct-panel'),b=$('acct-toggle')
 window.openAcctSettings=()=>{$('acct-email-disp').textContent=user?.email||'';$('acct-data-cnt').textContent=`영상 ${D.videos.length}개 · 장비 ${D.equip.length}개 · 연습 세션 ${D.sessions.length}개`;openModal('acct-modal')};
 window.setAuthMode=mode=>{
   authMode=mode;
+  // verify-pending 화면 숨기고 폼 복원
+  const vp=$('verify-pending');if(vp)vp.style.display='none';
+  [$('a-email'),$('a-pw'),$('auth-btn')].forEach(el=>{if(el)el.style.display='';});
   $('atab-login').classList.toggle('on',mode==='login');
   $('atab-signup').classList.toggle('on',mode==='signup');
   $('auth-btn').textContent=mode==='login'?'로그인':'회원가입';
   $('agree-wrap').style.display=mode==='signup'?'block':'none';
   $('auth-err').style.display='none';$('auth-ok').style.display='none';
-  // 비밀번호 찾기 폼 — 로그인 탭만 표시
   const forgotWrap=$('forgot-pw-wrap'), forgotForm=$('forgot-pw-form');
   if(forgotWrap) forgotWrap.style.display=mode==='login'?'block':'none';
   if(forgotForm) forgotForm.style.display='none';
@@ -929,8 +938,13 @@ window.doAuth=async()=>{
     });
     btn.disabled=false;btn.textContent='회원가입';
     if(error){showErr(error.message.includes('already')?'이미 등록된 이메일입니다':error.message);return}
-    showOk('가입 완료! 📧 가입하신 이메일로 인증 메일이 발송됐습니다.\n인증 링크를 클릭한 후 로그인해주세요.');
-    setAuthMode('login');
+    // 이메일 인증 대기 화면 표시
+    const vp=$('verify-pending'),vm=$('verify-email-msg');
+    if(vp&&vm){
+      vm.innerHTML=`<strong style="color:var(--chalk)">${esc(email)}</strong>으로<br>인증 메일을 발송했습니다.<br><br>메일의 <strong style="color:var(--wing2)">인증 링크를 클릭</strong>하면<br>자동으로 로그인됩니다.`;
+      [$('a-email'),$('a-pw'),$('auth-btn'),$('agree-wrap'),$('forgot-pw-wrap'),$('auth-ok'),$('auth-err')].forEach(el=>{if(el)el.style.display='none';});
+      vp.style.display='block';
+    }
   }else{
     const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
     btn.disabled=false;btn.textContent='로그인';
@@ -4645,6 +4659,42 @@ window.delSession=async id=>{
 };
 (async()=>{
   try{
+    // 이메일 인증 링크 파라미터 처리 (token_hash, access_token 등)
+    const params=new URLSearchParams(location.search);
+    const hashParams=new URLSearchParams(location.hash.replace('#',''));
+    const tokenHash=params.get('token_hash');
+    const accessToken=hashParams.get('access_token')||params.get('access_token');
+    const type=params.get('type')||hashParams.get('type');
+
+    if(tokenHash){
+      // 신규 방식: token_hash로 OTP 검증
+      $('loading').querySelector('div') && ($('loading').innerHTML='<div style="color:rgba(240,237,230,.7);font-size:.9rem">이메일 인증 확인 중...</div>');
+      const{data,error}=await sb.auth.verifyOtp({token_hash:tokenHash,type:type||'email'});
+      history.replaceState(null,'',location.pathname); // URL 정리
+      if(error){
+        $('loading').style.display='none';
+        $('auth').style.display='flex';
+        setTimeout(()=>showErr('이메일 인증 실패: '+error.message),100);
+        return;
+      }
+      if(data?.session?.user){
+        await enterApp(data.session.user);
+        setTimeout(()=>toast('✓ 이메일 인증이 완료됐습니다!'),500);
+        return;
+      }
+    } else if(accessToken){
+      // 구형 방식: access_token + refresh_token
+      const refreshToken=hashParams.get('refresh_token')||params.get('refresh_token');
+      const{data,error}=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken||''});
+      history.replaceState(null,'',location.pathname);
+      if(!error&&data?.session?.user){
+        await enterApp(data.session.user);
+        setTimeout(()=>toast('✓ 이메일 인증이 완료됐습니다!'),500);
+        return;
+      }
+    }
+
+    // 일반 세션 복원
     const{data:{session}}=await sb.auth.getSession();
     if(session?.user){await enterApp(session.user)}else{$('auth').style.display='flex'}
   }catch(e){$('auth').style.display='flex'}
