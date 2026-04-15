@@ -835,36 +835,52 @@ function toast(msg){const el=document.createElement('div');el.className='toast-e
 function sync(s){const d=$('sync-dot');if(!d)return;d.className='sync-dot'+(s==='busy'?' busy':s==='err'?' err':'')}
 
 // ── 테스트 계정 로그인 ────────────────────────────────
+// guest-login Edge Function 대신 Supabase 이메일 로그인 직접 사용
+const GUEST_EMAIL = 'guest@birdyard.app';
+const GUEST_PW    = 'birdyard-guest-2024!';
+
 window.doGuestLogin = async () => {
   const btn = document.querySelector('.btn-ghost');
   if(btn){ btn.disabled=true; btn.textContent='접속 중...'; }
   try {
-    const resp = await fetch(
-      'https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/guest-login',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SB_KEY}`
-        },
-        body: JSON.stringify({})
-      }
-    );
-    const data = await resp.json();
-    console.log('guest-login 응답:', resp.status, data);
-    if(!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
-
-    const { error } = await sb.auth.setSession({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token
+    // 1차 시도: 로그인
+    let { data, error } = await sb.auth.signInWithPassword({
+      email: GUEST_EMAIL,
+      password: GUEST_PW
     });
-    if(error) throw error;
 
+    if(error){
+      // 계정 없음 → 자동 생성 후 로그인 재시도
+      if(error.message?.includes('Invalid') || error.message?.includes('not found') || error.message?.includes('credentials')){
+        const { error: se } = await sb.auth.signUp({
+          email: GUEST_EMAIL, password: GUEST_PW,
+          options:{ data:{ display_name:'Guest' }, emailRedirectTo: location.origin }
+        });
+        // signUp 성공 or 이미 존재 → 다시 로그인
+        const retry = await sb.auth.signInWithPassword({ email: GUEST_EMAIL, password: GUEST_PW });
+        data = retry.data;
+        error = retry.error;
+      }
+      if(error) throw error;
+    }
+
+    if(!data?.user) throw new Error('로그인 응답에 사용자 정보가 없습니다');
     isGuest = true;
     await enterApp(data.user);
+
   } catch(e) {
     console.error('doGuestLogin 오류:', e);
-    toast(`테스트 계정 접속 실패: ${e.message}`);
+    let msg = e.message || '알 수 없는 오류';
+
+    if(msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('fetch')){
+      msg = '네트워크 연결을 확인해주세요.';
+    } else if(msg.includes('Email not confirmed')){
+      msg = '테스트 계정 이메일 인증이 필요합니다.\nSupabase 대시보드 → Authentication → Users → guest@birdyard.app → Confirm email';
+    } else if(msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')){
+      msg = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    toast(`테스트 계정 접속 실패: ${msg}`);
   } finally {
     if(btn){ btn.disabled=false; btn.textContent='🐦 테스트 계정으로 체험하기'; }
   }
@@ -908,7 +924,9 @@ window.doAuth=async()=>{
   if(authMode==='signup'){if(!$('ag1').checked){showErr('개인정보 처리방침에 동의해주세요');return}if(!$('ag2').checked){showErr('이용약관에 동의해주세요');return}}
   btn.disabled=true;btn.textContent='처리 중...';
   if(authMode==='signup'){
-    const{error}=await sb.auth.signUp({email,password:pw});
+    const{error}=await sb.auth.signUp({email,password:pw,
+      options:{emailRedirectTo: location.href.split('?')[0].split('#')[0]}
+    });
     btn.disabled=false;btn.textContent='회원가입';
     if(error){showErr(error.message.includes('already')?'이미 등록된 이메일입니다':error.message);return}
     showOk('가입 완료! 📧 가입하신 이메일로 인증 메일이 발송됐습니다.\n인증 링크를 클릭한 후 로그인해주세요.');
