@@ -398,6 +398,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:1rem">메일이 오지 않았다면 스팸 폴더를 확인하거나<br>잠시 후 다시 시도해주세요</div>
       <button class="btn btn-s btn-sm" onclick="$('verify-pending').style.display='none';setAuthMode('login')">로그인 화면으로 돌아가기</button>
     </div>
+    <div class="fg">
       <label class="fl-label">이메일</label>
       <input class="inp" type="email" id="a-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')doAuth()">
     </div>
