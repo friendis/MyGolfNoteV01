@@ -398,13 +398,14 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:1rem">메일이 오지 않았다면 스팸 폴더를 확인하거나<br>잠시 후 다시 시도해주세요</div>
       <button class="btn btn-s btn-sm" onclick="$('verify-pending').style.display='none';setAuthMode('login')">로그인 화면으로 돌아가기</button>
     </div>
+    <form id="auth-form" onsubmit="doAuth();return false" autocomplete="on">
     <div class="fg">
       <label class="fl-label">이메일</label>
-      <input class="inp" type="email" id="a-email" placeholder="golf@example.com" onkeydown="if(event.key==='Enter')doAuth()">
+      <input class="inp" type="email" id="a-email" name="email" placeholder="golf@example.com" autocomplete="email">
     </div>
     <div class="fg">
       <label class="fl-label">비밀번호</label>
-      <input class="inp" type="password" id="a-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')doAuth()">
+      <input class="inp" type="password" id="a-pw" name="password" placeholder="6자 이상" autocomplete="current-password">
     </div>
     <div id="agree-wrap" style="display:none">
       <div class="agree-row">
@@ -416,7 +417,8 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
         <label for="ag2">만 14세 이상이며 이용약관에 동의합니다 <span style="color:var(--red)">(필수)</span></label>
       </div>
     </div>
-    <button class="btn btn-p" id="auth-btn" onclick="doAuth()" style="width:100%;margin-top:.75rem">로그인</button>
+    <button class="btn btn-p" id="auth-btn" type="submit" style="width:100%;margin-top:.75rem">로그인</button>
+    </form>
     <div id="forgot-pw-wrap" style="text-align:center;margin-top:.6rem">
       <button onclick="showForgotPw()" style="background:none;border:none;color:var(--muted);font-size:.73rem;cursor:pointer;font-family:var(--sans);text-decoration:underline">비밀번호를 잊으셨나요?</button>
     </div>
@@ -854,24 +856,26 @@ window.doGuestLogin = async () => {
     const data = await resp.json();
     if(!resp.ok || data.error) throw new Error(data.error || '로그인 실패');
 
-    // 받은 토큰으로 세션 설정
+    // isGuest 플래그 먼저 세팅 — onAuthStateChange가 enterApp 호출 시 인식
+    isGuest = true;
+
+    // setSession 호출 → SIGNED_IN 이벤트 발생 → onAuthStateChange가 enterApp 처리
+    // lock 경고는 정상 동작 중 발생할 수 있으므로 무시
     const { error } = await sb.auth.setSession({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
     });
-    if(error) throw error;
-
-    isGuest = true;
-    await enterApp(data.user);
+    // lock 오류는 세션이 이미 설정된 것이므로 무시
+    if(error && !error.message?.includes('lock')) throw error;
 
   } catch(e) {
+    isGuest = false;
     console.error('doGuestLogin 오류:', e);
     let msg = e.message || '알 수 없는 오류';
     if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
       msg = '네트워크 연결을 확인해주세요.';
     }
     toast(`테스트 계정 접속 실패: ${msg}`);
-  } finally {
     if(btn){ btn.disabled=false; btn.textContent='🐦 테스트 계정으로 체험하기'; }
   }
 };
@@ -897,7 +901,11 @@ window.setAuthMode=mode=>{
   authMode=mode;
   // verify-pending 화면 숨기고 폼 복원
   const vp=$('verify-pending');if(vp)vp.style.display='none';
+  const af=$('auth-form');if(af)af.style.display='';
   [$('a-email'),$('a-pw'),$('auth-btn')].forEach(el=>{if(el)el.style.display='';});
+  // autocomplete 힌트 변경
+  const pw=$('a-pw');
+  if(pw) pw.setAttribute('autocomplete', mode==='signup'?'new-password':'current-password');
   $('atab-login').classList.toggle('on',mode==='login');
   $('atab-signup').classList.toggle('on',mode==='signup');
   $('auth-btn').textContent=mode==='login'?'로그인':'회원가입';
@@ -925,7 +933,7 @@ window.doAuth=async()=>{
     const vp=$('verify-pending'),vm=$('verify-email-msg');
     if(vp&&vm){
       vm.innerHTML=`<strong style="color:var(--chalk)">${esc(email)}</strong>으로<br>인증 메일을 발송했습니다.<br><br>메일의 <strong style="color:var(--wing2)">인증 링크를 클릭</strong>하면<br>자동으로 로그인됩니다.`;
-      [$('a-email'),$('a-pw'),$('auth-btn'),$('agree-wrap'),$('forgot-pw-wrap'),$('auth-ok'),$('auth-err')].forEach(el=>{if(el)el.style.display='none';});
+      [$('a-email'),$('a-pw'),$('auth-btn'),$('agree-wrap'),$('forgot-pw-wrap'),$('auth-ok'),$('auth-err'),$('auth-form')].forEach(el=>{if(el)el.style.display='none';});
       vp.style.display='block';
     }
   }else{
@@ -4693,6 +4701,9 @@ window.delSession=async id=>{
       }, 600);
     } else if(event==='SIGNED_IN'&&session?.user&&!user){
       await enterApp(session.user);
+      // 버튼 복원 (게스트 로그인 finally 대신 여기서 처리)
+      const btn=document.querySelector('.btn-ghost');
+      if(btn){btn.disabled=false;btn.textContent='🐦 테스트 계정으로 체험하기';}
     } else if(event==='SIGNED_OUT'){
       user=null;
     }
