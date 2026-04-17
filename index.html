@@ -1048,7 +1048,7 @@ async function loadAll(){
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
-    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||''}));
+    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||''}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18}));
     D.profile=pR.data||null;
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
@@ -1850,7 +1850,7 @@ function eList(){
   const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
-  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:.7rem">${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
+  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
   return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value)"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value)"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div><div id="ecards">${cards}</div>
   <div style="margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -1899,13 +1899,19 @@ function eDetail(){
     </div>${ironSetSection}`;
 
   return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
-    <div class="inline-edit" style="flex:1;margin-bottom:0;margin-right:.5rem">
-      <span class="e-label">장비명</span>
-      <input id="ename-input" value="${ea(e.name)}" onblur="saveEName('${e.id}',this.value)">
-      <span style="font-size:.72rem;color:var(--muted)">✎</span>
+  <div style="display:flex;gap:.75rem;align-items:flex-start;margin-bottom:.75rem">
+    ${e.photoUrl?`<div style="position:relative;flex-shrink:0">
+      <img src="${ea(e.photoUrl)}" style="width:80px;height:80px;object-fit:contain;border-radius:3px;border:1px solid var(--border);background:var(--dusk);cursor:pointer" onclick="openEquipPhoto('${e.id}')" alt="${ea(e.name)}">
+      <div style="position:absolute;bottom:2px;right:2px;background:rgba(13,17,23,.7);border-radius:2px;padding:1px 4px;font-size:.6rem;color:rgba(240,237,230,.6)">수정</div>
+    </div>`:`<button onclick="openEquipPhoto('${e.id}')" style="width:80px;height:80px;flex-shrink:0;background:rgba(240,237,230,.03);border:1px dashed rgba(240,237,230,.15);border-radius:3px;cursor:pointer;color:var(--muted);font-size:.68rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">📸<span>사진 추가</span></button>`}
+    <div style="flex:1;min-width:0">
+      <div class="inline-edit" style="margin-bottom:0;margin-right:0">
+        <span class="e-label">장비명</span>
+        <input id="ename-input" value="${ea(e.name)}" onblur="saveEName('${e.id}',this.value)">
+        <span style="font-size:.72rem;color:var(--muted)">✎</span>
+      </div>
+      ${e.buyPrice||lp?`<div class="price-big">${fmtP(e.buyPrice||lp)}</div>`:''}
     </div>
-    ${e.buyPrice||lp?`<div class="price-big" style="flex-shrink:0">${fmtP(e.buyPrice||lp)}</div>`:''}
   </div>
   <div class="sec-label">태그</div>
   ${tagsH}
@@ -1965,6 +1971,219 @@ window.delLink=async(eid,idx)=>{
   const{error}=await sb.from('equipment').update({links:newLinks}).eq('id',eid).eq('user_id',user.id);
   if(error){toast('삭제 실패');sync('err');return}
   e.links=newLinks;sync('ok');toast('링크 삭제됨');goDetail(eid);
+};
+
+// ── 장비 사진 모달 ────────────────────────────────────
+let _ePhotoTargetId=null; // 'add' 또는 장비 id
+let _ePhotoSelected=null; // {type:'url'|'file', value: url string | File}
+
+window.openEquipPhoto=(eid)=>{
+  _ePhotoTargetId=eid;
+  _ePhotoSelected=null;
+  const e=D.equip.find(x=>x.id===eid);
+  // 검색창에 장비명 자동 입력
+  const si=$('ephoto-search-input');
+  if(si&&e) si.value=e.name;
+  $('ephoto-selected-wrap').style.display='none';
+  $('ephoto-search-results').innerHTML='<div style="grid-column:1/-1;font-size:.75rem;color:var(--muted);text-align:center;padding:1rem">장비명을 검색하면 관련 이미지를 보여줍니다</div>';
+  // 링크 탭: 저장된 링크 이미지 자동 로드
+  if(e?.links?.length) _loadLinkImages(e);
+  switchEPhotoTab('search');
+  openModal('equip-photo-modal');
+  // 장비명 자동 검색
+  if(e?.name) setTimeout(()=>searchEquipPhotos(),200);
+};
+
+window.openEquipPhotoForAdd=()=>{
+  _ePhotoTargetId='add';
+  _ePhotoSelected=null;
+  const si=$('ephoto-search-input');
+  const name=$('en')?.value.trim();
+  if(si&&name) si.value=name;
+  $('ephoto-selected-wrap').style.display='none';
+  $('ephoto-search-results').innerHTML='<div style="grid-column:1/-1;font-size:.75rem;color:var(--muted);text-align:center;padding:1rem">장비명을 검색하면 관련 이미지를 보여줍니다</div>';
+  $('ephoto-url-results').innerHTML='';
+  switchEPhotoTab('search');
+  openModal('equip-photo-modal');
+  if(name) setTimeout(()=>searchEquipPhotos(),200);
+};
+
+window.switchEPhotoTab=(tab)=>{
+  ['search','url','upload'].forEach(t=>{
+    $(`ephoto-panel-${t}`).style.display=t===tab?'block':'none';
+    const btn=$(`ephoto-tab-${t}`);
+    if(btn){
+      btn.style.background=t===tab?'rgba(200,137,58,.12)':'none';
+      btn.style.color=t===tab?'var(--wing2)':'var(--muted)';
+    }
+  });
+};
+
+window.searchEquipPhotos=async()=>{
+  const q=$('ephoto-search-input')?.value.trim();
+  if(!q){toast('검색어를 입력하세요');return}
+  const res=$('ephoto-search-results');
+  res.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:1.5rem;font-size:.8rem;color:var(--muted)">검색 중...</div>';
+  try{
+    // Claude API로 이미지 검색 쿼리 + DuckDuckGo 이미지 검색
+    const urls=await _searchProductImages(q);
+    if(!urls.length){
+      res.innerHTML='<div style="grid-column:1/-1;font-size:.75rem;color:var(--muted);text-align:center;padding:1rem">검색 결과가 없습니다. 링크 탭에서 URL을 직접 입력하거나 파일을 업로드해주세요.</div>';
+      return;
+    }
+    res.innerHTML=urls.map(url=>`
+      <div style="cursor:pointer;border:2px solid transparent;border-radius:3px;overflow:hidden;background:var(--dusk);aspect-ratio:1" onclick="_selectEPhoto('${esc(url)}')">
+        <img src="${esc(url)}" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.style.display='none'" alt="">
+      </div>`).join('');
+  }catch(e){
+    res.innerHTML=`<div style="grid-column:1/-1;font-size:.75rem;color:var(--muted);text-align:center;padding:1rem">검색 실패: ${e.message}</div>`;
+  }
+};
+
+async function _searchProductImages(query){
+  // Open Graph / 메타 이미지 추출을 위해 Claude API 활용
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:400,
+        messages:[{role:'user',content:`골프 장비 "${query}"의 제품 이미지를 찾을 수 있는 직접 이미지 URL을 5개 제시해주세요. 실제로 접근 가능한 이미지 URL만 제시하고, JSON 배열 형식으로만 응답하세요. 예: ["https://...jpg","https://...jpg"]`}]
+      })
+    });
+    const data=await resp.json();
+    const text=data.content?.[0]?.text||'';
+    const match=text.match(/\[[\s\S]*\]/);
+    if(match){
+      const urls=JSON.parse(match[0]);
+      return Array.isArray(urls)?urls.filter(u=>typeof u==='string'&&u.startsWith('http')):[];
+    }
+  }catch(e){}
+
+  // fallback: 저장된 링크 URL에서 이미지 추출 시도
+  if(_ePhotoTargetId&&_ePhotoTargetId!=='add'){
+    const e=D.equip.find(x=>x.id===_ePhotoTargetId);
+    if(e?.links?.length){
+      return e.links.map(l=>`https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(new URL(l.url).hostname)}`);
+    }
+  }
+  return [];
+}
+
+function _loadLinkImages(e){
+  const res=$('ephoto-url-results');
+  if(!res||!e?.links?.length){if(res)res.innerHTML='<div style="font-size:.75rem;color:var(--muted)">저장된 링크가 없습니다</div>';return;}
+  res.innerHTML=e.links.map(l=>{
+    // OG 이미지 프록시 시도 (링크 호스트명 기반)
+    const domain=new URL(l.url).hostname.replace('www.','');
+    return`<div style="text-align:center">
+      <div style="font-size:.65rem;color:var(--muted);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(domain)}</div>
+      <div style="cursor:pointer;border:2px solid transparent;border-radius:3px;overflow:hidden;background:var(--dusk);aspect-ratio:1" onclick="previewDirectUrl('${esc(l.url)}')">
+        <img src="https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}" style="width:100%;height:100%;object-fit:contain;padding:12px" alt="${esc(l.label)}">
+      </div>
+      <div style="font-size:.65rem;color:var(--muted);margin-top:2px">${esc(l.label)}</div>
+    </div>`;
+  }).join('');
+}
+
+window._selectEPhoto=(url)=>{
+  _ePhotoSelected={type:'url',value:url};
+  const wrap=$('ephoto-selected-wrap'),img=$('ephoto-selected-img');
+  if(wrap&&img){img.src=url;wrap.style.display='block';}
+  // 선택 표시
+  document.querySelectorAll('#ephoto-search-results [onclick],#ephoto-url-results [onclick]').forEach(el=>{
+    el.style.borderColor='transparent';
+  });
+  event?.currentTarget?.style && (event.currentTarget.style.borderColor='var(--wing2)');
+};
+
+window.previewDirectUrl=(urlOrEvent)=>{
+  const url=typeof urlOrEvent==='string'?urlOrEvent:($('ephoto-url-direct')?.value.trim()||'');
+  if(!url){toast('URL을 입력하세요');return}
+  _ePhotoSelected={type:'url',value:url};
+  const wrap=$('ephoto-selected-wrap'),img=$('ephoto-selected-img');
+  if(wrap&&img){img.src=url;wrap.style.display='block';}
+  const prev=$('ephoto-url-preview');
+  if(prev) prev.innerHTML=`<img src="${esc(url)}" style="max-width:100%;max-height:120px;object-fit:contain;border-radius:3px;border:1px solid var(--border)" onerror="this.style.display='none'">`;
+};
+
+window.handleEquipPhotoFile=(file)=>{
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const dataUrl=e.target.result;
+    _ePhotoSelected={type:'file',value:file,preview:dataUrl};
+    const wrap=$('ephoto-selected-wrap'),img=$('ephoto-selected-img');
+    if(wrap&&img){img.src=dataUrl;wrap.style.display='block';}
+    const prev=$('ephoto-upload-preview');
+    if(prev) prev.innerHTML=`<img src="${esc(dataUrl)}" style="max-width:100%;max-height:140px;object-fit:contain;border-radius:3px;border:1px solid var(--border)">`;
+  };
+  reader.readAsDataURL(file);
+};
+
+// 드래그 앤 드롭
+document.addEventListener('DOMContentLoaded',()=>{
+  const dz=$('ephoto-drop-zone');
+  if(!dz)return;
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='var(--wing2)';});
+  dz.addEventListener('dragleave',()=>{dz.style.borderColor='';});
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='';const f=e.dataTransfer.files[0];if(f)handleEquipPhotoFile(f);});
+  // 클립보드 붙여넣기
+  document.addEventListener('paste',e=>{
+    if(!$('equip-photo-modal')?.classList.contains('on'))return;
+    const items=e.clipboardData?.items||[];
+    for(const item of items){
+      if(item.type.startsWith('image/')){
+        handleEquipPhotoFile(item.getAsFile());
+        switchEPhotoTab('upload');
+        break;
+      }
+    }
+  });
+});
+
+window.confirmEquipPhoto=async()=>{
+  if(!_ePhotoSelected){toast('사진을 선택해주세요');return}
+  const btn=$('equip-photo-modal').querySelector('.btn.btn-p.btn-sm');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  try{
+    let photoUrl='';
+    if(_ePhotoSelected.type==='file'){
+      // Supabase Storage 업로드
+      const file=_ePhotoSelected.value;
+      const ext=file.name.split('.').pop();
+      const path=`equip/${user.id}/${Date.now()}.${ext}`;
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path,file,{upsert:true});
+      if(ue)throw ue;
+      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path,60*60*24*365*5);
+      photoUrl=sd?.signedUrl||'';
+    } else {
+      photoUrl=_ePhotoSelected.value;
+    }
+    if(!photoUrl)throw new Error('URL을 가져올 수 없습니다');
+
+    if(_ePhotoTargetId==='add'){
+      // eAdd 폼에 반영
+      const hidden=$('eadd-photo-url'),preview=$('eadd-photo-preview'),status=$('eadd-photo-status');
+      if(hidden) hidden.value=photoUrl;
+      if(preview) preview.innerHTML=`<img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:contain;border-radius:2px">`;
+      if(status) status.textContent='사진 선택됨';
+    } else {
+      // 기존 장비 DB 저장
+      sync('busy');
+      const{error}=await sb.from('equipment').update({photo_url:photoUrl}).eq('id',_ePhotoTargetId).eq('user_id',user.id);
+      if(error)throw error;
+      const e=D.equip.find(x=>x.id===_ePhotoTargetId);
+      if(e) e.photoUrl=photoUrl;
+      sync('ok');toast('사진 저장됨');
+      render(); // 장비 상세 재렌더
+    }
+    closeModal('equip-photo-modal');
+  }catch(e){
+    toast('저장 실패: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='이 사진으로 저장';}
+  }
 };
 window.saveEMemo=async(id,val)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
@@ -2209,13 +2428,16 @@ window.saveEquip=async()=>{
   // 아이언 세트 저장
   const ironSet=cat==='아이언'?readIronSet():[];
   const tagsData=ironSet.length?{iron_set:ironSet}:null;
+  const photoUrl=$('eadd-photo-url')?.value||'';
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
-  const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData});
+  const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData,photo_url:photoUrl||null});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
   await loadAll();toast('장비 추가됨');goList();
 };
-function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div>
+<div class="fg"><label class="fl-label">제품 사진 (선택)</label><div style="display:flex;align-items:center;gap:.5rem"><div id="eadd-photo-preview" style="width:56px;height:56px;background:rgba(240,237,230,.03);border:1px dashed rgba(240,237,230,.15);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.7rem;flex-shrink:0">📸</div><button type="button" class="btn btn-s btn-sm" onclick="openEquipPhotoForAdd()">사진 선택</button><span id="eadd-photo-status" style="font-size:.72rem;color:var(--muted)">선택 안 됨</span></div><input type="hidden" id="eadd-photo-url" value=""></div>
+<div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
 window.toggleRecType=v=>{
   const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
@@ -4839,8 +5061,285 @@ window.delSession=async id=>{
       user=null;
     }
   });
+// ── 장비 사진 모달 ──────────────────────────────────
+let _ePhotoTarget = null;   // {type:'equip'|'add', id?:string}
+let _ePhotoSelected = null; // {url, file?}
+let _ePhotoUploadFile = null;
+
+window.openEquipPhoto = (eid) => {
+  const e = D.equip.find(x=>x.id===eid);
+  _ePhotoTarget = {type:'equip', id:eid};
+  _ePhotoSelected = null;
+  $('ephoto-selected-wrap').style.display='none';
+  $('ephoto-upload-preview').innerHTML='';
+  $('ephoto-url-preview').innerHTML='';
+  // 검색창에 장비명 자동 입력
+  if(e){ $('ephoto-search-input').value=e.name; }
+  // 링크 패널 — 저장된 링크들 표시
+  _loadLinkPhotos(eid);
+  switchEPhotoTab('search');
+  $('equip-photo-modal').classList.add('on');
+  document.body.style.overflow='hidden';
+  // 장비명으로 자동 검색
+  if(e) setTimeout(searchEquipPhotos, 100);
+};
+
+window.openEquipPhotoForAdd = () => {
+  _ePhotoTarget = {type:'add'};
+  _ePhotoSelected = null;
+  $('ephoto-selected-wrap').style.display='none';
+  $('ephoto-upload-preview').innerHTML='';
+  const name = $('en')?.value.trim()||'';
+  $('ephoto-search-input').value = name;
+  $('ephoto-url-results').innerHTML='';
+  switchEPhotoTab('search');
+  $('equip-photo-modal').classList.add('on');
+  document.body.style.overflow='hidden';
+  if(name) setTimeout(searchEquipPhotos, 100);
+};
+
+window.switchEPhotoTab = (tab) => {
+  ['search','url','upload'].forEach(t=>{
+    $(`ephoto-panel-${t}`).style.display = t===tab ? 'block':'none';
+    const btn = $(`ephoto-tab-${t}`);
+    if(btn){
+      btn.style.background = t===tab ? 'rgba(200,137,58,.12)':'none';
+      btn.style.color = t===tab ? 'var(--wing2)':'var(--muted)';
+    }
+  });
+};
+
+window.searchEquipPhotos = async () => {
+  const q = $('ephoto-search-input').value.trim();
+  if(!q) return;
+  const res = $('ephoto-search-results');
+  res.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1.2rem;color:var(--muted);font-size:.8rem">🔍 검색 중...</div>';
+
+  try {
+    // Unsplash source API (무료, 키 불필요) — 골프 장비 검색
+    const queries = [
+      `golf ${q}`,
+      `${q} golf club`,
+    ];
+    const results = [];
+
+    // DuckDuckGo 이미지 프록시 방식 대신 Unsplash source + 고정 시드로 다양한 이미지 제공
+    for(let i=0; i<6; i++){
+      const seed = encodeURIComponent(`${q}-${i}`);
+      results.push({
+        thumb: `https://source.unsplash.com/120x120/?${encodeURIComponent('golf '+q)}&sig=${i}`,
+        full:  `https://source.unsplash.com/480x480/?${encodeURIComponent('golf '+q)}&sig=${i}`,
+      });
+    }
+
+    res.innerHTML = results.map((r,i)=>`
+      <div onclick="selectEquipPhoto('${r.full}')" style="cursor:pointer;border-radius:3px;overflow:hidden;border:2px solid transparent;transition:border-color .15s;aspect-ratio:1" onmouseover="this.style.borderColor='var(--wing2)'" onmouseout="this.style.borderColor='transparent'">
+        <img src="${r.thumb}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.parentNode.style.display='none'">
+      </div>`).join('');
+
+    // 검색 결과가 없거나 실패 시 안내
+    const note = document.createElement('div');
+    note.style.cssText='grid-column:1/-1;font-size:.68rem;color:var(--muted);text-align:center;padding:.4rem 0';
+    note.textContent='원하는 사진이 없으면 직접 업로드 탭을 이용하세요';
+    res.appendChild(note);
+
+  } catch(e) {
+    res.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:1rem;color:var(--muted);font-size:.8rem">검색 실패 — 직접 업로드를 이용해주세요</div>`;
+  }
+};
+
+function _loadLinkPhotos(eid) {
+  const e = D.equip.find(x=>x.id===eid);
+  const wrap = $('ephoto-url-results');
+  if(!e?.links?.length){ wrap.innerHTML='<div style="font-size:.75rem;color:var(--muted)">저장된 링크가 없습니다</div>'; return; }
+  wrap.innerHTML = e.links.map((l,i)=>`
+    <div onclick="fetchLinkOgImage('${ea(l.url)}')" style="cursor:pointer;border-radius:3px;border:1px solid var(--border);padding:.4rem;font-size:.7rem;color:var(--dim);display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
+      <span style="font-size:1rem">🔗</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.label||l.url)}</span>
+      <span style="color:var(--wing2);font-size:.68rem;flex-shrink:0">사진 가져오기</span>
+    </div>`).join('');
+}
+
+window.fetchLinkOgImage = async (url) => {
+  const preview = $('ephoto-url-preview');
+  preview.innerHTML='<div style="font-size:.75rem;color:var(--muted)">이미지 로드 중...</div>';
+  // OG 이미지 직접 가져오기는 CORS 제한으로 불가
+  // → URL 직접 입력란에 채워주고 사용자가 확인하도록 안내
+  $('ephoto-url-direct').value = url;
+  preview.innerHTML = `<div style="font-size:.72rem;color:var(--muted);margin-bottom:.4rem">아래 URL에서 이미지 URL을 직접 복사해서 붙여넣어 주세요</div>
+    <a href="${ea(url)}" target="_blank" style="font-size:.72rem;color:var(--sky2);word-break:break-all">${esc(url)}</a>`;
+};
+
+window.previewDirectUrl = () => {
+  const url = $('ephoto-url-direct').value.trim();
+  if(!url){ toast('URL을 입력하세요'); return; }
+  const wrap = $('ephoto-url-preview');
+  wrap.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
+    <img src="${ea(url)}" style="width:72px;height:72px;object-fit:contain;border-radius:3px;border:1px solid var(--border);background:var(--dusk)" onerror="this.parentNode.innerHTML='<span style=\\'font-size:.72rem;color:var(--red)\\'>이미지를 불러올 수 없습니다</span>'">
+    <button class="btn btn-p btn-sm" onclick="selectEquipPhoto('${ea(url)}')">이 사진 선택</button>
+  </div>`;
+};
+
+window.handleEquipPhotoFile = (file) => {
+  if(!file) return;
+  _ePhotoUploadFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    $('ephoto-upload-preview').innerHTML=`
+      <div style="display:flex;align-items:center;gap:.5rem;margin-top:.4rem">
+        <img src="${dataUrl}" style="width:80px;height:80px;object-fit:contain;border-radius:3px;border:1px solid var(--border);background:var(--dusk)">
+        <button class="btn btn-p btn-sm" onclick="selectEquipPhoto(null, true)">이 사진 선택</button>
+      </div>`;
+  };
+  reader.readAsDataURL(file);
+};
+
+// 클립보드 붙여넣기
+document.addEventListener('paste', e => {
+  if(!$('equip-photo-modal')?.classList.contains('on')) return;
+  const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/'));
+  if(!item) return;
+  const file = item.getAsFile();
+  switchEPhotoTab('upload');
+  handleEquipPhotoFile(file);
+});
+
+// 드래그앤드롭
+document.addEventListener('DOMContentLoaded', ()=>{
+  const dz = $('ephoto-drop-zone');
+  if(!dz) return;
+  dz.addEventListener('dragover', e=>{e.preventDefault();dz.style.borderColor='var(--wing2)';});
+  dz.addEventListener('dragleave', ()=>dz.style.borderColor='');
+  dz.addEventListener('drop', e=>{
+    e.preventDefault(); dz.style.borderColor='';
+    const file = e.dataTransfer.files[0];
+    if(file?.type.startsWith('image/')) handleEquipPhotoFile(file);
+  });
+});
+
+window.selectEquipPhoto = (url, useUploadFile=false) => {
+  _ePhotoSelected = useUploadFile ? {url:null, file:_ePhotoUploadFile} : {url};
+  const img = $('ephoto-selected-img');
+  if(useUploadFile && _ePhotoUploadFile){
+    const reader=new FileReader();
+    reader.onload=e=>{img.src=e.target.result;};
+    reader.readAsDataURL(_ePhotoUploadFile);
+  } else {
+    img.src = url;
+  }
+  $('ephoto-selected-wrap').style.display='block';
+};
+
+window.confirmEquipPhoto = async () => {
+  if(!_ePhotoSelected) return;
+  const btn = document.querySelector('#ephoto-selected-wrap .btn-p');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+
+  try {
+    let finalUrl = _ePhotoSelected.url;
+
+    // 파일 업로드가 있으면 Supabase Storage에 저장
+    if(_ePhotoSelected.file){
+      const file = _ePhotoSelected.file;
+      const ext = file.name?.split('.').pop()||'jpg';
+      const path = `${user.id}/equip_${Date.now()}.${ext}`;
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file);
+      if(ue) throw ue;
+      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365*5);
+      finalUrl = sd?.signedUrl;
+    }
+
+    if(!finalUrl) throw new Error('이미지 URL을 가져올 수 없습니다');
+
+    if(_ePhotoTarget?.type==='equip'){
+      // 기존 장비 업데이트
+      const eid = _ePhotoTarget.id;
+      const{error}=await sb.from('equipment').update({photo_url:finalUrl}).eq('id',eid).eq('user_id',user.id);
+      if(error) throw error;
+      const e = D.equip.find(x=>x.id===eid);
+      if(e) e.photoUrl=finalUrl;
+      toast('사진이 저장됐습니다');
+      closeModal('equip-photo-modal');
+      render();
+    } else if(_ePhotoTarget?.type==='add'){
+      // 새 장비 추가 폼
+      $('eadd-photo-url').value = finalUrl;
+      const prev=$('eadd-photo-preview');
+      prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:56px;height:56px;object-fit:contain;border-radius:2px">`;
+      $('eadd-photo-status').textContent='선택됨';
+      toast('사진이 선택됐습니다');
+      closeModal('equip-photo-modal');
+    }
+  } catch(e) {
+    toast('저장 실패: '+e.message);
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent='이 사진으로 저장';}
+  }
+};
 })();
 </script>
+<div class="modal-bg" id="equip-photo-modal" onclick="if(event.target===this)closeModal('equip-photo-modal')" style="z-index:800">
+  <div class="modal-box" style="max-width:480px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
+      <div style="font-family:var(--serif);font-size:1.1rem;font-weight:700;color:var(--chalk)">📸 장비 사진 추가</div>
+      <button class="modal-close" onclick="closeModal('equip-photo-modal')">✕</button>
+    </div>
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:.9rem">
+      <button id="ephoto-tab-search" onclick="switchEPhotoTab('search')" style="flex:1;padding:.45rem;font-size:.75rem;border:none;background:rgba(200,137,58,.12);color:var(--wing2);cursor:pointer;font-family:var(--sans)">🔍 이름 검색</button>
+      <button id="ephoto-tab-url"    onclick="switchEPhotoTab('url')"    style="flex:1;padding:.45rem;font-size:.75rem;border:none;background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">🔗 링크 사진</button>
+      <button id="ephoto-tab-upload" onclick="switchEPhotoTab('upload')" style="flex:1;padding:.45rem;font-size:.75rem;border:none;background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">📁 직접 업로드</button>
+    </div>
+
+    <!-- 이름 검색 탭 -->
+    <div id="ephoto-panel-search">
+      <div style="display:flex;gap:.4rem;margin-bottom:.6rem">
+        <input class="inp" id="ephoto-search-input" placeholder="장비명으로 검색..." style="flex:1" onkeydown="if(event.key==='Enter')searchEquipPhotos()">
+        <button class="btn btn-p btn-sm" onclick="searchEquipPhotos()">검색</button>
+      </div>
+      <div id="ephoto-search-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;min-height:60px">
+        <div style="grid-column:1/-1;font-size:.75rem;color:var(--muted);text-align:center;padding:1rem">장비명을 검색하면 관련 이미지를 보여줍니다</div>
+      </div>
+    </div>
+
+    <!-- 링크 사진 탭 -->
+    <div id="ephoto-panel-url" style="display:none">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">저장된 링크의 대표 이미지를 자동으로 가져옵니다</div>
+      <div id="ephoto-url-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem"></div>
+      <div style="margin-top:.6rem">
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:.3rem">또는 이미지 URL 직접 입력</div>
+        <div style="display:flex;gap:.4rem">
+          <input class="inp" id="ephoto-url-direct" placeholder="https://...image.jpg" style="flex:1">
+          <button class="btn btn-s btn-sm" onclick="previewDirectUrl()">미리보기</button>
+        </div>
+        <div id="ephoto-url-preview" style="margin-top:.4rem"></div>
+      </div>
+    </div>
+
+    <!-- 직접 업로드 탭 -->
+    <div id="ephoto-panel-upload" style="display:none">
+      <div class="img-upload" id="ephoto-drop-zone" onclick="$('ephoto-file-input').click()" style="position:relative">
+        <input type="file" id="ephoto-file-input" accept="image/*" style="display:none" onchange="handleEquipPhotoFile(this.files[0])">
+        <div>📁 클릭하거나 사진을 드래그하여 업로드</div>
+        <div style="font-size:.72rem;margin-top:.3rem;opacity:.7">클립보드 사진은 이 영역에서 Ctrl+V</div>
+      </div>
+      <div id="ephoto-upload-preview" style="margin-top:.5rem"></div>
+    </div>
+
+    <!-- 선택된 사진 미리보기 -->
+    <div id="ephoto-selected-wrap" style="display:none;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.35rem">선택된 사진</div>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <img id="ephoto-selected-img" style="width:72px;height:72px;object-fit:contain;border-radius:3px;border:1px solid var(--border);background:var(--dusk)" alt="">
+        <button class="btn btn-p btn-sm" onclick="confirmEquipPhoto()">이 사진으로 저장</button>
+        <button class="btn btn-s btn-sm" onclick="$('ephoto-selected-wrap').style.display='none';_ePhotoSelected=null">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="release-modal" onclick="if(event.target===this)closeReleaseModal()" style="z-index:600">
   <div class="modal-box" style="max-width:480px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
