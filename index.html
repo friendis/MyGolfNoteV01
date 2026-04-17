@@ -859,14 +859,20 @@ window.doGuestLogin = async () => {
     // isGuest 플래그 먼저 세팅 — onAuthStateChange가 enterApp 호출 시 인식
     isGuest = true;
 
-    // setSession 호출 → SIGNED_IN 이벤트 발생 → onAuthStateChange가 enterApp 처리
-    // lock 경고는 정상 동작 중 발생할 수 있으므로 무시
-    const { error } = await sb.auth.setSession({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-    });
-    // lock 오류는 세션이 이미 설정된 것이므로 무시
-    if(error && !error.message?.includes('lock')) throw error;
+    // setSession → SIGNED_IN 이벤트 → onAuthStateChange가 enterApp 처리
+    // lock 오류는 onAuthStateChange가 먼저 처리한 것이므로 무시
+    try {
+      await sb.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+    } catch(lockErr) {
+      // "Lock was released because another request stole it" = 정상 동작
+      // onAuthStateChange가 이미 세션을 처리했음
+      if(!lockErr.message?.includes('lock') && !lockErr.message?.includes('Lock')){
+        throw lockErr; // lock 외 오류만 재throw
+      }
+    }
 
   } catch(e) {
     isGuest = false;
