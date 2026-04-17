@@ -2218,10 +2218,11 @@ window.saveEquip=async()=>{
 function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div><div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
 window.toggleRecType=v=>{
-  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap');
+  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
   if(gdr)gdr.style.display=v==='gdr'?'block':'none';
   if(game)game.style.display=v==='gdr'?'none':'block';
   if(club)club.style.display=v==='gdr'?'block':'none';
+  if(gamePhoto)gamePhoto.style.display=v==='gdr'?'none':'block';
 };
 window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
 const ss=s=>{
@@ -4195,6 +4196,55 @@ function fileToBase64(file) {
 // ── MULTI-PHOTO STATE ────────────────────────────────
 let multiFiles = []; // {file, preview, exif, gdrData, status}
 
+window.handleGamePhoto = async function(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  const statusEl = $('game-photo-status');
+  if(statusEl) statusEl.textContent = `📷 ${files.length}장 처리 중...`;
+
+  // 첫 번째 사진에서 EXIF(날짜·GPS) 추출
+  for(const file of files) {
+    const exif = await readExif(file);
+    // 날짜 자동 입력
+    const dt = exifDateToISO(exif.dateTime);
+    if(dt) { const pd=$('pd'); if(pd&&!pd.value) pd.value=dt; }
+    // GPS → 장소 자동 입력
+    if(exif.gps?.lat && exif.gps?.lon) {
+      const lat = exif.gps.latRef==='S' ? -exif.gps.lat : exif.gps.lat;
+      const lon = exif.gps.lonRef==='W' ? -exif.gps.lon : exif.gps.lon;
+      const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
+      const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+      const knownPlace = gpsMemory[gpsKey];
+      const pl = $('pl');
+      if(knownPlace && pl && !pl.value) {
+        pl.value = knownPlace;
+        toast(`📍 ${knownPlace}`);
+      } else if(!knownPlace) {
+        const addr = await gpsToAddress(lat, lon);
+        if(addr && pl && !pl.value) pl.value = addr;
+        if(pl) {
+          pl.dataset.gpsKey = gpsKey;
+          pl.dataset.isNewPlace = '1';
+          pl.style.borderColor = 'rgba(167,139,250,.5)';
+          if(!$('pl-new-hint')){
+            const hint=document.createElement('div');
+            hint.id='pl-new-hint';
+            hint.style.cssText='font-size:.72rem;color:#A78BFA;margin-top:3px';
+            hint.textContent='✨ 처음 방문한 장소입니다. 장소 이름을 확인하거나 직접 입력해주세요.';
+            pl.parentNode.insertBefore(hint, pl.nextSibling);
+          }
+        }
+      }
+      break; // 첫 장에서 GPS 추출 성공하면 이후 건너뜀
+    }
+  }
+
+  // 이미지 업로드용으로 gameFiles에 저장
+  if(!window.gameFiles) window.gameFiles = [];
+  window.gameFiles = [...window.gameFiles, ...files];
+
+  if(statusEl) statusEl.textContent = `✓ ${window.gameFiles.length}장 첨부됨`;
+};
 window.handleMultiPhoto = async function(input) {
   const files = Array.from(input.files);
   if(!files.length) return;
@@ -4463,6 +4513,62 @@ function pAdd() {
     <!-- GDR 전용 입력 -->
     <div id="gdr-fields">
       <div class="sec-label">GDR 데이터 사진 — 여러 장 동시 업로드</div>
+
+      <!-- 가이드 -->
+      <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.7rem">
+        <div style="font-size:.72rem;color:var(--wing2);font-weight:600;margin-bottom:.5rem">📋 어떤 사진을 올려야 하나요?</div>
+        <div style="display:flex;gap:.75rem;align-items:flex-start;flex-wrap:wrap">
+          <!-- SVG 예시 일러스트 -->
+          <svg viewBox="0 0 200 130" style="flex:0 0 200px;width:200px;border-radius:3px;background:#1a1f2e;border:1px solid rgba(240,237,230,.1)">
+            <!-- 화면 배경 -->
+            <rect x="0" y="0" width="200" height="130" fill="#0f1520" rx="3"/>
+            <!-- 상단 헤더 바 -->
+            <rect x="0" y="0" width="200" height="18" fill="#1a2035" rx="3"/>
+            <text x="100" y="12" text-anchor="middle" font-size="7" fill="#7A9AAA" font-family="monospace">GOLFZON GDR LAUNCH MONITOR</text>
+            <!-- 클럽 표시 -->
+            <rect x="6" y="24" width="40" height="14" fill="#C8893A" rx="2" opacity=".9"/>
+            <text x="26" y="34" text-anchor="middle" font-size="8" fill="#0f1520" font-weight="bold" font-family="monospace">7 IRON</text>
+            <!-- 데이터 그리드 -->
+            <rect x="6" y="44" width="90" height="78" fill="#111827" rx="2" opacity=".8"/>
+            <!-- 캐리 -->
+            <text x="11" y="56" font-size="6" fill="#5A7A8A" font-family="monospace">CARRY</text>
+            <text x="91" y="58" text-anchor="end" font-size="13" fill="#E4A855" font-weight="bold" font-family="monospace">148</text>
+            <text x="91" y="64" text-anchor="end" font-size="5" fill="#5A7A8A" font-family="monospace">m</text>
+            <!-- 총거리 -->
+            <text x="11" y="74" font-size="6" fill="#5A7A8A" font-family="monospace">TOTAL</text>
+            <text x="91" y="76" text-anchor="end" font-size="13" fill="#C8D8E0" font-weight="bold" font-family="monospace">162</text>
+            <text x="91" y="82" text-anchor="end" font-size="5" fill="#5A7A8A" font-family="monospace">m</text>
+            <!-- HS -->
+            <text x="11" y="91" font-size="6" fill="#5A7A8A" font-family="monospace">HEAD SPD</text>
+            <text x="91" y="93" text-anchor="end" font-size="13" fill="#3D9E74" font-weight="bold" font-family="monospace">38.2</text>
+            <!-- SF -->
+            <text x="11" y="108" font-size="6" fill="#5A7A8A" font-family="monospace">SMASH</text>
+            <text x="91" y="110" text-anchor="end" font-size="13" fill="#A78BFA" font-weight="bold" font-family="monospace">1.46</text>
+            <!-- 탄도 그래픽 -->
+            <rect x="102" y="44" width="92" height="78" fill="#111827" rx="2" opacity=".8"/>
+            <path d="M108 115 Q148 50 188 108" stroke="#E4A855" stroke-width="1.5" fill="none" opacity=".8"/>
+            <line x1="108" y1="115" x2="188" y2="115" stroke="#5A7A8A" stroke-width="0.5"/>
+            <!-- 방향 표시 -->
+            <text x="148" y="120" text-anchor="middle" font-size="5" fill="#5A7A8A" font-family="monospace">R+2.1</text>
+            <!-- 화살표 표시 (사진 전체 캡처 안내) -->
+            <rect x="1" y="1" width="198" height="128" fill="none" stroke="#C8893A" stroke-width="1.5" rx="3" stroke-dasharray="4 2" opacity=".6"/>
+          </svg>
+          <div style="flex:1;min-width:140px">
+            <div style="font-size:.72rem;color:var(--chalk);font-weight:500;margin-bottom:.4rem">✓ 좋은 사진</div>
+            <ul style="margin:0;padding-left:1.1rem;font-size:.7rem;color:var(--dim);line-height:1.9">
+              <li>캐리·총거리·헤드스피드 등 <strong style="color:var(--wing2)">숫자가 보이는 화면 전체</strong></li>
+              <li>GDR 모니터 화면 또는 스크린 캡처</li>
+              <li>샷 1개당 사진 1장 — 순서대로 업로드</li>
+            </ul>
+            <div style="font-size:.72rem;color:var(--chalk);font-weight:500;margin:.5rem 0 .3rem">✗ 피해야 할 사진</div>
+            <ul style="margin:0;padding-left:1.1rem;font-size:.7rem;color:var(--muted);line-height:1.9">
+              <li>숫자가 잘리거나 흐릿한 사진</li>
+              <li>반사·역광으로 화면이 안 보이는 사진</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div class="img-upload" onclick="document.getElementById('pimg').click()">
         <input type="file" id="pimg" accept="image/*" multiple onchange="handleMultiPhoto(this)">
         📷 사진을 탭하여 업로드 (여러 장 선택 가능)<br>
@@ -4472,6 +4578,17 @@ function pAdd() {
       <div class="sec-label">샷 데이터</div>
       <div id="shots-wrap">${mkShotRow(0)}</div>
       <button class="btn btn-s btn-sm" style="margin-bottom:.9rem" onclick="addRow()">+ 샷 수동 추가</button>
+    </div>
+
+    <!-- 스크린/필드 사진 업로드 -->
+    <div id="game-photo-fields" style="display:none">
+      <div class="sec-label">사진 업로드 (선택)</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">스코어카드, 코스 사진 등을 업로드할 수 있습니다. GPS 정보가 있으면 장소가 자동으로 입력됩니다.</div>
+      <div class="img-upload" onclick="document.getElementById('pgameimg').click()">
+        <input type="file" id="pgameimg" accept="image/*" multiple onchange="handleGamePhoto(this)">
+        📷 사진 업로드 (선택)
+      </div>
+      <div id="game-photo-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem"></div>
     </div>
 
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
@@ -4515,11 +4632,14 @@ window.saveSession = async () => {
 
   // 이미지 전부 업로드 (분석 완료 여부와 무관)
   const imageUrls = [];
-  if(!isGuest && recType==='gdr') {
-    for(const item of multiFiles) {
-      const ext = item.file.name.split('.').pop();
+  if(!isGuest) {
+    const filesToUpload = recType==='gdr'
+      ? multiFiles.map(f=>f.file)
+      : (window.gameFiles||[]);
+    for(const file of filesToUpload) {
+      const ext = file.name.split('.').pop();
       const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: ue } = await sb.storage.from('gdr-images').upload(path, item.file);
+      const { error: ue } = await sb.storage.from('gdr-images').upload(path, file);
       if(!ue) {
         const { data: sd } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
         if(sd?.signedUrl) imageUrls.push(sd.signedUrl);
@@ -4558,7 +4678,7 @@ window.saveSession = async () => {
   // 미분석 사진이 있으면 백그라운드에서 계속 분석 후 DB 업데이트
   const pendingFiles = multiFiles.filter(f=>!f.gdrData&&f.file);
   const sessionId = inserted?.id;
-  multiFiles = []; upFile = null; shotCnt = 1;
+  multiFiles = []; upFile = null; shotCnt = 1; window.gameFiles = [];
   await loadAll(); sync('ok'); toast('기록 저장됨'); goList();
 
   if(pendingFiles.length && sessionId){
