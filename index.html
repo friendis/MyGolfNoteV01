@@ -1602,9 +1602,9 @@ async function renderPublicProfile(nickname){
     }
 
     m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],followerCnt||0,isFollowing,buddyStatus);
-    // 통계 차트 렌더링 (공개 프로필용)
-    if(prof.is_public && sessions?.length){
-      requestAnimationFrame(()=>requestAnimationFrame(()=>_drawProfSparklines(window._profChartData||{})));
+    // 통계 차트 렌더링 (공개 프로필용) — DOM 완전 렌더 후 그리기
+    if(prof.is_public && sessions?.length && window._profChartData){
+      setTimeout(()=>_drawProfSparklines(window._profChartData), 100);
     }
   }catch(e){
     m.innerHTML=`<div class="page"><div style="text-align:center;padding:3rem;color:var(--muted)">${esc(e.message)}</div></div>`;
@@ -1696,9 +1696,10 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
       const shots=s.shots||[];
       const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
       const totals=shots.map(sh=>sh.total).filter(v=>v>0);
-      const hs=shots.map(sh=>sh.headSpeed).filter(v=>v>0);
-      const bs=shots.map(sh=>sh.ballSpeed).filter(v=>v>0);
-      const sf=shots.map(sh=>sh.smashFactor).filter(v=>v>0);
+      // DB 필드명(head_speed)과 앱 내부 필드명(headSpeed) 모두 처리
+      const hs=shots.map(sh=>sh.headSpeed||sh.head_speed).filter(v=>v>0);
+      const bs=shots.map(sh=>sh.ballSpeed||sh.ball_speed).filter(v=>v>0);
+      const sf=shots.map(sh=>sh.smashFactor||sh.smash_factor).filter(v=>v>0);
       const avgV=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
       if(carries.length)cm[nc].c.push(avgV(carries));
       if(totals.length)cm[nc].tot.push(avgV(totals));
@@ -1713,11 +1714,10 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
     // 차트 데이터를 전역에 저장 (renderPublicProfile에서 비동기로 그림)
     window._profChartData = Object.fromEntries(sortedClubs.map(club=>[club, cm[club]]));
 
-    const clubRows = sortedClubs.map(club=>{
+    const clubRows = sortedClubs.map((club,clubIdx)=>{
       const d=cm[club];
       const avg_c=avgV(d.c),avg_h=avgV(d.h),avg_b=avgV(d.b),avg_sf=avgV(d.sf);
-      // 캐리 트렌드 (간단한 인라인 스파크라인)
-      const sparkId=`spark-${club.replace(/[^a-zA-Z0-9]/g,'_')}`;
+      const sparkId=`psc-${clubIdx}`; // 인덱스 기반 id (한글 회피)
       return`<div style="margin-bottom:1rem">
         <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">
           <span class="club-badge" style="font-size:.72rem">${esc(club)}</span>
@@ -1839,9 +1839,9 @@ window.switchProfTab=(id)=>{
 
 function _drawProfSparklines(cm){
   if(typeof Chart==='undefined') return;
-  Object.entries(cm).forEach(([club,d])=>{
+  Object.entries(cm).forEach(([club,d],clubIdx)=>{
     if((d.c||[]).length<2) return;
-    const sparkId=`spark-${club.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    const sparkId=`psc-${clubIdx}`;
     const el=document.getElementById(sparkId);
     if(!el) return;
     try{
@@ -2851,7 +2851,7 @@ window.gotoTabMaybeVisiting = async (t) => {
     } else if(t==='equipment'){
       if(!_visitData.equip){
         const{data}=await sb.from('equipment').select('*')
-          .eq('user_id',_viewingProfile.user_id).eq('status','owned');
+          .eq('user_id',_viewingProfile.user_id).eq('status','owned').eq('is_public',true);
         _visitData.equip=data||[];
       }
       m.innerHTML = _visitEList(_visitData.equip, _viewingProfile.nickname);
