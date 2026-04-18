@@ -477,6 +477,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
             <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">모두 읽음</button>
           </div>
           <div id="notif-list"><div style="padding:1.2rem;text-align:center;font-size:.78rem;color:var(--muted)">알림이 없습니다</div></div>
+          <div style="padding:.5rem .85rem;border-top:1px solid var(--border);text-align:right">
+            <button id="push-toggle-btn" onclick="togglePushSubscription()" style="background:none;border:none;font-size:.7rem;color:var(--muted);cursor:pointer;font-family:var(--sans)">🔕 알림 받기</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1167,7 +1170,7 @@ async function enterApp(u){
   // 프로필 없으면 온보딩
   if(!isGuest && !D.profile) setTimeout(()=>openModal('onboarding-modal'),500);
   // 알림 로드 및 실시간 구독
-  if(!isGuest){ loadNotifications(); subscribeNotifications(); }
+  if(!isGuest){ loadNotifications(); subscribeNotifications(); initWebPush(); }
 }
 window.goList=()=>{view='list';selId=null;render()};
 window.goDetail=id=>{view='detail';selId=id;render()};
@@ -1595,6 +1598,8 @@ window.toggleFollow=async(targetId,isFollowing)=>{
   } else {
     await sb.from('follows').insert({follower_id:user.id,following_id:targetId});
     toast('팔로우했습니다');
+    // 푸시 알림 전송
+    sendPushTo(targetId,'follow',{from_nickname:D.profile?.nickname||''});
   }
   const url=new URL(location.href);
   const nick=url.searchParams.get('u');
@@ -1619,11 +1624,12 @@ window.requestBuddy=async(targetId,targetNick)=>{
   const{error}=await sb.from('buddy_requests')
     .insert({from_user_id:user.id,to_user_id:targetId});
   if(error){toast('신청 실패: '+error.message);return;}
-  // 알림 생성
+  // DB 알림 + 푸시 알림
   await sb.from('notifications').insert({
     user_id:targetId, type:'buddy_request', from_user_id:user.id,
     data:{from_nickname:D.profile.nickname}
   });
+  sendPushTo(targetId,'buddy_request',{from_nickname:D.profile.nickname});
   toast(`@${targetNick}님에게 버디 신청을 보냈습니다`);
   const url=new URL(location.href);
   const nick=url.searchParams.get('u');
@@ -1753,7 +1759,6 @@ function subscribeNotifications(){
       payload=>{
         _notifications.unshift(payload.new);
         renderNotifBadge();
-        // 토스트 미리보기
         const n=payload.new;
         const nick=n.data?.from_nickname||'누군가';
         if(n.type==='buddy_request') toast(`🤝 @${nick}님이 버디를 신청했습니다`);
@@ -1762,6 +1767,116 @@ function subscribeNotifications(){
       })
     .subscribe();
 }
+
+// ── Web Push 구독 ────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'BPLF8JEM25P4NcFjGidGabTPDUjSndpZrKAQ5PDrwKL8SKt0sq87GUK33-VPtYOpeomRBOO9sCWbhtP4TNnGn4k';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function initWebPush() {
+  if(!user || isGuest) return;
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+  try {
+    // Service Worker 등록
+    const reg = await navigator.serviceWorker.register('/MyGolfNoteV01/sw.js', { scope: '/MyGolfNoteV01/' });
+    await navigator.serviceWorker.ready;
+
+    // 이미 구독 중인지 확인
+    const existing = await reg.pushManager.getSubscription();
+    if(existing) {
+      await savePushSubscription(existing);
+      return;
+    }
+
+    // 아직 구독 안 했으면 → 알림 버튼 클릭 시 요청하도록 플래그만 세팅
+    window._pushReg = reg;
+  } catch(e) {
+    console.warn('Web Push init 실패:', e.message);
+  }
+}
+
+async function requestPushPermission() {
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    toast('이 브라우저는 푸시 알림을 지원하지 않습니다');
+    return false;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+      toast('알림 권한이 거부됐습니다. 브라우저 설정에서 허용해주세요.');
+      return false;
+    }
+    const reg = window._pushReg || await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    await savePushSubscription(sub);
+    toast('✓ 푸시 알림이 활성화됐습니다');
+    updatePushBtnState(true);
+    return true;
+  } catch(e) {
+    console.error('Push subscribe 실패:', e);
+    toast('알림 설정 실패: ' + e.message);
+    return false;
+  }
+}
+
+async function savePushSubscription(sub) {
+  const subJson = sub.toJSON();
+  await sb.from('push_subscriptions').upsert({
+    user_id: user.id,
+    endpoint: subJson.endpoint,
+    p256dh: subJson.keys?.p256dh || '',
+    auth: subJson.keys?.auth || '',
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,endpoint' });
+}
+
+// 다른 사용자에게 푸시 전송 (버디/팔로우 이벤트 시 호출)
+async function sendPushTo(targetUserId, type, data) {
+  try {
+    const { data: subs } = await sb.from('push_subscriptions')
+      .select('endpoint,p256dh,auth').eq('user_id', targetUserId);
+    if(!subs?.length) return;
+    for(const s of subs) {
+      await fetch(`${SB_URL}/functions/v1/web-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}` },
+        body: JSON.stringify({
+          subscription: { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          type, data,
+        }),
+      });
+    }
+  } catch(e) { console.warn('Push send 실패:', e.message); }
+}
+
+function updatePushBtnState(enabled) {
+  const btn = $('push-toggle-btn');
+  if(!btn) return;
+  btn.textContent = enabled ? '🔔 알림 켜짐' : '🔕 알림 받기';
+  btn.style.color = enabled ? 'var(--turf)' : 'var(--muted)';
+}
+
+window.togglePushSubscription = async () => {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if(sub) {
+    await sub.unsubscribe();
+    await sb.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', sub.endpoint);
+    toast('알림이 꺼졌습니다');
+    updatePushBtnState(false);
+  } else {
+    await requestPushPermission();
+  }
+};
 
 // ── 학습노트 좋아요 ─────────────────────────────────
 window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
