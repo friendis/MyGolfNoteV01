@@ -442,13 +442,13 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 <div id="app">
   <header>
     <div class="hdr">
-      <div class="logo" onclick="goHome()" style="cursor:pointer">
+      <div class="logo" id="hdr-logo" onclick="handleLogoClick()" style="cursor:pointer">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
           <path d="M7 17 C9 14, 13 12, 18 8" stroke="#E4A855" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.7"/>
           <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
         </svg>
-        BIRDYARD
+        <span id="hdr-logo-text">BIRDYARD</span>
       </div>
       <div class="hdr-right">
         <div class="sync-dot" id="sync-dot"></div>
@@ -487,9 +487,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 
   <div class="tabs">
     <div class="tabs-inner">
-      <button class="tab on" id="tab-videos" onclick="gotoTab('videos')">학습 노트</button>
-      <button class="tab" id="tab-equipment" onclick="gotoTab('equipment')">장비 창고</button>
-      <button class="tab" id="tab-practice" onclick="gotoTab('practice')">비행 기록</button>
+      <button class="tab on" id="tab-videos" onclick="gotoTabMaybeVisiting('videos')">학습 노트</button>
+      <button class="tab" id="tab-equipment" onclick="gotoTabMaybeVisiting('equipment')">장비 창고</button>
+      <button class="tab" id="tab-practice" onclick="gotoTabMaybeVisiting('practice')">비행 기록</button>
+      <button class="tab" id="tab-myhome" onclick="exitVisitingProfile()" style="display:none;color:var(--wing2);border-bottom:2px solid var(--wing2)">🏠 내 홈</button>
     </div>
   </div>
 
@@ -1300,6 +1301,8 @@ window.goAdd=()=>{
 };
 window.gotoStats=()=>{tab='practice';view='list';pSub='stats';render();requestAnimationFrame(()=>requestAnimationFrame(initCharts));};
 window.goHome=()=>{
+  _setVisitingProfile(null);
+  document.querySelector('.tab-bar')?.style.removeProperty('display');
   tab='home';view='list';selId=null;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   render();
@@ -1559,6 +1562,13 @@ async function renderPublicProfile(nickname){
     const{data:prof,error:pe}=await sb.from('user_profiles')
       .select('*').eq('is_public',true).ilike('nickname',nickname).maybeSingle();
     if(pe||!prof){m.innerHTML=notFoundPage(nickname);return;}
+
+    // 타인 프로필 방문 상태 설정 (내 프로필이면 설정 안 함)
+    if(!user || user.id !== prof.user_id){
+      _setVisitingProfile(prof);
+    } else {
+      _setVisitingProfile(null);
+    }
 
     // 공개 세션
     const{data:sessions}=await sb.from('practice_sessions')
@@ -2686,7 +2696,151 @@ window.goCurrentTerm=()=>{
   if(!pool.length||homeTermIdx<0||homeTermIdx>=pool.length)return;
   goDict(pool[homeTermIdx].id);
 };
+// ── 타인 프로필 방문 상태 ────────────────────────────
+let _viewingProfile = null; // {user_id, nickname} | null
+let _visitData = {};        // {videos, equip, sessions} 캐시
+
+function _setVisitingProfile(prof){
+  _viewingProfile = prof ? {user_id:prof.user_id, nickname:prof.nickname} : null;
+  _visitData = {};
+
+  const logoText = $('hdr-logo-text');
+  const myHomeBtn = $('tab-myhome');
+  if(_viewingProfile){
+    if(logoText) logoText.textContent = `${_viewingProfile.nickname}의 Birdyard`;
+    if(myHomeBtn) myHomeBtn.style.display = 'inline-flex';
+  } else {
+    if(logoText) logoText.textContent = 'BIRDYARD';
+    if(myHomeBtn) myHomeBtn.style.display = 'none';
+  }
+}
+
+window.handleLogoClick = () => {
+  if(_viewingProfile){
+    // 타인 프로필 메인으로
+    renderPublicProfile(_viewingProfile.nickname);
+  } else {
+    goHome();
+  }
+};
+
+window.exitVisitingProfile = () => {
+  _setVisitingProfile(null);
+  document.querySelector('.tab-bar')?.style.removeProperty('display');
+  tab='home'; view='list'; selId=null;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  render();
+  setTimeout(loadHomeSocial, 0);
+};
+
+// 탭 클릭: 방문 중이면 방문 데이터, 아니면 내 데이터
+window.gotoTabMaybeVisiting = async (t) => {
+  if(!_viewingProfile){
+    gotoTab(t);
+    return;
+  }
+  // 타인 탭 이동
+  tab=t; view='list'; selId=null;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  if($('tab-'+t)) $('tab-'+t).classList.add('on');
+  const m=$('main');
+  m.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:40vh"><div class="spinner"></div></div>';
+
+  try{
+    if(t==='videos'){
+      if(!_visitData.videos){
+        const{data}=await sb.from('videos').select('*')
+          .eq('user_id',_viewingProfile.user_id).eq('is_public',true)
+          .order('added_at',{ascending:false});
+        _visitData.videos=(data||[]).map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at,userId:r.user_id,isPublic:r.is_public,likeCount:r.like_count||0}));
+      }
+      m.innerHTML = _visitVList(_visitData.videos, _viewingProfile.nickname);
+    } else if(t==='equipment'){
+      if(!_visitData.equip){
+        const{data}=await sb.from('equipment').select('*')
+          .eq('user_id',_viewingProfile.user_id).eq('status','owned');
+        _visitData.equip=data||[];
+      }
+      m.innerHTML = _visitEList(_visitData.equip, _viewingProfile.nickname);
+    } else if(t==='practice'){
+      if(!_visitData.sessions){
+        const{data}=await sb.from('practice_sessions').select('*')
+          .eq('user_id',_viewingProfile.user_id).eq('is_public',true)
+          .order('session_date',{ascending:false}).limit(30);
+        _visitData.sessions=data||[];
+      }
+      m.innerHTML = _visitPList(_visitData.sessions, _viewingProfile.nickname);
+    }
+  } catch(e){
+    m.innerHTML=`<div class="page"><div style="color:var(--muted);text-align:center;padding:2rem">데이터를 불러올 수 없습니다</div></div>`;
+  }
+};
+
+function _visitHeader(nickname, tabActive){
+  return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+    <div style="font-size:.72rem;color:var(--muted)">@${esc(nickname)}의 ${tabActive}</div>
+    <button onclick="renderPublicProfile('${ea(nickname)}')" style="background:none;border:none;color:var(--wing2);font-size:.72rem;cursor:pointer;font-family:var(--sans)">← 프로필로</button>
+  </div>`;
+}
+
+function _visitVList(videos, nickname){
+  if(!videos.length) return `<div class="page">${_visitHeader(nickname,'학습 노트')}<div class="empty"><div class="empty-icon">📹</div>공개된 학습 노트가 없습니다</div></div>`;
+  const cards=videos.map(v=>{
+    const tid=v.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
+    return`<div class="card" style="cursor:pointer" onclick="window.open('${ea(v.url)}','_blank')">
+      <div style="display:flex;gap:.7rem;align-items:flex-start">
+        ${tid?`<img class="v-thumb" src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" onerror="this.style.display='none'" alt="">`:`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--dusk2);font-size:1.2rem">🎬</div>`}
+        <div style="flex:1;min-width:0">
+          <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div>
+          <div style="margin:3px 0">${v.kw.slice(0,4).map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div>
+          <div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  return`<div class="page">${_visitHeader(nickname,'학습 노트')}<div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">${videos.length}개의 공개 노트</div>${cards}</div>`;
+}
+
+function _visitEList(equip, nickname){
+  const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
+  if(!equip.length) return `<div class="page">${_visitHeader(nickname,'장비 창고')}<div class="empty"><div class="empty-icon">🪶</div>공개된 장비가 없습니다</div></div>`;
+  const cards=equip.map(e=>`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div class="card-title">${esc(e.name)}</div>
+        <div style="margin:3px 0"><span class="badge b-green">✓ 보유</span><span class="badge b-blue">${esc(e.category||'')}</span></div>
+      </div>
+      ${e.photo_url?`<img src="${ea(e.photo_url)}" style="width:44px;height:44px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk);flex-shrink:0;margin-left:.5rem" alt="">` :''}
+    </div>
+  </div>`).join('');
+  return`<div class="page">${_visitHeader(nickname,'장비 창고')}<div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">보유 장비 ${equip.length}개</div>${cards}</div>`;
+}
+
+function _visitPList(sessions, nickname){
+  if(!sessions.length) return `<div class="page">${_visitHeader(nickname,'비행 기록')}<div class="empty"><div class="empty-icon">✈️</div>공개된 비행 기록이 없습니다</div></div>`;
+  const cards=sessions.map(s=>{
+    const shots=s.shots||[];
+    const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
+    const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
+    const isGame=s.game_type==='screen'||s.game_type==='field';
+    const icon=s.game_type==='screen'?'🖥️':s.game_type==='field'?'⛳':'🪶';
+    return`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-size:.85rem;color:var(--chalk);font-weight:500">${icon} ${isGame?(s.course_name||s.game_type):esc(s.club||'—')}</span>
+          <span style="font-size:.72rem;color:var(--muted);margin-left:.5rem">${s.session_date}</span>
+        </div>
+        ${isGame&&s.score?`<span style="color:var(--wing2);font-weight:600">${s.score}타</span>`:avgC?`<span style="color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
+      </div>
+      ${s.memo?`<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
+    </div>`;
+  }).join('');
+  return`<div class="page">${_visitHeader(nickname,'비행 기록')}<div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">${sessions.length}개의 공개 기록</div>${cards}</div>`;
+}
+
 window.gotoTab=t=>{
+  // 방문 모드 해제하고 내 탭으로
+  if(_viewingProfile) _setVisitingProfile(null);
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';pClubFilter='';
   window._eActiveTag=''; window._eActiveTagKind='';
   if(t!=='home') homeTermIdx=-1;
