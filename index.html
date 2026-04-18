@@ -1128,7 +1128,11 @@ window.goSessionDetail=id=>{
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   render();
 };
-window.goAdd=()=>{view='add';shotCnt=1;upFile=null;render()};
+window.goAdd=()=>{
+  if(tab==='equipment'){ _eAddLinks=[]; }
+  view='add';shotCnt=1;upFile=null;render();
+  if(tab==='equipment') setTimeout(()=>_renderEAddLinks(),0);
+};
 window.gotoStats=()=>{tab='practice';view='list';pSub='stats';render();requestAnimationFrame(()=>requestAnimationFrame(initCharts));};
 window.goHome=()=>{
   tab='home';view='list';selId=null;
@@ -1944,6 +1948,10 @@ function eDetail(){
     <input class="inp" style="width:100px;flex:none" type="number" id="nl-price" placeholder="가격">
     <button class="btn btn-p btn-sm" onclick="addLink('${e.id}')">추가</button>
   </div>
+  <div style="margin-top:.5rem;display:flex;gap:.4rem;align-items:center">
+    <button class="btn btn-s btn-sm" onclick="openEquipPhotoFromDetail('${e.id}')">📸 사진 추가 · 변경</button>
+    ${e.photoUrl?`<button class="btn btn-s btn-sm" style="color:var(--red);border-color:rgba(193,123,106,.3)" onclick="removeEquipPhoto('${e.id}')">사진 삭제</button>`:''}
+  </div>
   <div class="divider"></div>
   <div style="display:flex;justify-content:flex-end">
     <button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button>
@@ -2416,16 +2424,87 @@ window.delEquip=async id=>{
   if(!confirm('삭제하시겠습니까?'))return;
   sync('busy');const{error}=await sb.from('equipment').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.equip=D.equip.filter(e=>e.id!==id);sync('ok');toast('삭제됨');goList();
 };
+// ── 장비 추가 — 동적 링크 행 ──────────────────────────
+let _eAddLinks = []; // [{url, label, price}]
+
+window.eAddLinkRow = (prefillUrl='', prefillLabel='', prefillPrice='') => {
+  _eAddLinks.push({url: prefillUrl, label: prefillLabel, price: prefillPrice});
+  _renderEAddLinks();
+};
+
+function _renderEAddLinks() {
+  const wrap = $('eadd-links-wrap'); if(!wrap) return;
+  if(!_eAddLinks.length){
+    wrap.innerHTML = '<div style="font-size:.72rem;color:var(--muted);margin-bottom:.4rem">링크가 없습니다. 아래 버튼으로 추가하세요.</div>';
+    return;
+  }
+  wrap.innerHTML = _eAddLinks.map((l,i) => `
+    <div style="background:rgba(13,17,23,.4);border:1px solid var(--border);border-radius:3px;padding:.55rem .65rem;margin-bottom:.35rem">
+      <div style="display:flex;gap:.3rem;margin-bottom:.3rem">
+        <input class="inp" style="flex:1;font-size:.78rem" placeholder="https://..." value="${ea(l.url)}"
+          id="eal-url-${i}" onblur="eAddLinkUpdate(${i})">
+        <button class="btn btn-s btn-sm" style="padding:2px 7px;font-size:.68rem;flex-shrink:0" onclick="eAddLinkSearchPhoto(${i})">📸 사진</button>
+        <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px" onclick="eAddLinkRemove(${i})">✕</button>
+      </div>
+      <div style="display:flex;gap:.3rem">
+        <input class="inp" style="flex:1;font-size:.78rem" placeholder="쇼핑몰 이름" value="${ea(l.label)}"
+          id="eal-label-${i}" onblur="eAddLinkUpdate(${i})">
+        <input class="inp" style="width:90px;flex:none;font-size:.78rem" type="number" placeholder="가격 (원)" value="${ea(l.price)}"
+          id="eal-price-${i}" onblur="eAddLinkUpdate(${i})">
+      </div>
+    </div>`).join('');
+}
+
+window.eAddLinkUpdate = (i) => {
+  const url = $(`eal-url-${i}`)?.value.trim()||'';
+  const label = $(`eal-label-${i}`)?.value.trim()||'';
+  const price = $(`eal-price-${i}`)?.value||'';
+  if(_eAddLinks[i]) _eAddLinks[i] = {url, label, price};
+};
+
+window.eAddLinkRemove = (i) => {
+  _eAddLinks.splice(i, 1);
+  _renderEAddLinks();
+};
+
+window.eAddLinkSearchPhoto = (i) => {
+  eAddLinkUpdate(i);
+  const l = _eAddLinks[i];
+  // 사진 모달 열고 URL 탭으로 이동 + URL 자동 입력
+  openEquipPhotoForAdd();
+  setTimeout(() => {
+    switchEPhotoTab('url');
+    if(l.url) $('ephoto-url-direct').value = l.url;
+    // 장비명으로도 자동 검색 준비
+    const name = $('en')?.value.trim()||l.label;
+    if(name) $('ephoto-search-input').value = name;
+  }, 50);
+};
+
+// 장비명 입력 시 검색창 자동 동기화 (모달이 열려있을 때)
+window.eAddAutoSearch = () => {
+  const name = $('en')?.value.trim();
+  const inp = $('ephoto-search-input');
+  if(inp && name) inp.value = name;
+};
+
 window.saveEquip=async()=>{
   const name=$('en').value.trim();if(!name){toast('장비명을 입력하세요');return}
   if(overLimit('equip')){toast(limitMsg('equip'));return}
   const status=(document.querySelector('input[name="est"]:checked')||{}).value||'wishlist';
   const cat=$('ec').value,memo=$('em').value.trim();
-  const link=$('el').value.trim(),lbl=$('ell').value.trim(),lpr=$('elp').value;
   const pp=$('ep')?.value,pd=$('ed')?.value;
-  const links=link?[{url:link,label:lbl||'링크',price:lpr?Number(lpr):null,checkedAt:today()}]:[];
-  const priceH=(lpr&&link)?[{date:today(),price:Number(lpr)}]:[];
-  // 아이언 세트 저장
+
+  // 동적 링크 행에서 읽기 (최신값 동기화)
+  _eAddLinks.forEach((_,i)=>eAddLinkUpdate(i));
+  const links = _eAddLinks
+    .filter(l=>l.url.trim())
+    .map(l=>({url:l.url.trim(),label:l.label||'링크',price:l.price?Number(l.price):null,checkedAt:today()}));
+
+  // 가격 이력 — 링크 중 가격 있는 첫 번째
+  const firstPrice = links.find(l=>l.price);
+  const priceH = firstPrice ? [{date:today(), price:firstPrice.price}] : [];
+
   const ironSet=cat==='아이언'?readIronSet():[];
   const tagsData=ironSet.length?{iron_set:ironSet}:null;
   const photoUrl=$('eadd-photo-url')?.value||'';
@@ -2433,11 +2512,59 @@ window.saveEquip=async()=>{
   sync('busy');
   const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData,photo_url:photoUrl||null});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
+  _eAddLinks=[];
   await loadAll();toast('장비 추가됨');goList();
 };
-function eAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div><div class="frow"><div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3"></div><div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div></div><div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div><div class="fg"><label class="fl-label">상태</label><div style="display:flex;gap:.75rem"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label></div></div><div id="owned-f" style="display:none"><div class="frow"><div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div><div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div></div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div>
-<div class="fg"><label class="fl-label">제품 사진 (선택)</label><div style="display:flex;align-items:center;gap:.5rem"><div id="eadd-photo-preview" style="width:56px;height:56px;background:rgba(240,237,230,.03);border:1px dashed rgba(240,237,230,.15);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.7rem;flex-shrink:0">📸</div><button type="button" class="btn btn-s btn-sm" onclick="openEquipPhotoForAdd()">사진 선택</button><span id="eadd-photo-status" style="font-size:.72rem;color:var(--muted)">선택 안 됨</span></div><input type="hidden" id="eadd-photo-url" value=""></div>
-<div class="sec-box"><div class="fl-label" style="margin-bottom:.45rem">🔗 인터넷 링크 (선택)</div><input class="inp" id="el" placeholder="https://..." style="margin-bottom:.4rem"><div class="frow"><input class="inp" id="ell" placeholder="쇼핑몰"><input class="inp" type="number" id="elp" placeholder="현재 가격"></div></div><div class="brow"><button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function eAdd(){
+  return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button>
+  <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem">
+    <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div>
+
+    <div class="frow">
+      <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
+      <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+    </div>
+    <div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div>
+
+    <div class="fg"><label class="fl-label">상태</label>
+      <div style="display:flex;gap:.75rem">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label>
+      </div>
+    </div>
+    <div id="owned-f" style="display:none">
+      <div class="frow">
+        <div class="fg"><label class="fl-label">구매가</label><input class="inp" type="number" id="ep" placeholder="원"></div>
+        <div class="fg"><label class="fl-label">구매일</label><input class="inp" type="date" id="ed" value="${today()}"></div>
+      </div>
+    </div>
+
+    <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div>
+
+    <!-- 사진 + 링크 통합 섹션 -->
+    <div class="sec-label" style="margin-top:.5rem">🔗 사이트 링크 & 사진</div>
+    <div id="eadd-links-wrap"></div>
+    <button type="button" class="btn btn-s btn-sm" style="margin-bottom:.75rem" onclick="eAddLinkRow()">+ 링크 추가</button>
+
+    <!-- 제품 사진 -->
+    <div class="fg" style="margin-top:.1rem">
+      <label class="fl-label">제품 사진</label>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <div id="eadd-photo-preview" style="width:64px;height:64px;background:rgba(240,237,230,.03);border:1px dashed rgba(240,237,230,.15);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.75rem;flex-shrink:0;overflow:hidden">📸</div>
+        <div>
+          <button type="button" class="btn btn-s btn-sm" onclick="openEquipPhotoForAdd()">사진 선택</button>
+          <div id="eadd-photo-status" style="font-size:.68rem;color:var(--muted);margin-top:3px">링크 추가 후 사진을 자동 검색하거나 직접 선택</div>
+        </div>
+      </div>
+      <input type="hidden" id="eadd-photo-url" value="">
+    </div>
+
+    <div class="brow" style="margin-top:.9rem">
+      <button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button>
+      <button class="btn btn-s" onclick="goList()">취소</button>
+    </div>
+  </div></div>`;
+}
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
 window.toggleRecType=v=>{
   const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
@@ -5065,6 +5192,23 @@ window.delSession=async id=>{
 let _ePhotoTarget = null;   // {type:'equip'|'add', id?:string}
 let _ePhotoSelected = null; // {url, file?}
 let _ePhotoUploadFile = null;
+
+window.openEquipPhotoFromDetail = (eid) => {
+  openEquipPhoto(eid);
+  setTimeout(()=>{
+    const e=D.equip.find(x=>x.id===eid);
+    if(e?.links?.length) $('ephoto-url-direct').value = e.links[0].url||'';
+  }, 80);
+};
+
+window.removeEquipPhoto = async (eid) => {
+  if(!confirm('사진을 삭제하시겠습니까?')) return;
+  sync('busy');
+  const{error}=await sb.from('equipment').update({photo_url:null}).eq('id',eid).eq('user_id',user.id);
+  if(error){toast('삭제 실패');sync('err');return}
+  const e=D.equip.find(x=>x.id===eid);if(e)e.photoUrl='';
+  sync('ok');toast('사진 삭제됨');render();
+};
 
 window.openEquipPhoto = (eid) => {
   const e = D.equip.find(x=>x.id===eid);
