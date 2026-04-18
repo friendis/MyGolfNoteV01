@@ -3591,68 +3591,110 @@ window.toggleRecType=v=>{
   if(game)game.style.display=v==='gdr'?'none':'block';
   if(club)club.style.display=v==='gdr'?'block':'none';
   if(gamePhoto)gamePhoto.style.display=v==='gdr'?'none':'block';
-  if(v!=='gdr') setTimeout(renderHoleInputs, 0);
+  if(v!=='gdr'){ _parEditMode=false; setTimeout(renderHoleInputs, 0); }
 };
 
-// 홀별 입력 테이블 렌더링
-let _holeScoresData = []; // [{hole, par, score, putts}]
+let _holeScoresData = [];
+let _parEditMode = false;
 
-window.renderHoleInputs = () => {
+window.toggleParEdit = () => {
+  _parEditMode = !_parEditMode;
+  const btn = $('par-edit-btn');
+  if(btn){
+    btn.textContent = _parEditMode ? '파 완료' : '파 수정';
+    btn.style.color = _parEditMode ? 'var(--wing2)' : 'var(--muted)';
+    btn.style.borderColor = _parEditMode ? 'rgba(200,137,58,.4)' : 'var(--border)';
+  }
+  renderHoleInputs();
+};
+
+window.renderHoleInputs = (reset) => {
   const wrap = $('hole-inputs-wrap'); if(!wrap) return;
   const n = parseInt($('p-holes')?.value||18);
   const PARS_18 = [4,4,3,4,5,3,4,5,4, 4,4,3,4,5,3,4,5,4];
   const pars = n===18 ? PARS_18 : PARS_18.slice(0,9);
 
-  // 기존 데이터 유지
-  if(_holeScoresData.length !== n){
+  if(reset || _holeScoresData.length !== n){
     _holeScoresData = Array.from({length:n},(_,i)=>({
-      hole:i+1, par:pars[i]||4, score:null, putts:null
+      hole:i+1, par: _holeScoresData[i]?.par || pars[i]||4, score:null, putts:null
     }));
   }
 
-  const rows = _holeScoresData.map((h,i)=>`
-    <td style="padding:2px 3px;min-width:36px;text-align:center">
+  const inputStyle = 'width:32px;text-align:center;background:rgba(240,237,230,.06);border:1px solid rgba(240,237,230,.12);border-radius:2px;color:var(--chalk);font-size:.8rem;padding:2px 1px;font-family:var(--sans)';
+
+  // 파 행: 수정 모드면 input, 아니면 텍스트
+  const parRow = _holeScoresData.map((h,i)=>_parEditMode
+    ? `<td style="padding:2px 2px;text-align:center"><input type="number" min="3" max="6" value="${h.par}"
+        oninput="updateHoleScore(${i},'par',this.value)"
+        style="${inputStyle};color:var(--muted);width:30px"></td>`
+    : `<td style="text-align:center;font-size:.7rem;color:var(--muted);padding:2px 3px">${h.par}</td>`
+  ).join('');
+
+  const holeNums = _holeScoresData.map(h=>`<td style="text-align:center;font-size:.66rem;color:var(--muted);padding:2px 3px;min-width:32px">${h.hole}</td>`).join('');
+
+  const scoreRow = _holeScoresData.map((h,i)=>`
+    <td style="padding:2px 2px;text-align:center">
       <input type="number" min="1" max="15" value="${h.score||''}"
         id="hole-score-${i}" oninput="updateHoleScore(${i},'score',this.value)"
-        style="width:36px;text-align:center;background:rgba(240,237,230,.06);border:1px solid rgba(240,237,230,.12);border-radius:2px;color:var(--chalk);font-size:.82rem;padding:3px 2px;font-family:var(--sans)">
+        style="${inputStyle};${h.score?`color:${_scoreColor(h.score-h.par)};border-color:rgba(240,237,230,.2)`:''}">
     </td>`).join('');
 
-  const parRow = pars.map((p,i)=>`<td style="text-align:center;font-size:.7rem;color:var(--muted);padding:2px 3px">${p}</td>`).join('');
-  const holeNums = Array.from({length:n},(_,i)=>`<td style="text-align:center;font-size:.68rem;color:var(--muted);padding:2px 3px">${i+1}</td>`).join('');
   const diffRow = _holeScoresData.map(h=>{
-    if(!h.score) return `<td style="text-align:center;font-size:.7rem;padding:2px 3px;color:var(--muted)">-</td>`;
+    if(!h.score) return `<td style="text-align:center;font-size:.62rem;padding:1px 3px;color:var(--muted)">-</td>`;
     const d=h.score-h.par;
-    const clr=d<=-2?'#7AB0E8':d===-1?'#3D9E74':d===0?'var(--chalk)':d===1?'var(--amber)':'var(--red)';
-    const lbl=d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'D.B':'++';
-    return `<td style="text-align:center;font-size:.62rem;padding:2px 3px;color:${clr}">${lbl}</td>`;
+    const clr=_scoreColor(d);
+    const lbl=d<=-2?'Eagle':d===-1?'Birdie':d===0?'Par':d===1?'Bogey':d===2?'D.B':'++';
+    return `<td style="text-align:center;font-size:.6rem;padding:1px 3px;color:${clr};white-space:nowrap">${lbl}</td>`;
   }).join('');
 
-  // 9홀 합계 라인
-  const sub=n===18?`<tr style="border-top:1px solid rgba(240,237,230,.12)">
-    <td style="font-size:.68rem;color:var(--muted);padding:2px 4px">전반</td>
-    ${Array.from({length:9},(_,i)=>`<td></td>`).join('')}
-    <td style="font-size:.72rem;color:var(--wing2);text-align:right;padding:2px 4px" id="sub-front"></td>
-  </tr>
-  <tr>
-    <td style="font-size:.68rem;color:var(--muted);padding:2px 4px">후반</td>
-    ${Array.from({length:9},(_,i)=>`<td></td>`).join('')}
-    <td style="font-size:.72rem;color:var(--wing2);text-align:right;padding:2px 4px" id="sub-back"></td>
-  </tr>`:'';
+  // 전반/후반 합계 행
+  const sub = n===18 ? (() => {
+    const f=_holeScoresData.slice(0,9),b=_holeScoresData.slice(9);
+    const fs=f.every(h=>h.score)?f.reduce((a,h)=>a+h.score,0):'';
+    const bs=b.every(h=>h.score)?b.reduce((a,h)=>a+h.score,0):'';
+    const fp=f.reduce((a,h)=>a+h.par,0),bp=b.reduce((a,h)=>a+h.par,0);
+    return `<tr style="border-top:1px solid rgba(240,237,230,.1)">
+      <td style="font-size:.65rem;color:var(--muted);padding:2px 4px;white-space:nowrap">전반</td>
+      ${Array.from({length:8},()=>'<td></td>').join('')}
+      <td style="text-align:center;font-size:.72rem;font-weight:600;color:var(--wing2);padding:2px 3px">${fs?`${fs}<span style="font-size:.6rem;color:var(--muted);margin-left:1px">(${fs?fs-fp>0?'+':'':''}${fs?fs-fp:''})</span>`:''}</td>
+      <td style="font-size:.65rem;color:var(--muted);padding:2px 4px;white-space:nowrap">후반</td>
+      ${Array.from({length:8},()=>'<td></td>').join('')}
+      <td style="text-align:center;font-size:.72rem;font-weight:600;color:var(--wing2);padding:2px 3px">${bs?`${bs}<span style="font-size:.6rem;color:var(--muted);margin-left:1px">(${bs?bs-bp>0?'+':'':''}${bs?bs-bp:''})</span>`:''}</td>
+    </tr>`;
+  })() : '';
 
-  wrap.innerHTML = `<table style="border-collapse:collapse;min-width:max-content">
-    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px;white-space:nowrap">홀</td>${holeNums}</tr>
-    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px">파</td>${parRow}</tr>
-    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px">타수</td>${rows}</tr>
-    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px">결과</td>${diffRow}</tr>
+  wrap.innerHTML = `<table style="border-collapse:collapse;min-width:max-content;font-size:.78rem">
+    <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px;white-space:nowrap">홀</td>${holeNums}</tr>
+    <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">${_parEditMode?'<span style="color:var(--wing2)">파✎</span>':'파'}</td>${parRow}</tr>
+    <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">타수</td>${scoreRow}</tr>
+    <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">결과</td>${diffRow}</tr>
     ${sub}
   </table>`;
   _updateScoreSum();
 };
 
+function _scoreColor(d){
+  return d<=-2?'#7AB0E8':d===-1?'#3D9E74':d===0?'var(--chalk)':d===1?'var(--amber)':'var(--red)';
+}
+
 window.updateHoleScore = (i, field, val) => {
-  if(_holeScoresData[i]) _holeScoresData[i][field] = val ? parseInt(val) : null;
-  // 결과 셀 업데이트
-  renderHoleInputs();
+  if(!_holeScoresData[i]) return;
+  _holeScoresData[i][field] = val!==''&&val!=null ? parseInt(val) : null;
+  _updateScoreSum();
+  // 결과 행만 경량 업데이트 (전체 재렌더 대신)
+  const diffCells = document.querySelectorAll('#hole-inputs-wrap table tr:nth-child(4) td');
+  _holeScoresData.forEach((h,idx)=>{
+    const cell = diffCells[idx+1]; if(!cell) return;
+    if(!h.score){cell.textContent='-';cell.style.color='var(--muted)';return;}
+    const d=h.score-h.par;
+    cell.textContent=d<=-2?'Eagle':d===-1?'Birdie':d===0?'Par':d===1?'Bogey':d===2?'D.B':'++';
+    cell.style.color=_scoreColor(d);
+    // 입력 셀 색상
+    const scoreInput=$(`hole-score-${idx}`);
+    if(scoreInput){scoreInput.style.color=_scoreColor(d);scoreInput.style.borderColor='rgba(240,237,230,.2)';}
+  });
+  // 파 수정 시 전체 재렌더 필요
+  if(field==='par') renderHoleInputs();
 };
 
 function _updateScoreSum(){
@@ -6119,7 +6161,7 @@ function pAdd() {
       <div class="frow">
         <div class="fg"><label class="fl-label">코스명 (선택)</label><input class="inp" id="p-course" placeholder="예: 설악밸리 CC"></div>
         <div class="fg"><label class="fl-label">홀 수</label>
-          <select class="sel" id="p-holes" onchange="renderHoleInputs()">
+          <select class="sel" id="p-holes" onchange="renderHoleInputs(true)">
             <option value="18" selected>18홀</option>
             <option value="9">9홀</option>
           </select>
@@ -6132,21 +6174,29 @@ function pAdd() {
       <!-- 스코어카드 사진 분석 -->
       <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.7rem">
         <div style="font-size:.72rem;color:var(--wing2);font-weight:600;margin-bottom:.4rem">📸 스코어카드 사진으로 자동 입력</div>
-        <div style="font-size:.7rem;color:var(--dim);margin-bottom:.5rem">스코어카드 전체가 보이는 사진을 업로드하면 홀별 성적을 자동으로 추출합니다.<br>여러 명의 성적이 있는 경우 내 점수를 선택할 수 있습니다.</div>
-        <div class="img-upload" onclick="document.getElementById('p-scorecard-img').click()" style="margin-bottom:.4rem;padding:.8rem">
-          <input type="file" id="p-scorecard-img" accept="image/*" style="display:none" onchange="analyzeScorecardPhoto(this)">
-          📷 스코어카드 사진 업로드
-        </div>
+        <div style="font-size:.7rem;color:var(--dim);margin-bottom:.5rem">스코어카드 전체가 보이는 사진을 올리면 홀별 성적을 자동 추출합니다. 여러 명이면 내 점수를 선택할 수 있습니다.</div>
+        <!-- 파일 input을 숨기지 않고 visibility:hidden으로 처리하여 모바일 호환성 확보 -->
+        <label style="display:block;cursor:pointer">
+          <div class="img-upload" style="padding:.75rem;margin-bottom:.4rem">
+            <input type="file" id="p-scorecard-img" accept="image/*" capture="environment"
+              style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+              onchange="analyzeScorecardPhoto(this)">
+            📷 스코어카드 사진 업로드
+          </div>
+        </label>
         <div id="scorecard-analysis-status" style="font-size:.72rem;color:var(--muted)"></div>
-        <!-- 멀티플레이어 선택 -->
         <div id="scorecard-player-select" style="display:none;margin-top:.5rem">
-          <div style="font-size:.72rem;color:var(--wing2);margin-bottom:.3rem">여러 명의 성적이 감지됐습니다. 내 점수를 선택하세요:</div>
+          <div style="font-size:.72rem;color:var(--wing2);margin-bottom:.3rem">내 점수를 선택하세요:</div>
           <div id="scorecard-player-list" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
         </div>
       </div>
 
       <!-- 홀별 성적 입력 -->
-      <div class="sec-label" style="margin-bottom:.4rem">홀별 성적 <span style="font-size:.65rem;color:var(--muted);font-weight:400">(선택 · 입력 시 총 타수 자동 계산)</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <div class="sec-label" style="margin-bottom:0">홀별 성적 <span style="font-size:.63rem;color:var(--muted);font-weight:400">선택 · 전체 입력 시 총 타수 자동 계산</span></div>
+        <button onclick="toggleParEdit()" id="par-edit-btn"
+          style="background:none;border:1px solid var(--border);color:var(--muted);font-size:.68rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">파 수정</button>
+      </div>
       <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
@@ -6225,11 +6275,15 @@ function pAdd() {
     <!-- 스크린/필드 사진 업로드 -->
     <div id="game-photo-fields" style="display:none">
       <div class="sec-label">사진 업로드 (선택)</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">스코어카드, 코스 사진 등을 업로드할 수 있습니다. GPS 정보가 있으면 장소가 자동으로 입력됩니다.</div>
-      <div class="img-upload" onclick="document.getElementById('pgameimg').click()">
-        <input type="file" id="pgameimg" accept="image/*" multiple onchange="handleGamePhoto(this)">
-        📷 사진 업로드 (선택)
-      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">코스 사진 등을 업로드할 수 있습니다. GPS 정보가 있으면 장소가 자동으로 입력됩니다.</div>
+      <label style="display:block;cursor:pointer">
+        <div class="img-upload">
+          <input type="file" id="pgameimg" accept="image/*" multiple
+            style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+            onchange="handleGamePhoto(this)">
+          📷 사진 업로드 (선택)
+        </div>
+      </label>
       <div id="game-photo-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem"></div>
     </div>
 
@@ -6321,7 +6375,7 @@ window.saveSession = async () => {
   // 미분석 사진이 있으면 백그라운드에서 계속 분석 후 DB 업데이트
   const pendingFiles = multiFiles.filter(f=>!f.gdrData&&f.file);
   const sessionId = inserted?.id;
-  multiFiles = []; upFile = null; shotCnt = 1; window.gameFiles = []; _holeScoresData = [];
+  multiFiles = []; upFile = null; shotCnt = 1; window.gameFiles = []; _holeScoresData = []; _parEditMode = false;
   await loadAll(); sync('ok'); toast('기록 저장됨'); goList();
 
   if(pendingFiles.length && sessionId){
