@@ -1490,6 +1490,8 @@ function publicProfilePage(prof,sessions,followerCnt,isFollowing,buddyStatus){
   const started=prof.golf_started?`${new Date(prof.golf_started).getFullYear()}년 시작`:'';
   const gameLabel={'screen':'🖥️ 스크린','field':'⛳ 필드','both':'🖥️⛳ 스크린+필드'}[prof.game_type]||'';
   const canFollow=user&&user.id!==prof.user_id;
+  const isOwnProfile=user&&user.id===prof.user_id;
+  const profileUrl=`https://birdyard.app/?u=${prof.nickname}`;
 
   return`<div style="max-width:480px;margin:0 auto;padding:1.2rem 1rem 4rem">
     <!-- 헤더 -->
@@ -1513,22 +1515,37 @@ function publicProfilePage(prof,sessions,followerCnt,isFollowing,buddyStatus){
             <span style="font-size:.72rem;color:var(--muted)">팔로워 ${followerCnt}</span>
           </div>
         </div>
-        ${canFollow?`
+        <!-- 액션 버튼 묶음 -->
         <div style="display:flex;gap:.4rem;flex-direction:column;align-items:flex-end">
-          <button onclick="toggleFollow('${prof.user_id}',${isFollowing})"
-            style="background:${isFollowing?'rgba(240,237,230,.06)':'rgba(200,137,58,.15)'};border:1px solid ${isFollowing?'var(--border)':'rgba(200,137,58,.4)'};color:${isFollowing?'var(--muted)':'var(--wing2)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
-            ${isFollowing?'✓ 팔로잉':'+ 팔로우'}
-          </button>
-          <button onclick="requestBuddy('${prof.user_id}','${ea(prof.nickname)}')"
-            ${buddyStatus==='accepted'||buddyStatus==='pending_sent'?'disabled':''}
-            style="background:${buddyStatus==='accepted'?'rgba(61,158,116,.15)':buddyStatus==='pending_sent'?'rgba(240,237,230,.04)':buddyStatus==='pending_recv'?'rgba(74,143,168,.15)':'rgba(74,143,168,.1)'};border:1px solid ${buddyStatus==='accepted'?'rgba(61,158,116,.4)':buddyStatus==='pending_recv'?'rgba(74,143,168,.5)':'rgba(74,143,168,.3)'};color:${buddyStatus==='accepted'?'#3D9E74':buddyStatus==='pending_recv'?'var(--sky2)':'var(--muted)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:${buddyStatus?'default':'pointer'};font-family:var(--sans);white-space:nowrap">
-            ${buddyStatus==='accepted'?'♥ 버디':buddyStatus==='pending_sent'?'신청 중...':buddyStatus==='pending_recv'?'수락하기':'🤝 버디 신청'}
-          </button>
-        </div>`:''}
-        <button onclick="shareProfileUrl('https://birdyard.app/?u=${ea(prof.nickname)}')"
-          style="background:rgba(74,143,168,.12);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:.4rem .75rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">📤</button>
-        <button onclick="showProfileQr('https://birdyard.app/?u=${ea(prof.nickname)}')"
-          style="background:rgba(240,237,230,.06);border:1px solid var(--border);color:var(--muted);padding:.4rem .75rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">QR</button>
+          ${canFollow?`
+            <button onclick="toggleFollow('${prof.user_id}',${isFollowing})"
+              style="background:${isFollowing?'rgba(240,237,230,.06)':'rgba(200,137,58,.15)'};border:1px solid ${isFollowing?'var(--border)':'rgba(200,137,58,.4)'};color:${isFollowing?'var(--muted)':'var(--wing2)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
+              ${isFollowing?'✓ 팔로잉':'+ 팔로우'}
+            </button>
+            <button onclick="requestBuddy('${prof.user_id}','${ea(prof.nickname)}')"
+              ${buddyStatus==='accepted'||buddyStatus==='pending_sent'?'disabled':''}
+              style="background:${buddyStatus==='accepted'?'rgba(61,158,116,.15)':buddyStatus==='pending_sent'?'rgba(240,237,230,.04)':buddyStatus==='pending_recv'?'rgba(74,143,168,.15)':'rgba(74,143,168,.1)'};border:1px solid ${buddyStatus==='accepted'?'rgba(61,158,116,.4)':buddyStatus==='pending_recv'?'rgba(74,143,168,.5)':'rgba(74,143,168,.3)'};color:${buddyStatus==='accepted'?'#3D9E74':buddyStatus==='pending_recv'?'var(--sky2)':'var(--muted)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:${buddyStatus?'default':'pointer'};font-family:var(--sans);white-space:nowrap">
+              ${buddyStatus==='accepted'?'♥ 버디':buddyStatus==='pending_sent'?'신청 중...':buddyStatus==='pending_recv'?'수락하기':'🤝 버디 신청'}
+            </button>
+          `:''}
+          ${!user?`
+            <button onclick="window.location.href='https://birdyard.app'"
+              style="background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.4);color:var(--wing2);padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
+              + 팔로우
+            </button>
+            <button onclick="window.location.href='https://birdyard.app'"
+              style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
+              🤝 버디 신청
+            </button>
+            <div style="font-size:.63rem;color:var(--muted);text-align:center;margin-top:2px">로그인 필요</div>
+          `:''}
+          <div style="display:flex;gap:.3rem;margin-top:.2rem">
+            <button onclick="shareProfileUrl('${profileUrl}')"
+              style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:.3rem .6rem;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📤 공유</button>
+            <button onclick="showProfileQr('${profileUrl}')"
+              style="background:rgba(240,237,230,.05);border:1px solid var(--border);color:var(--muted);padding:.3rem .6rem;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">QR</button>
+          </div>
+        </div>
       </div>
       <div style="display:flex;gap:.5rem">
         <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.5rem">
