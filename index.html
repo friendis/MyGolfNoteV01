@@ -1711,7 +1711,8 @@ window.goCurrentTerm=()=>{
 };
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';pClubFilter='';
-  if(t!=='home') homeTermIdx=-1; // 홈 아닌 탭 이동 시 용어 리셋
+  window._eActiveTag='';
+  if(t!=='home') homeTermIdx=-1;
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   if($('tab-'+t))$('tab-'+t).classList.add('on');
@@ -1854,8 +1855,19 @@ function eList(){
   const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
-  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
-  return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div><div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value)" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value)"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value)"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div><div id="ecards">${cards}</div>
+  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${Array.isArray(e.tags)&&e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
+
+  // 전체 태그 수집 (중복 제거, 빈 값 제외)
+  const allTags=[...new Set(D.equip.flatMap(e=>Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string'):[]))].sort();
+  const tagChips=allTags.length?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;padding:.5rem 0 .2rem">
+    <button id="etag-all" class="kw-pill" style="font-size:.7rem;padding:3px 10px;background:rgba(200,137,58,.15);border-color:rgba(200,137,58,.4);color:var(--wing2)" onclick="filterByTag('')">전체</button>
+    ${allTags.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}')">${esc(t)}</button>`).join('')}
+  </div>`:'';
+
+  return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div>
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
+  ${tagChips}
+  <div id="ecards">${cards}</div>
   <div style="margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
       <div style="font-size:.75rem;color:var(--dim)">비행 통계와 비교해 내 장비 궁합을 분석합니다.</div>
@@ -1865,7 +1877,61 @@ function eList(){
   </div>
   </div>`;
 }
-window.filterE=(q,cat,st)=>{const f=D.equip.filter(e=>(!q||e.name.includes(q))&&(!cat||e.cat===cat)&&(!st||e.status===st));const c=$('ecards');if(!c)return;c.innerHTML=f.length?f.map(e=>`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between"><div><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span></div></div>${(e.links.length?e.links[e.links.length-1].price:e.buyPrice)?`<div class="link-price">${fmtP(e.links.length?e.links[e.links.length-1].price:e.buyPrice)}</div>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`};
+window._eActiveTag = '';
+
+window.filterByTag = (tag) => {
+  window._eActiveTag = tag;
+  // 칩 활성화 스타일
+  document.querySelectorAll('.etag-chip').forEach(el=>{
+    const active = el.dataset.tag === tag;
+    el.style.background = active ? 'rgba(74,143,168,.25)' : '';
+    el.style.borderColor = active ? 'var(--sky2)' : '';
+    el.style.color = active ? 'var(--sky2)' : '';
+  });
+  const allBtn = $('etag-all');
+  if(allBtn){
+    allBtn.style.background = tag==='' ? 'rgba(200,137,58,.15)' : '';
+    allBtn.style.borderColor = tag==='' ? 'rgba(200,137,58,.4)' : '';
+    allBtn.style.color = tag==='' ? 'var(--wing2)' : '';
+  }
+  filterE(
+    $('esrch')?.value||'',
+    $('ecat')?.value||'',
+    $('estat')?.value||'',
+    tag
+  );
+};
+
+window.filterE=(q,cat,st,tag='')=>{
+  const f=D.equip.filter(e=>
+    (!q||e.name.includes(q))&&
+    (!cat||e.cat===cat)&&
+    (!st||e.status===st)&&
+    (!tag||(Array.isArray(e.tags)&&e.tags.includes(tag)))
+  );
+  const c=$('ecards');if(!c)return;
+  const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
+  c.innerHTML=f.length?f.map(e=>{
+    const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;
+    return`<div class="card" onclick="goDetail('${e.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="card-title">${esc(e.name)}</div>
+          <div style="margin:3px 0">
+            <span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
+            <span class="badge b-blue">${esc(e.cat)}</span>
+            ${Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25);${t===tag?'outline:1px solid var(--sky2)':''}">${esc(t)}</span>`).join(''):''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">
+          ${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}
+          ${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}
+          ${pt(e)}
+        </div>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>검색 결과 없음</div>`;
+};
 function eDetail(){
   const e=D.equip.find(x=>x.id===selId);if(!e)return'<div class="empty">장비를 찾을 수 없습니다.</div>';
   const lp=e.links.length?e.links[e.links.length-1].price:null;
