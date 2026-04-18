@@ -1602,6 +1602,10 @@ async function renderPublicProfile(nickname){
     }
 
     m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],followerCnt||0,isFollowing,buddyStatus);
+    // 통계 차트 렌더링 (공개 프로필용)
+    if(prof.is_public && sessions?.length){
+      requestAnimationFrame(()=>requestAnimationFrame(()=>_drawProfSparklines(window._profChartData||{})));
+    }
   }catch(e){
     m.innerHTML=`<div class="page"><div style="text-align:center;padding:3rem;color:var(--muted)">${esc(e.message)}</div></div>`;
   }
@@ -1618,56 +1622,14 @@ function notFoundPage(nickname){
 
 function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStatus){
   const stats=prof.public_stats||{};
+  const isStatsPublic = !!prof.is_public;
   const started=prof.golf_started?`${new Date(prof.golf_started).getFullYear()}년 시작`:'';
   const gameLabel={'screen':'🖥️ 스크린','field':'⛳ 필드','both':'🖥️⛳'}[prof.game_type]||'';
   const canFollow=user&&user.id!==prof.user_id;
   const profileUrl=`https://birdyard.app/?u=${prof.nickname}`;
 
-  // 클럽별 캐리
-  const clubRows=Object.entries(stats.avgByClub||{}).sort((a,b)=>b[1]-a[1])
-    .map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
-      <span style="font-size:.8rem;color:var(--dim)">${esc(c)}</span>
-      <span style="font-size:.8rem;color:var(--wing2);font-weight:600">${v}m</span>
-    </div>`).join('');
-
-  // 비행 기록 카드
-  const sessionCards=sessions.map(s=>{
-    const shots=s.shots||[];
-    const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
-    const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
-    const isGame=s.game_type==='screen'||s.game_type==='field';
-    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <span style="font-size:.8rem;color:var(--chalk);font-weight:500">${isGame?(s.game_type==='screen'?'🖥️':'⛳')+' '+(s.course_name||'게임'):esc(s.club||'—')}</span>
-          <span style="font-size:.7rem;color:var(--muted);margin-left:.5rem">${s.session_date}</span>
-        </div>
-        ${isGame&&s.score?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${s.score}타</span>`:avgC?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
-      </div>
-      ${s.memo?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
-    </div>`;
-  }).join('');
-
-  // 학습노트 카드
-  const thumb=url=>{const m=url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);return m?`https://img.youtube.com/vi/${m[1]}/mqdefault.jpg`:null;};
-  const noteCards=notes.map(n=>`
-    <div onclick="window.open('${ea(n.url)}','_blank')"
-      style="display:flex;gap:.65rem;align-items:flex-start;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem;cursor:pointer">
-      ${thumb(n.url)?`<img src="${thumb(n.url)}" style="width:56px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:'<div style="width:56px;height:40px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>'}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.8rem;color:var(--chalk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n.title)}</div>
-        <div style="margin-top:3px">${(n.keywords||[]).slice(0,3).map(k=>`<span style="font-size:.62rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 5px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
-      </div>
-    </div>`).join('');
-
-  // 탭 렌더 함수 (클라이언트 사이드)
-  const tabBtn=(id,label,active)=>`<button id="ptab-${id}" onclick="switchProfTab('${id}')"
-    style="flex:1;padding:.5rem;font-size:.75rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${active?'var(--wing2)':'transparent'};background:none;color:${active?'var(--wing2)':'var(--muted)'}">
-    ${label}
-  </button>`;
-
-  return`<div class="page" style="padding-bottom:4rem">
-    <!-- 프로필 카드 -->
+  // ── 프로필 카드 ─────────────────────────────────────
+  const profileCard=`
     <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.2);border-radius:4px;padding:1rem;margin-bottom:1rem">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
         <div style="flex:1;min-width:0">
@@ -1706,7 +1668,6 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
           </div>
         </div>
       </div>
-      <!-- 통계 요약 -->
       <div style="display:flex;gap:.4rem;margin-top:.75rem">
         <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.4rem">
           <div style="font-size:1rem;font-weight:600;color:var(--chalk)">${stats.sessions||0}</div>
@@ -1721,30 +1682,142 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
           <div style="font-size:.62rem;color:var(--muted)">학습 노트</div>
         </div>`:''}
       </div>
-    </div>
+    </div>`;
 
-    <!-- 탭 -->
+  // ── 비행 통계 섹션 (공개 시) ─────────────────────────
+  // sessions: 공개 세션 데이터로 클럽별 통계 계산
+  let statsSection = '';
+  if(isStatsPublic && sessions.length){
+    const cm={};
+    sessions.forEach(s=>{
+      if(!s.club)return;
+      const nc=s.club; // 이미 정규화된 클럽명 사용
+      if(!cm[nc])cm[nc]={c:[],tot:[],h:[],b:[],sf:[],con:[]};
+      const shots=s.shots||[];
+      const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
+      const totals=shots.map(sh=>sh.total).filter(v=>v>0);
+      const hs=shots.map(sh=>sh.headSpeed).filter(v=>v>0);
+      const bs=shots.map(sh=>sh.ballSpeed).filter(v=>v>0);
+      const sf=shots.map(sh=>sh.smashFactor).filter(v=>v>0);
+      const avgV=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+      if(carries.length)cm[nc].c.push(avgV(carries));
+      if(totals.length)cm[nc].tot.push(avgV(totals));
+      if(hs.length)cm[nc].h.push(avgV(hs));
+      if(bs.length)cm[nc].b.push(avgV(bs));
+      if(sf.length)cm[nc].sf.push(avgV(sf));
+    });
+    const avgV=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10:null;
+    const clubOrder=['드라이버','3W','5W','7W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
+    const sortedClubs=Object.keys(cm).sort((a,b)=>{const ia=clubOrder.indexOf(a),ib=clubOrder.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
+
+    // 차트 데이터를 전역에 저장 (renderPublicProfile에서 비동기로 그림)
+    window._profChartData = Object.fromEntries(sortedClubs.map(club=>[club, cm[club]]));
+
+    const clubRows = sortedClubs.map(club=>{
+      const d=cm[club];
+      const avg_c=avgV(d.c),avg_h=avgV(d.h),avg_b=avgV(d.b),avg_sf=avgV(d.sf);
+      // 캐리 트렌드 (간단한 인라인 스파크라인)
+      const sparkId=`spark-${club.replace(/[^a-zA-Z0-9]/g,'_')}`;
+      return`<div style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">
+          <span class="club-badge" style="font-size:.72rem">${esc(club)}</span>
+          ${avg_c?`<span style="font-size:.73rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:600">${avg_c}m</span></span>`:''}
+          ${avg_h?`<span style="font-size:.73rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:600">${avg_h}</span></span>`:''}
+          ${avg_b?`<span style="font-size:.73rem;color:var(--muted)">BS <span style="color:#7ab0e8;font-weight:600">${avg_b}</span></span>`:''}
+          ${avg_sf?`<span style="font-size:.73rem;color:var(--muted)">SF <span style="color:#A78BFA;font-weight:600">${avg_sf.toFixed(2)}</span></span>`:''}
+          <span style="font-size:.7rem;color:var(--muted);margin-left:auto">${d.c.length}세션</span>
+        </div>
+        ${d.c.length>=2?`<div style="height:60px;position:relative"><canvas id="${sparkId}" style="width:100%;height:60px"></canvas></div>`:''}
+      </div>`;
+    }).join('<div style="border-top:1px solid rgba(240,237,230,.06);margin-bottom:1rem"></div>');
+
+    statsSection=`<div style="background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem">📊 비행 통계</div>
+      ${clubRows||'<div style="font-size:.78rem;color:var(--muted)">데이터가 없습니다</div>'}
+    </div>
+    <div id="prof-stats-charts-placeholder"></div>`;
+  }
+
+  // ── 탭 + 콘텐츠 (통계 비공개 시) ───────────────────
+  // 탭 순서: 학습 노트 | 비행 기록 | (클럽은 통계에 포함되므로 제거)
+  const thumb=url=>{const m=url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);return m?`https://img.youtube.com/vi/${m[1]}/mqdefault.jpg`:null;};
+
+  const sessionCards=sessions.map(s=>{
+    const shots=s.shots||[];
+    const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
+    const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
+    const isGame=s.game_type==='screen'||s.game_type==='field';
+    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-size:.8rem;color:var(--chalk);font-weight:500">${isGame?(s.game_type==='screen'?'🖥️':'⛳')+' '+(s.course_name||'게임'):esc(s.club||'—')}</span>
+          <span style="font-size:.7rem;color:var(--muted);margin-left:.5rem">${s.session_date}</span>
+        </div>
+        ${isGame&&s.score?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${s.score}타</span>`:avgC?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
+      </div>
+      ${s.memo?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
+    </div>`;
+  }).join('');
+
+  const noteCards=notes.map(n=>`
+    <div onclick="window.open('${ea(n.url)}','_blank')"
+      style="display:flex;gap:.65rem;align-items:flex-start;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem;cursor:pointer">
+      ${thumb(n.url)?`<img src="${thumb(n.url)}" style="width:56px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:'<div style="width:56px;height:40px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.8rem;color:var(--chalk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n.title)}</div>
+        <div style="margin-top:3px">${(n.keywords||[]).slice(0,3).map(k=>`<span style="font-size:.62rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 5px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+
+  const tabBtn=(id,label,active)=>`<button id="ptab-${id}" onclick="switchProfTab('${id}')"
+    style="flex:1;padding:.5rem;font-size:.75rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${active?'var(--wing2)':'transparent'};background:none;color:${active?'var(--wing2)':'var(--muted)'}">
+    ${label}
+  </button>`;
+
+  // 통계 비공개 시 탭 (앱 탭바 순서: 학습 노트 → 비행 기록)
+  const tabSection = !isStatsPublic ? `
     <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:.75rem" id="prof-tabs">
-      ${tabBtn('flight','✈ 비행 기록',true)}
-      ${clubRows?tabBtn('clubs','🏌️ 클럽',false):''}
-      ${notes.length?tabBtn('notes','📹 학습 노트',false):''}
+      ${notes.length?tabBtn('notes','📹 학습 노트',true):''}
+      ${tabBtn('flight','✈ 비행 기록',!notes.length)}
     </div>
-
-    <!-- 비행 기록 탭 -->
+    ${notes.length?`
+    <div id="prof-panel-notes">
+      ${noteCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>'}
+    </div>
+    <div id="prof-panel-flight" style="display:none">
+      ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
+    </div>`:`
     <div id="prof-panel-flight">
-      ${sessionCards||`<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>`}
+      ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
     </div>
-
-    <!-- 클럽별 캐리 탭 -->
-    <div id="prof-panel-clubs" style="display:none">
-      ${clubRows?`<div style="background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;padding:.9rem">${clubRows}</div>`:''}
-    </div>
-
-    <!-- 학습 노트 탭 -->
     <div id="prof-panel-notes" style="display:none">
-      ${noteCards||`<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>`}
+      ${noteCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>'}
+    </div>`}
+  ` : `
+    <!-- 통계 공개 시: 비행기록+학습노트 탭은 통계 아래 배치 -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:.75rem;margin-top:.5rem" id="prof-tabs">
+      ${notes.length?tabBtn('notes','📹 학습 노트',true):''}
+      ${tabBtn('flight','✈ 비행 기록',!notes.length)}
     </div>
+    ${notes.length?`
+    <div id="prof-panel-notes">
+      ${noteCards}
+    </div>
+    <div id="prof-panel-flight" style="display:none">
+      ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
+    </div>`:`
+    <div id="prof-panel-flight">
+      ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
+    </div>
+    <div id="prof-panel-notes" style="display:none">
+      ${noteCards}
+    </div>`}
+  `;
 
+  return`<div class="page" style="padding-bottom:4rem">
+    ${profileCard}
+    ${statsSection}
+    ${tabSection}
     ${!user?`<div style="text-align:center;margin-top:2rem;padding:1rem;background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:4px">
       <div style="font-size:.78rem;color:var(--dim);margin-bottom:.5rem">Birdyard에서 내 골프 기록을 관리해보세요</div>
       <a href="https://birdyard.app" style="display:inline-block;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.4rem 1.2rem;border-radius:3px;font-size:.8rem;text-decoration:none">시작하기 →</a>
@@ -1753,7 +1826,7 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
 }
 
 window.switchProfTab=(id)=>{
-  ['flight','clubs','notes'].forEach(t=>{
+  ['flight','notes'].forEach(t=>{
     const panel=$(`prof-panel-${t}`);
     const btn=$(`ptab-${t}`);
     if(panel) panel.style.display=t===id?'block':'none';
@@ -1763,6 +1836,22 @@ window.switchProfTab=(id)=>{
     }
   });
 };
+
+function _drawProfSparklines(cm){
+  if(typeof Chart==='undefined') return;
+  Object.entries(cm).forEach(([club,d])=>{
+    if((d.c||[]).length<2) return;
+    const sparkId=`spark-${club.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    const el=document.getElementById(sparkId);
+    if(!el) return;
+    try{
+      new Chart(el,{type:'line',data:{
+        labels:d.c.map((_,i)=>i+1+''),
+        datasets:[{data:d.c.map(v=>Math.round(v)),borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.1)',borderWidth:1.5,pointRadius:2,fill:true,tension:.3}]
+      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+}
 
 // ── 팔로우 / 버디 / 알림 ────────────────────────────
 window.toggleFollow=async(targetId,isFollowing)=>{
