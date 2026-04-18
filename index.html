@@ -1100,7 +1100,7 @@ async function loadAll(){
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||''}));
-    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.profile=pR.data||null;
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
     if(D.profile && !D.profile.ai_cache){
@@ -3004,6 +3004,185 @@ window.toggleRecType=v=>{
   if(game)game.style.display=v==='gdr'?'none':'block';
   if(club)club.style.display=v==='gdr'?'block':'none';
   if(gamePhoto)gamePhoto.style.display=v==='gdr'?'none':'block';
+  if(v!=='gdr') setTimeout(renderHoleInputs, 0);
+};
+
+// 홀별 입력 테이블 렌더링
+let _holeScoresData = []; // [{hole, par, score, putts}]
+
+window.renderHoleInputs = () => {
+  const wrap = $('hole-inputs-wrap'); if(!wrap) return;
+  const n = parseInt($('p-holes')?.value||18);
+  const PARS_18 = [4,4,3,4,5,3,4,5,4, 4,4,3,4,5,3,4,5,4];
+  const pars = n===18 ? PARS_18 : PARS_18.slice(0,9);
+
+  // 기존 데이터 유지
+  if(_holeScoresData.length !== n){
+    _holeScoresData = Array.from({length:n},(_,i)=>({
+      hole:i+1, par:pars[i]||4, score:null, putts:null
+    }));
+  }
+
+  const rows = _holeScoresData.map((h,i)=>`
+    <td style="padding:2px 3px;min-width:36px;text-align:center">
+      <input type="number" min="1" max="15" value="${h.score||''}"
+        id="hole-score-${i}" oninput="updateHoleScore(${i},'score',this.value)"
+        style="width:36px;text-align:center;background:rgba(240,237,230,.06);border:1px solid rgba(240,237,230,.12);border-radius:2px;color:var(--chalk);font-size:.82rem;padding:3px 2px;font-family:var(--sans)">
+    </td>`).join('');
+
+  const parRow = pars.map((p,i)=>`<td style="text-align:center;font-size:.7rem;color:var(--muted);padding:2px 3px">${p}</td>`).join('');
+  const holeNums = Array.from({length:n},(_,i)=>`<td style="text-align:center;font-size:.68rem;color:var(--muted);padding:2px 3px">${i+1}</td>`).join('');
+  const diffRow = _holeScoresData.map(h=>{
+    if(!h.score) return `<td style="text-align:center;font-size:.7rem;padding:2px 3px;color:var(--muted)">-</td>`;
+    const d=h.score-h.par;
+    const clr=d<=-2?'#7AB0E8':d===-1?'#3D9E74':d===0?'var(--chalk)':d===1?'var(--amber)':'var(--red)';
+    const lbl=d<=-2?'eagle':d===-1?'birdie':d===0?'par':d===1?'bogey':d===2?'D.B':'++';
+    return `<td style="text-align:center;font-size:.62rem;padding:2px 3px;color:${clr}">${lbl}</td>`;
+  }).join('');
+
+  // 9홀 합계 라인
+  const sub=n===18?`<tr style="border-top:1px solid rgba(240,237,230,.12)">
+    <td style="font-size:.68rem;color:var(--muted);padding:2px 4px">전반</td>
+    ${Array.from({length:9},(_,i)=>`<td></td>`).join('')}
+    <td style="font-size:.72rem;color:var(--wing2);text-align:right;padding:2px 4px" id="sub-front"></td>
+  </tr>
+  <tr>
+    <td style="font-size:.68rem;color:var(--muted);padding:2px 4px">후반</td>
+    ${Array.from({length:9},(_,i)=>`<td></td>`).join('')}
+    <td style="font-size:.72rem;color:var(--wing2);text-align:right;padding:2px 4px" id="sub-back"></td>
+  </tr>`:'';
+
+  wrap.innerHTML = `<table style="border-collapse:collapse;min-width:max-content">
+    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px;white-space:nowrap">홀</td>${holeNums}</tr>
+    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px">파</td>${parRow}</tr>
+    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px">타수</td>${rows}</tr>
+    <tr><td style="font-size:.68rem;color:var(--muted);padding:2px 4px">결과</td>${diffRow}</tr>
+    ${sub}
+  </table>`;
+  _updateScoreSum();
+};
+
+window.updateHoleScore = (i, field, val) => {
+  if(_holeScoresData[i]) _holeScoresData[i][field] = val ? parseInt(val) : null;
+  // 결과 셀 업데이트
+  renderHoleInputs();
+};
+
+function _updateScoreSum(){
+  const filled = _holeScoresData.filter(h=>h.score);
+  if(!filled.length) return;
+  const total = filled.reduce((a,h)=>a+(h.score||0),0);
+  const scoreInput = $('p-score');
+  if(scoreInput && filled.length === _holeScoresData.length) scoreInput.value = total;
+  // 전반/후반 합계
+  const front = _holeScoresData.slice(0,9).filter(h=>h.score).reduce((a,h)=>a+(h.score||0),0);
+  const back  = _holeScoresData.slice(9).filter(h=>h.score).reduce((a,h)=>a+(h.score||0),0);
+  const sf=$('sub-front'),sb=$('sub-back');
+  if(sf) sf.textContent = _holeScoresData.slice(0,9).every(h=>h.score) ? front+'' : '';
+  if(sb) sb.textContent = _holeScoresData.slice(9).every(h=>h.score) ? back+'' : '';
+}
+
+// 스코어카드 AI 분석
+let _scorecardAnalyzed = null; // 분석 결과 보관
+
+window.analyzeScorecardPhoto = async (input) => {
+  const file = input.files[0]; if(!file) return;
+  const status = $('scorecard-analysis-status');
+  const playerSel = $('scorecard-player-select');
+  if(status) status.textContent = '📡 스코어카드 분석 중...';
+  if(playerSel) playerSel.style.display='none';
+
+  const toBase64 = f => new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(f);});
+  const b64 = await toBase64(file);
+  const mime = file.type || 'image/jpeg';
+
+  try {
+    const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body: JSON.stringify({
+        model:'gemini-2.5-flash',
+        maxOutputTokens:4000,
+        prompt:`이 골프 스코어카드 사진을 분석해서 JSON으로만 응답해주세요. 다른 텍스트 없이 JSON만 출력하세요.
+
+응답 형식:
+{
+  "players": ["플레이어1이름", "플레이어2이름"],  // 감지된 플레이어 이름 목록. 이름 없으면 ["Player 1", "Player 2"] 등
+  "holes": 18,  // 또는 9
+  "scores": [
+    {
+      "player": "플레이어1이름",
+      "hole_scores": [
+        {"hole": 1, "par": 4, "score": 5},
+        {"hole": 2, "par": 3, "score": 4},
+        ...
+      ],
+      "total": 95
+    }
+  ]
+}
+
+플레이어가 1명이면 players 배열에 1명만. 홀별 파가 안 보이면 par는 4로 기본값 사용.`,
+        imageBase64: b64,
+        imageMime: mime,
+      })
+    });
+    const raw = await resp.json();
+    const text = (raw.result||raw.text||'').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
+    _scorecardAnalyzed = parsed;
+
+    const players = parsed.players||[];
+    if(players.length <= 1){
+      // 플레이어 1명 → 바로 적용
+      applyPlayerScores(0);
+      if(status) status.textContent = `✓ 분석 완료 · ${parsed.holes||18}홀 · 총 ${parsed.scores?.[0]?.total||'?'}타`;
+    } else {
+      // 멀티 플레이어 → 선택 UI 표시
+      if(status) status.textContent = `✓ ${players.length}명의 성적이 감지됐습니다`;
+      const list = $('scorecard-player-list');
+      if(list){
+        list.innerHTML = players.map((p,i)=>`
+          <button onclick="applyPlayerScores(${i})"
+            style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
+            ${esc(p)} (${parsed.scores?.[i]?.total||'?'}타)
+          </button>`).join('');
+      }
+      if(playerSel) playerSel.style.display='block';
+    }
+  } catch(e) {
+    if(status) status.textContent = `분석 실패: ${e.message} — 직접 입력해주세요`;
+    console.error('scorecard analysis error', e);
+  }
+};
+
+window.applyPlayerScores = (playerIdx) => {
+  if(!_scorecardAnalyzed) return;
+  const playerData = _scorecardAnalyzed.scores?.[playerIdx];
+  if(!playerData) return;
+
+  const holeScores = playerData.hole_scores||[];
+  const n = holeScores.length || parseInt($('p-holes')?.value||18);
+  // 홀 수 select 업데이트
+  const holesEl = $('p-holes');
+  if(holesEl) holesEl.value = n <= 9 ? '9' : '18';
+
+  _holeScoresData = holeScores.map(h=>({
+    hole: h.hole,
+    par: h.par||4,
+    score: h.score||null,
+    putts: h.putts||null,
+  }));
+  if(playerData.total) { const s=$('p-score'); if(s) s.value=playerData.total; }
+
+  renderHoleInputs();
+
+  const status = $('scorecard-analysis-status');
+  const playerSel = $('scorecard-player-select');
+  const name = _scorecardAnalyzed.players?.[playerIdx]||'선택됨';
+  if(status) status.textContent = `✓ ${name} · ${n}홀 · 총 ${playerData.total||'?'}타 적용됨`;
+  if(playerSel) playerSel.style.display='none';
+  toast(`${name}의 성적이 적용됐습니다`);
 };
 window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
 const ss=s=>{
@@ -3629,6 +3808,65 @@ function pDetail(){
   })()}
 
   <!-- AI 스윙 분석 (샷 데이터 위) -->
+  ${(()=>{
+    // 게임 기록 (스크린/필드) 홀별 성적 표시
+    if((s.gameType==='screen'||s.gameType==='field') && s.holeScores?.holes?.length){
+      const hd = s.holeScores.holes;
+      const totalScore = hd.reduce((a,h)=>a+(h.score||0),0);
+      const totalPar   = hd.reduce((a,h)=>a+(h.par||4),0);
+      const diff = totalScore - totalPar;
+      const diffLabel = diff>0?`+${diff}`:diff===0?'E':`${diff}`;
+      const diffClr = diff<0?'#3D9E74':diff===0?'var(--chalk)':'var(--amber)';
+
+      const holeNums = hd.map(h=>`<td style="text-align:center;font-size:.65rem;color:var(--muted);padding:2px 4px;min-width:28px">${h.hole}</td>`).join('');
+      const parRow   = hd.map(h=>`<td style="text-align:center;font-size:.65rem;color:var(--muted);padding:2px 4px">${h.par||4}</td>`).join('');
+      const scoreRow = hd.map(h=>{
+        const d=(h.score||0)-(h.par||4);
+        const bg=d<=-2?'rgba(122,176,232,.2)':d===-1?'rgba(61,158,116,.2)':d===0?'transparent':d===1?'rgba(186,117,23,.15)':'rgba(193,123,106,.2)';
+        const clr=d<=-2?'#7AB0E8':d===-1?'#3D9E74':d===0?'var(--chalk)':d===1?'var(--amber)':'var(--red)';
+        return`<td style="text-align:center;font-size:.75rem;font-weight:600;padding:2px 4px;color:${clr};background:${bg};border-radius:2px">${h.score||'-'}</td>`;
+      }).join('');
+
+      // 9홀/18홀 합계
+      const n = hd.length;
+      let sumRow = '';
+      if(n===18){
+        const f=hd.slice(0,9).reduce((a,h)=>a+(h.score||0),0);
+        const b=hd.slice(9).reduce((a,h)=>a+(h.score||0),0);
+        sumRow=`<tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">합계</td>
+          ${hd.slice(0,9).map(()=>'<td></td>').join('')}
+          <td style="text-align:center;font-size:.72rem;font-weight:600;color:var(--wing2);padding:2px 4px">${f}</td>
+          ${hd.slice(9).map(()=>'<td></td>').join('')}
+          <td style="text-align:center;font-size:.72rem;font-weight:600;color:var(--wing2);padding:2px 4px">${b}</td>
+        </tr>`;
+      }
+
+      return`<div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:.9rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+          <div class="sec-label" style="margin-bottom:0">홀별 성적</div>
+          <div style="display:flex;align-items:baseline;gap:.4rem">
+            <span style="font-size:1.3rem;font-weight:700;color:var(--chalk)">${totalScore}타</span>
+            <span style="font-size:.85rem;color:${diffClr};font-weight:600">${diffLabel}</span>
+            <span style="font-size:.72rem;color:var(--muted)">(파 ${totalPar})</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="border-collapse:collapse;min-width:max-content">
+            <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px;white-space:nowrap">홀</td>${holeNums}</tr>
+            <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">파</td>${parRow}</tr>
+            <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">타수</td>${scoreRow}</tr>
+            ${sumRow}
+          </table>
+        </div>
+        <!-- 범례 -->
+        <div style="display:flex;gap:.6rem;margin-top:.5rem;flex-wrap:wrap">
+          ${[['이글-','rgba(122,176,232,.2)','#7AB0E8'],['버디','rgba(61,158,116,.2)','#3D9E74'],['파','transparent','var(--chalk)'],['보기','rgba(186,117,23,.15)','var(--amber)'],['더블+','rgba(193,123,106,.2)','var(--red)']].map(([l,bg,c])=>`
+            <span style="font-size:.62rem;color:${c};background:${bg};padding:1px 6px;border-radius:2px">${l}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+    return '';
+  })()}
   <div style="margin-bottom:.8rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
       <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
@@ -5294,13 +5532,35 @@ function pAdd() {
       <div class="frow">
         <div class="fg"><label class="fl-label">코스명 (선택)</label><input class="inp" id="p-course" placeholder="예: 설악밸리 CC"></div>
         <div class="fg"><label class="fl-label">홀 수</label>
-          <select class="sel" id="p-holes">
+          <select class="sel" id="p-holes" onchange="renderHoleInputs()">
             <option value="18" selected>18홀</option>
             <option value="9">9홀</option>
           </select>
         </div>
       </div>
-      <div class="fg"><label class="fl-label">총 타수 (스코어)</label><input class="inp" type="number" id="p-score" placeholder="예: 95"></div>
+      <div class="fg"><label class="fl-label">총 타수</label>
+        <input class="inp" type="number" id="p-score" placeholder="예: 95 (홀별 입력 시 자동 계산)">
+      </div>
+
+      <!-- 스코어카드 사진 분석 -->
+      <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.7rem">
+        <div style="font-size:.72rem;color:var(--wing2);font-weight:600;margin-bottom:.4rem">📸 스코어카드 사진으로 자동 입력</div>
+        <div style="font-size:.7rem;color:var(--dim);margin-bottom:.5rem">스코어카드 전체가 보이는 사진을 업로드하면 홀별 성적을 자동으로 추출합니다.<br>여러 명의 성적이 있는 경우 내 점수를 선택할 수 있습니다.</div>
+        <div class="img-upload" onclick="document.getElementById('p-scorecard-img').click()" style="margin-bottom:.4rem;padding:.8rem">
+          <input type="file" id="p-scorecard-img" accept="image/*" style="display:none" onchange="analyzeScorecardPhoto(this)">
+          📷 스코어카드 사진 업로드
+        </div>
+        <div id="scorecard-analysis-status" style="font-size:.72rem;color:var(--muted)"></div>
+        <!-- 멀티플레이어 선택 -->
+        <div id="scorecard-player-select" style="display:none;margin-top:.5rem">
+          <div style="font-size:.72rem;color:var(--wing2);margin-bottom:.3rem">여러 명의 성적이 감지됐습니다. 내 점수를 선택하세요:</div>
+          <div id="scorecard-player-list" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
+        </div>
+      </div>
+
+      <!-- 홀별 성적 입력 -->
+      <div class="sec-label" style="margin-bottom:.4rem">홀별 성적 <span style="font-size:.65rem;color:var(--muted);font-weight:400">(선택 · 입력 시 총 타수 자동 계산)</span></div>
+      <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
     <div class="fg"><label class="fl-label">연습장 · 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
@@ -5460,6 +5720,7 @@ window.saveSession = async () => {
     score: score,
     course_name: courseName,
     holes: holes,
+    hole_scores: (recType!=='gdr'&&_holeScoresData.some(h=>h.score)) ? {holes:_holeScoresData} : null,
   }).select().single();
 
   if(error){
@@ -5473,7 +5734,7 @@ window.saveSession = async () => {
   // 미분석 사진이 있으면 백그라운드에서 계속 분석 후 DB 업데이트
   const pendingFiles = multiFiles.filter(f=>!f.gdrData&&f.file);
   const sessionId = inserted?.id;
-  multiFiles = []; upFile = null; shotCnt = 1; window.gameFiles = [];
+  multiFiles = []; upFile = null; shotCnt = 1; window.gameFiles = []; _holeScoresData = [];
   await loadAll(); sync('ok'); toast('기록 저장됨'); goList();
 
   if(pendingFiles.length && sessionId){
