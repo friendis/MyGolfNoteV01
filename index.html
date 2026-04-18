@@ -941,20 +941,6 @@ window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow
 window.toggleAcctPanel=()=>$('acct-panel').classList.toggle('on');
 window.closeAcctPanel=()=>$('acct-panel').classList.remove('on');
 document.addEventListener('click',e=>{const p=$('acct-panel'),b=$('acct-toggle');if(p&&!p.contains(e.target)&&e.target!==b)p.classList.remove('on')});
-window.openAcctSettings=()=>{
-  $('acct-email-disp').textContent=user?.email||'';
-  $('acct-data-cnt').textContent=`영상 ${D.videos.length}개 · 장비 ${D.equip.length}개 · 연습 세션 ${D.sessions.length}개`;
-  // 공개 프로필 필드 채우기
-  const p=D.profile;
-  if(p){
-    const nn=$('prof-nickname'),bi=$('prof-bio'),ip=$('prof-is-public');
-    if(nn) nn.value=p.nickname||'';
-    if(bi) bi.value=p.bio||'';
-    if(ip) ip.checked=!!p.is_public;
-    _updateProfileUrlDisplay(p.nickname,p.is_public);
-  }
-  openModal('acct-modal');
-};
 window.setAuthMode=mode=>{
   authMode=mode;
   // verify-pending 화면 숨기고 폼 복원
@@ -1561,11 +1547,18 @@ window.toggleFollow=async(targetId,isFollowing)=>{
 window.openAcctSettings=()=>{
   $('acct-email-disp').textContent=user?.email||'';
   $('acct-data-cnt').textContent=`영상 ${D.videos.length}개 · 장비 ${D.equip.length}개 · 연습 세션 ${D.sessions.length}개`;
-  // 프로필 값 채우기
-  if(D.profile){
-    const ps=$('prof-started');if(ps&&D.profile.golf_started)ps.value=D.profile.golf_started;
-    const gt=D.profile.game_type||'screen';
+  const p=D.profile;
+  if(p){
+    // 골프 프로필
+    const ps=$('prof-started');if(ps&&p.golf_started)ps.value=p.golf_started;
+    const gt=p.game_type||'screen';
     const r=document.querySelector(`input[name="prof-gametype"][value="${gt}"]`);if(r)r.checked=true;
+    // 공개 프로필
+    const nn=$('prof-nickname'),bi=$('prof-bio'),ip=$('prof-is-public');
+    if(nn) nn.value=p.nickname||'';
+    if(bi) bi.value=p.bio||'';
+    if(ip) ip.checked=!!p.is_public;
+    _updateProfileUrlDisplay(p.nickname,p.is_public);
   }
   openModal('acct-modal');
 };
