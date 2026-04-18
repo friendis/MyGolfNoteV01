@@ -1205,7 +1205,13 @@ window.toggleBenchClub=()=>{ homeBenchClub=homeBenchClub==='드라이버'?'7I':'
 window.saveOnboarding=async()=>{
   const started=$('ob-started')?.value||null;
   const gameType=(document.querySelector('input[name="ob-gametype"]:checked')||{}).value||'screen';
-  const{data,error}=await sb.from('user_profiles').upsert({user_id:user.id,golf_started:started,game_type:gameType,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select().single();
+  const fields={golf_started:started,game_type:gameType,updated_at:new Date().toISOString()};
+  let data,error;
+  if(D.profile){
+    ({data,error}=await sb.from('user_profiles').update(fields).eq('user_id',user.id).select().single());
+  } else {
+    ({data,error}=await sb.from('user_profiles').insert({user_id:user.id,...fields}).select().single());
+  }
   if(error){toast('저장 실패: '+error.message);return;}
   D.profile=data;closeModal('onboarding-modal');render();
 };
@@ -1215,7 +1221,13 @@ window.saveProfile=async()=>{
   const started=$('prof-started')?.value||null;
   const gameType=(document.querySelector('input[name="prof-gametype"]:checked')||{}).value||'screen';
   const msg=$('prof-msg');
-  const{data,error}=await sb.from('user_profiles').upsert({user_id:user.id,golf_started:started,game_type:gameType,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select().single();
+  const fields={golf_started:started,game_type:gameType,updated_at:new Date().toISOString()};
+  let data,error;
+  if(D.profile){
+    ({data,error}=await sb.from('user_profiles').update(fields).eq('user_id',user.id).select().single());
+  } else {
+    ({data,error}=await sb.from('user_profiles').insert({user_id:user.id,...fields}).select().single());
+  }
   if(error){if(msg){msg.textContent='저장 실패';msg.style.color='var(--red)';}return;}
   D.profile=data;if(msg){msg.textContent='✓ 저장됐습니다';msg.style.color='var(--turf)';}
 };
@@ -1252,12 +1264,27 @@ window.savePublicProfile=async()=>{
   // user_profiles가 없으면 insert, 있으면 update
   let data,error;
   if(D.profile){
+    // 기존 값 보존하면서 공개 프로필 관련 필드만 업데이트
     ({data,error}=await sb.from('user_profiles')
-      .update({nickname:nickname||null,bio:bio||null,is_public:isPublic,public_stats:publicStats,updated_at:new Date().toISOString()})
+      .update({
+        nickname: nickname||null,
+        bio: bio||null,
+        is_public: isPublic,
+        public_stats: publicStats,
+        updated_at: new Date().toISOString()
+        // golf_started, game_type은 건드리지 않음
+      })
       .eq('user_id',user.id).select().single());
   } else {
     ({data,error}=await sb.from('user_profiles')
-      .insert({user_id:user.id,nickname:nickname||null,bio:bio||null,is_public:isPublic,public_stats:publicStats,updated_at:new Date().toISOString()})
+      .insert({
+        user_id: user.id,
+        nickname: nickname||null,
+        bio: bio||null,
+        is_public: isPublic,
+        public_stats: publicStats,
+        updated_at: new Date().toISOString()
+      })
       .select().single());
   }
 
