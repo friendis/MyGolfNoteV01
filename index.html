@@ -1357,7 +1357,9 @@ window.saveProfile=async()=>{
 window.savePublicProfile=async()=>{
   const nickname=($('prof-nickname')?.value||'').trim().toLowerCase();
   const bio=($('prof-bio')?.value||'').trim();
-  const isPublic=$('prof-is-public')?.checked||false;
+  // 체크박스가 DOM에 없을 수 있으므로 null 체크 후 D.profile 값으로 fallback
+  const ipEl=$('prof-is-public');
+  const isPublic = ipEl ? ipEl.checked : (D.profile?.is_public||false);
   const msg=$('prof-public-msg');
   if(msg){msg.textContent='';msg.style.color='';}
 
@@ -1383,30 +1385,14 @@ window.savePublicProfile=async()=>{
   sync('busy');
   if(msg){msg.textContent='저장 중...';msg.style.color='var(--muted)';}
 
-  // user_profiles가 없으면 insert, 있으면 update
   let data,error;
   if(D.profile){
-    // 기존 값 보존하면서 공개 프로필 관련 필드만 업데이트
     ({data,error}=await sb.from('user_profiles')
-      .update({
-        nickname: nickname||null,
-        bio: bio||null,
-        is_public: isPublic,
-        public_stats: publicStats,
-        updated_at: new Date().toISOString()
-        // golf_started, game_type은 건드리지 않음
-      })
+      .update({nickname:nickname||null,bio:bio||null,is_public:isPublic,public_stats:publicStats,updated_at:new Date().toISOString()})
       .eq('user_id',user.id).select().single());
   } else {
     ({data,error}=await sb.from('user_profiles')
-      .insert({
-        user_id: user.id,
-        nickname: nickname||null,
-        bio: bio||null,
-        is_public: isPublic,
-        public_stats: publicStats,
-        updated_at: new Date().toISOString()
-      })
+      .insert({user_id:user.id,nickname:nickname||null,bio:bio||null,is_public:isPublic,public_stats:publicStats,updated_at:new Date().toISOString()})
       .select().single());
   }
 
@@ -1421,6 +1407,14 @@ window.savePublicProfile=async()=>{
   if(msg){msg.textContent='✓ 저장됐습니다';msg.style.color='var(--turf)';}
   _updateProfileUrlDisplay(nickname,isPublic);
 };
+
+// 통계만 갱신 (세션/장비 공개 토글 시 내부적으로 호출)
+async function _refreshPublicStats(){
+  if(!D.profile?.is_public) return;
+  const publicStats=_buildPublicStats();
+  await sb.from('user_profiles').update({public_stats:publicStats}).eq('user_id',user.id);
+  if(D.profile) D.profile.public_stats=publicStats;
+}
 
 function _buildPublicStats(){
   // 공개할 통계: 클럽별 평균 캐리, 전체 세션 수
@@ -1584,6 +1578,10 @@ async function renderPublicProfile(nickname){
       .select('*').eq('user_id',prof.user_id).eq('is_public',true)
       .order('added_at',{ascending:false}).limit(20);
 
+    // 공개 장비
+    const{data:equip}=await sb.from('equipment')
+      .select('*').eq('user_id',prof.user_id).eq('is_public',true).eq('status','owned');
+
     // 팔로워 수
     const{count:followerCnt}=await sb.from('follows')
       .select('*',{count:'exact',head:true}).eq('following_id',prof.user_id);
@@ -1601,7 +1599,7 @@ async function renderPublicProfile(nickname){
       else if(bRecv?.status==='pending') buddyStatus='pending_recv';
     }
 
-    m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],followerCnt||0,isFollowing,buddyStatus);
+    m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],equip||[],followerCnt||0,isFollowing,buddyStatus);
     // 통계 차트 렌더링 (공개 프로필용) — DOM 완전 렌더 후 그리기
     if(prof.is_public && sessions?.length && window._profChartData){
       setTimeout(()=>_drawProfSparklines(window._profChartData), 100);
@@ -1620,7 +1618,7 @@ function notFoundPage(nickname){
   </div>`;
 }
 
-function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStatus){
+function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,buddyStatus){
   const stats=prof.public_stats||{};
   const isStatsPublic = !!prof.is_public;
   const started=prof.golf_started?`${new Date(prof.golf_started).getFullYear()}년 시작`:'';
@@ -1774,44 +1772,53 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
     ${label}
   </button>`;
 
-  // 통계 비공개 시 탭 (앱 탭바 순서: 학습 노트 → 비행 기록)
+  const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
+  const equipCards=(equip||[]).map(e=>`
+    <div style="display:flex;align-items:center;gap:.7rem;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem">
+      ${e.photo_url?`<img src="${ea(e.photo_url)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk);flex-shrink:0" alt="">`:''}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.82rem;color:var(--chalk);font-weight:500">${esc(e.name)}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px">
+          <span class="badge b-blue" style="font-size:.62rem">${esc(e.category||'')}</span>
+          ${e.purchase_price?`<span style="color:var(--wing2);margin-left:.4rem">${fmtP(e.purchase_price)}</span>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  // 통계 비공개 시 탭 (앱 탭바 순서: 학습 노트 → 장비 창고 → 비행 기록)
+  const hasNotes=notes.length>0, hasEquip=(equip||[]).length>0;
+  const firstTab=hasNotes?'notes':hasEquip?'equip':'flight';
+
   const tabSection = !isStatsPublic ? `
     <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:.75rem" id="prof-tabs">
-      ${notes.length?tabBtn('notes','📹 학습 노트',true):''}
-      ${tabBtn('flight','✈ 비행 기록',!notes.length)}
+      ${hasNotes?tabBtn('notes','📹 학습 노트',firstTab==='notes'):''}
+      ${hasEquip?tabBtn('equip','🪶 장비',firstTab==='equip'):''}
+      ${tabBtn('flight','✈ 비행 기록',firstTab==='flight')}
     </div>
-    ${notes.length?`
-    <div id="prof-panel-notes">
-      ${noteCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>'}
+    <div id="prof-panel-notes" ${firstTab!=='notes'?'style="display:none"':''}>
+      ${hasNotes?noteCards:'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>'}
     </div>
-    <div id="prof-panel-flight" style="display:none">
+    <div id="prof-panel-equip" ${firstTab!=='equip'?'style="display:none"':''}>
+      ${hasEquip?equipCards:'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 장비가 없습니다</div>'}
+    </div>
+    <div id="prof-panel-flight" ${firstTab!=='flight'?'style="display:none"':''}>
       ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
-    </div>`:`
-    <div id="prof-panel-flight">
-      ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
     </div>
-    <div id="prof-panel-notes" style="display:none">
-      ${noteCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>'}
-    </div>`}
   ` : `
-    <!-- 통계 공개 시: 비행기록+학습노트 탭은 통계 아래 배치 -->
     <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:.75rem;margin-top:.5rem" id="prof-tabs">
-      ${notes.length?tabBtn('notes','📹 학습 노트',true):''}
-      ${tabBtn('flight','✈ 비행 기록',!notes.length)}
+      ${hasNotes?tabBtn('notes','📹 학습 노트',firstTab==='notes'):''}
+      ${hasEquip?tabBtn('equip','🪶 장비',firstTab==='equip'):''}
+      ${tabBtn('flight','✈ 비행 기록',firstTab==='flight')}
     </div>
-    ${notes.length?`
-    <div id="prof-panel-notes">
-      ${noteCards}
+    <div id="prof-panel-notes" ${firstTab!=='notes'?'style="display:none"':''}>
+      ${hasNotes?noteCards:'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>'}
     </div>
-    <div id="prof-panel-flight" style="display:none">
+    <div id="prof-panel-equip" ${firstTab!=='equip'?'style="display:none"':''}>
+      ${hasEquip?equipCards:'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 장비가 없습니다</div>'}
+    </div>
+    <div id="prof-panel-flight" ${firstTab!=='flight'?'style="display:none"':''}>
       ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
-    </div>`:`
-    <div id="prof-panel-flight">
-      ${sessionCards||'<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>'}
     </div>
-    <div id="prof-panel-notes" style="display:none">
-      ${noteCards}
-    </div>`}
   `;
 
   return`<div class="page" style="padding-bottom:4rem">
@@ -1826,7 +1833,7 @@ function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStat
 }
 
 window.switchProfTab=(id)=>{
-  ['flight','notes'].forEach(t=>{
+  ['flight','notes','equip'].forEach(t=>{
     const panel=$(`prof-panel-${t}`);
     const btn=$(`ptab-${t}`);
     if(panel) panel.style.display=t===id?'block':'none';
@@ -2800,7 +2807,7 @@ function _setVisitingProfile(prof){
   const logoText = $('hdr-logo-text');
   const myHomeBtn = $('tab-myhome');
   if(_viewingProfile){
-    if(logoText) logoText.textContent = `${_viewingProfile.nickname}의 Birdyard`;
+    if(logoText) logoText.textContent = `${_viewingProfile.nickname}의 BIRDYARD`;
     if(myHomeBtn) myHomeBtn.style.display = 'inline-flex';
   } else {
     if(logoText) logoText.textContent = 'BIRDYARD';
@@ -5253,7 +5260,7 @@ window.toggleSessionPublic=async(id,val)=>{
   if(error){toast('저장 실패');sync('err');return;}
   s.isPublic=val;sync('ok');
   toast(val?'공개로 설정됐습니다':'비공개로 설정됐습니다');
-  if(D.profile?.is_public) savePublicProfile();
+  _refreshPublicStats();
 };
 
 window.toggleEquipPublic=async(id,val)=>{
