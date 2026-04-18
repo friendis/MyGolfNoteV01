@@ -319,6 +319,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .btn-ghost{background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.25);color:var(--sky2);width:100%;padding:.55rem 1.2rem;border-radius:2px;font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
 .btn-ghost:hover{background:rgba(74,143,168,.15);border-color:rgba(74,143,168,.4)}
 .session-nav{position:fixed;bottom:0;left:0;right:0;z-index:300;background:rgba(13,17,23,.94);backdrop-filter:blur(12px);border-top:1px solid rgba(200,137,58,.15)}
+.public-toggle{display:flex;align-items:center;justify-content:flex-end;gap:.4rem;padding:.5rem 0 .2rem;margin-top:.3rem}
+.public-toggle label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none}
+.public-toggle label:hover{color:var(--dim)}
+.public-toggle input[type=checkbox]:checked+span{color:var(--turf)}
 .session-nav-inner{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem 1rem;max-width:900px;margin:0 auto}
 .session-nav-btn{display:flex;align-items:center;gap:4px;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.18);color:var(--wing2);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.04em;padding:.38rem .7rem;border-radius:2px;cursor:pointer;transition:all .15s;white-space:nowrap;min-width:64px;justify-content:center}
 .session-nav-btn:hover{background:rgba(200,137,58,.16);border-color:rgba(200,137,58,.35)}
@@ -1100,7 +1104,7 @@ async function loadAll(){
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at,userId:r.user_id,isPublic:r.is_public||false,likeCount:r.like_count||0}));
-    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||''}));
+    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||'',isPublic:r.is_public||false}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.profile=pR.data||null;
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
@@ -2892,12 +2896,11 @@ function vDetail(){
         style="background:rgba(193,123,106,.1);border:1px solid rgba(193,123,106,.25);color:var(--red);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
         ❤️ 좋아요 ${likeCount?`(${likeCount})`:''}
       </button>`:''}
-      ${isOwnNote?`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.75rem;color:var(--muted)">
-        <input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)"> 공개
-      </label>`:''}
     </div>
     <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
-  </div></div>`;
+  </div>
+  ${isOwnNote?`<div class="public-toggle"><label><input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label></div>`:''}
+  </div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
 
@@ -3180,6 +3183,9 @@ function eDetail(){
   <div class="divider"></div>
   <div style="display:flex;justify-content:flex-end">
     <button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">삭제</button>
+  </div>
+  <div class="public-toggle">
+    <label><input type="checkbox" ${e.isPublic?'checked':''} onchange="toggleEquipPublic('${e.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label>
   </div></div>`;
 }
 window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
@@ -4108,6 +4114,9 @@ function pList(){
       <button class="btn-analyze" id="btn-growth" onclick="analyzeGrowth()" ${D.sessions.length<2?'disabled':''}>✦ 성장 분석</button>
     </div>
     <div id="growth-result"></div>
+    <div class="public-toggle">
+      <label><input type="checkbox" id="stats-public-toggle" ${D.profile?.is_public?'checked':''} onchange="toggleStatsPublic(this.checked)"><span>통계 공개 (내 프로필에 표시)</span></label>
+    </div>
     </div>`;
   }
   // 비행 목록 클럽 필터
@@ -4745,12 +4754,11 @@ function pDetail(){
   })()}
 
   <div class="divider"></div>
-  <div style="display:flex;justify-content:flex-end">
+  <div style="display:flex;justify-content:flex-end;gap:.5rem;align-items:center">
     <button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">세션 삭제</button>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.75rem;color:var(--muted)">
-      <input type="checkbox" id="se-public-${s.id}" ${s.isPublic?'checked':''} onchange="toggleSessionPublic('${s.id}',this.checked)">
-      공개 (내 프로필에 표시)
-    </label>
+  </div>
+  <div class="public-toggle">
+    <label><input type="checkbox" id="se-public-${s.id}" ${s.isPublic?'checked':''} onchange="toggleSessionPublic('${s.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label>
   </div>
   </div>`;
 }
@@ -5156,8 +5164,34 @@ window.toggleSessionPublic=async(id,val)=>{
   if(error){toast('저장 실패');sync('err');return;}
   s.isPublic=val;sync('ok');
   toast(val?'공개로 설정됐습니다':'비공개로 설정됐습니다');
-  // 프로필 통계 갱신
   if(D.profile?.is_public) savePublicProfile();
+};
+
+window.toggleEquipPublic=async(id,val)=>{
+  const e=D.equip.find(x=>x.id===id);if(!e)return;
+  sync('busy');
+  const{error}=await sb.from('equipment').update({is_public:val}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return;}
+  e.isPublic=val;sync('ok');
+  toast(val?'장비를 공개했습니다':'장비를 비공개했습니다');
+};
+
+window.toggleStatsPublic=async(val)=>{
+  if(!D.profile){toast('프로필을 먼저 설정해주세요');return;}
+  sync('busy');
+  const{error}=await sb.from('user_profiles').update({is_public:val,updated_at:new Date().toISOString()}).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return;}
+  if(D.profile) D.profile.is_public=val;
+  sync('ok');
+  if(val){
+    // 공개 시 통계 갱신
+    const publicStats=_buildPublicStats();
+    await sb.from('user_profiles').update({public_stats:publicStats}).eq('user_id',user.id);
+    if(D.profile) D.profile.public_stats=publicStats;
+  }
+  toast(val?'비행 통계를 공개했습니다':'비행 통계를 비공개했습니다');
+  // 공개 프로필 URL 표시 갱신
+  _updateProfileUrlDisplay(D.profile?.nickname, val);
 };
 window.saveSessionField = async (id, field, val) => {
   const s = D.sessions.find(x => x.id === id); if(!s) return;
