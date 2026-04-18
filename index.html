@@ -1711,7 +1711,7 @@ window.goCurrentTerm=()=>{
 };
 window.gotoTab=t=>{
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';pClubFilter='';
-  window._eActiveTag='';
+  window._eActiveTag=''; window._eActiveTagKind='';
   if(t!=='home') homeTermIdx=-1;
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
@@ -1857,11 +1857,14 @@ function eList(){
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${Array.isArray(e.tags)&&e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
 
-  // 전체 태그 수집 (중복 제거, 빈 값 제외)
-  const allTags=[...new Set(D.equip.flatMap(e=>Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string'):[]))].sort();
-  const tagChips=allTags.length?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;padding:.5rem 0 .2rem">
+  // 태그 칩: 커스텀 태그 + 분류(cat) 모두 수집
+  const allCustomTags=[...new Set(D.equip.flatMap(e=>Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string'):[]))].sort();
+  const allCats=[...new Set(D.equip.map(e=>e.cat).filter(Boolean))].sort();
+  // 분류 칩 (파란색 계열), 커스텀 태그 칩 (하늘색 계열)
+  const tagChips=(allCats.length||allCustomTags.length)?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;padding:.5rem 0 .2rem">
     <button id="etag-all" class="kw-pill" style="font-size:.7rem;padding:3px 10px;background:rgba(200,137,58,.15);border-color:rgba(200,137,58,.4);color:var(--wing2)" onclick="filterByTag('')">전체</button>
-    ${allTags.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}')">${esc(t)}</button>`).join('')}
+    ${allCats.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" data-kind="cat" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}','cat')">${esc(t)}</button>`).join('')}
+    ${allCustomTags.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" data-kind="tag" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}','tag')">${esc(t)}</button>`).join('')}
   </div>`:'';
 
   return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div>
@@ -1878,15 +1881,17 @@ function eList(){
   </div>`;
 }
 window._eActiveTag = '';
+window._eActiveTagKind = '';
 
-window.filterByTag = (tag) => {
+window.filterByTag = (tag, kind='') => {
   window._eActiveTag = tag;
-  // 칩 활성화 스타일
+  window._eActiveTagKind = kind;
   document.querySelectorAll('.etag-chip').forEach(el=>{
     const active = el.dataset.tag === tag;
-    el.style.background = active ? 'rgba(74,143,168,.25)' : '';
-    el.style.borderColor = active ? 'var(--sky2)' : '';
-    el.style.color = active ? 'var(--sky2)' : '';
+    const isCat = el.dataset.kind === 'cat';
+    el.style.background = active ? (isCat?'rgba(55,138,221,.2)':'rgba(74,143,168,.25)') : '';
+    el.style.borderColor = active ? (isCat?'#378ADD':'var(--sky2)') : '';
+    el.style.color = active ? (isCat?'#7ab0e8':'var(--sky2)') : '';
   });
   const allBtn = $('etag-all');
   if(allBtn){
@@ -1894,20 +1899,19 @@ window.filterByTag = (tag) => {
     allBtn.style.borderColor = tag==='' ? 'rgba(200,137,58,.4)' : '';
     allBtn.style.color = tag==='' ? 'var(--wing2)' : '';
   }
-  filterE(
-    $('esrch')?.value||'',
-    $('ecat')?.value||'',
-    $('estat')?.value||'',
-    tag
-  );
+  filterE($('esrch')?.value||'', $('ecat')?.value||'', $('estat')?.value||'', tag, kind);
 };
 
-window.filterE=(q,cat,st,tag='')=>{
+window.filterE=(q,cat,st,tag='',kind='')=>{
   const f=D.equip.filter(e=>
     (!q||e.name.includes(q))&&
     (!cat||e.cat===cat)&&
     (!st||e.status===st)&&
-    (!tag||(Array.isArray(e.tags)&&e.tags.includes(tag)))
+    (!tag||(
+      kind==='cat' ? e.cat===tag :
+      kind==='tag' ? (Array.isArray(e.tags)&&e.tags.includes(tag)) :
+      (e.cat===tag||(Array.isArray(e.tags)&&e.tags.includes(tag)))
+    ))
   );
   const c=$('ecards');if(!c)return;
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
@@ -1920,7 +1924,7 @@ window.filterE=(q,cat,st,tag='')=>{
           <div style="margin:3px 0">
             <span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
             <span class="badge b-blue">${esc(e.cat)}</span>
-            ${Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25);${t===tag?'outline:1px solid var(--sky2)':''}">${esc(t)}</span>`).join(''):''}
+            ${Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join(''):''}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">
