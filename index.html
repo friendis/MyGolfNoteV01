@@ -5274,10 +5274,14 @@ window.searchEquipPhotos = async () => {
       return;
     }
 
-    // 네이버 쇼핑 결과: 썸네일 + 제품명 + 쇼핑몰 + 가격
     res.style.gridTemplateColumns = 'repeat(2,1fr)';
-    res.innerHTML = images.map(r => `
-      <div onclick="selectEquipPhoto('${ea(r.full)}')"
+    res.innerHTML = images.map(r => {
+      const metaJson = JSON.stringify({
+        title: r.title||'', mall: r.mall||'',
+        price: r.price||'', link: r.link||''
+      }).replace(/'/g, '&#39;');
+      return `
+      <div onclick="selectEquipPhoto('${ea(r.full)}', false, JSON.parse(this.dataset.meta))" data-meta='${metaJson}'
         style="cursor:pointer;border-radius:3px;border:1px solid var(--border);overflow:hidden;transition:border-color .15s;background:var(--dusk)"
         onmouseover="this.style.borderColor='var(--wing2)'" onmouseout="this.style.borderColor='var(--border)'">
         <img src="${ea(r.thumb)}" style="width:100%;aspect-ratio:1;object-fit:contain;display:block;background:#fff;padding:4px;box-sizing:border-box"
@@ -5289,7 +5293,8 @@ window.searchEquipPhotos = async () => {
             <span style="font-size:.65rem;color:var(--wing2);font-weight:600">${esc(r.price||'')}</span>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const note = document.createElement('div');
     note.style.cssText = 'grid-column:1/-1;font-size:.63rem;color:var(--muted);text-align:center;padding:.3rem 0';
@@ -5374,8 +5379,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 });
 
-window.selectEquipPhoto = (url, useUploadFile=false) => {
-  _ePhotoSelected = useUploadFile ? {url:null, file:_ePhotoUploadFile} : {url};
+window.selectEquipPhoto = (url, useUploadFile=false, meta=null) => {
+  _ePhotoSelected = useUploadFile
+    ? {url:null, file:_ePhotoUploadFile, meta:null}
+    : {url, meta}; // meta: {title, mall, price, link}
   const img = $('ephoto-selected-img');
   if(useUploadFile && _ePhotoUploadFile){
     const reader=new FileReader();
@@ -5384,6 +5391,16 @@ window.selectEquipPhoto = (url, useUploadFile=false) => {
   } else {
     img.src = url;
   }
+  // 선택된 항목 정보 표시
+  const infoWrap = $('ephoto-selected-info');
+  if(infoWrap && meta){
+    infoWrap.innerHTML = meta.mall||meta.price
+      ? `<div style="font-size:.68rem;color:var(--muted);margin-top:3px">
+           ${meta.mall?`<span>${esc(meta.mall)}</span>`:''} 
+           ${meta.price?`<span style="color:var(--wing2);font-weight:600"> ${esc(meta.price)}</span>`:''}
+         </div>`
+      : '';
+  } else if(infoWrap) infoWrap.innerHTML='';
   $('ephoto-selected-wrap').style.display='block';
 };
 
@@ -5394,6 +5411,7 @@ window.confirmEquipPhoto = async () => {
 
   try {
     let finalUrl = _ePhotoSelected.url;
+    const meta = _ePhotoSelected.meta; // {title, mall, price, link}
 
     // 파일 업로드가 있으면 Supabase Storage에 저장
     if(_ePhotoSelected.file){
@@ -5409,22 +5427,50 @@ window.confirmEquipPhoto = async () => {
     if(!finalUrl) throw new Error('이미지 URL을 가져올 수 없습니다');
 
     if(_ePhotoTarget?.type==='equip'){
-      // 기존 장비 업데이트
       const eid = _ePhotoTarget.id;
-      const{error}=await sb.from('equipment').update({photo_url:finalUrl}).eq('id',eid).eq('user_id',user.id);
-      if(error) throw error;
       const e = D.equip.find(x=>x.id===eid);
-      if(e) e.photoUrl=finalUrl;
-      toast('사진이 저장됐습니다');
+
+      // meta(쇼핑몰·가격·링크)가 있고 아직 같은 URL 링크가 없으면 자동 추가
+      let newLinks = e?.links ? [...e.links] : [];
+      if(meta?.link && !newLinks.find(l=>l.url===meta.link)){
+        const priceNum = meta.price ? Number(meta.price.replace(/[^0-9]/g,'')) : null;
+        newLinks.push({url:meta.link, label:meta.mall||'네이버쇼핑', price:priceNum, checkedAt:today()});
+      }
+      const newH = (e?.priceH||[]).concat(
+        meta?.price && meta?.link ? [{date:today(), price:Number(meta.price.replace(/[^0-9]/g,''))||0}] : []
+      );
+
+      const updateData = {photo_url:finalUrl};
+      if(meta?.link) { updateData.links=newLinks; updateData.price_history=newH; }
+
+      const{error}=await sb.from('equipment').update(updateData).eq('id',eid).eq('user_id',user.id);
+      if(error) throw error;
+      if(e){ e.photoUrl=finalUrl; if(meta?.link){e.links=newLinks;e.priceH=newH;} }
+      toast(meta?.link ? '사진과 링크 정보가 저장됐습니다' : '사진이 저장됐습니다');
       closeModal('equip-photo-modal');
       render();
+
     } else if(_ePhotoTarget?.type==='add'){
-      // 새 장비 추가 폼
+      // 새 장비 추가 폼 — 사진 URL 세팅
       $('eadd-photo-url').value = finalUrl;
       const prev=$('eadd-photo-preview');
-      prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:56px;height:56px;object-fit:contain;border-radius:2px">`;
+      prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:64px;height:64px;object-fit:contain;border-radius:2px">`;
       $('eadd-photo-status').textContent='선택됨';
-      toast('사진이 선택됐습니다');
+
+      // meta가 있으면 링크 행 자동 추가 (중복 제외)
+      if(meta?.link){
+        const alreadyExists = _eAddLinks.find(l=>l.url===meta.link);
+        if(!alreadyExists){
+          const priceNum = meta.price ? meta.price.replace(/[^0-9]/g,'') : '';
+          _eAddLinks.push({url:meta.link, label:meta.mall||'네이버쇼핑', price:priceNum});
+          _renderEAddLinks();
+          toast('사진과 쇼핑 링크가 추가됐습니다');
+        } else {
+          toast('사진이 선택됐습니다');
+        }
+      } else {
+        toast('사진이 선택됐습니다');
+      }
       closeModal('equip-photo-modal');
     }
   } catch(e) {
@@ -5489,8 +5535,12 @@ window.confirmEquipPhoto = async () => {
       <div style="font-size:.72rem;color:var(--muted);margin-bottom:.35rem">선택된 사진</div>
       <div style="display:flex;align-items:center;gap:.6rem">
         <img id="ephoto-selected-img" style="width:72px;height:72px;object-fit:contain;border-radius:3px;border:1px solid var(--border);background:var(--dusk)" alt="">
-        <button class="btn btn-p btn-sm" onclick="confirmEquipPhoto()">이 사진으로 저장</button>
-        <button class="btn btn-s btn-sm" onclick="$('ephoto-selected-wrap').style.display='none';_ePhotoSelected=null">취소</button>
+        <div>
+          <button class="btn btn-p btn-sm" onclick="confirmEquipPhoto()">이 사진으로 저장</button>
+          <div id="ephoto-selected-info"></div>
+          <div style="font-size:.65rem;color:var(--muted);margin-top:3px">쇼핑 링크도 함께 저장됩니다</div>
+        </div>
+        <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="$('ephoto-selected-wrap').style.display='none';_ePhotoSelected=null">취소</button>
       </div>
     </div>
   </div>
