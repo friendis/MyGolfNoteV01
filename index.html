@@ -1174,6 +1174,118 @@ async function enterApp(u){
 }
 window.goList=()=>{view='list';selId=null;render()};
 window.goDetail=id=>{view='detail';selId=id;render()};
+// ── 소셜 (팔로워/버디) ──────────────────────────────
+let _socialCache = null;
+
+async function loadHomeSocial() {
+  const wrap = $('home-social-wrap'); if(!wrap||!user||isGuest) return;
+  try {
+    const data = await _fetchSocialData();
+    _socialCache = data;
+    const {buddies, followers} = data;
+    if(!buddies.length && !followers.length){
+      wrap.innerHTML=`<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:.5rem 0">
+        아직 팔로워나 버디가 없습니다<br>
+        <span style="font-size:.7rem">프로필 URL을 공유해보세요</span>
+      </div>`;
+      return;
+    }
+    const buddyHtml = buddies.slice(0,5).map(p=>_socialChip(p,'buddy')).join('');
+    const followerHtml = followers.slice(0,5).map(p=>_socialChip(p,'follower')).join('');
+    wrap.innerHTML=`
+      ${buddies.length?`<div style="font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">버디 ${buddies.length}</div>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.65rem">${buddyHtml}</div>`:''}
+      ${followers.length?`<div style="font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">팔로워 ${followers.length}</div>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap">${followerHtml}</div>`:''}`;
+  } catch(e) {
+    const wrap=$('home-social-wrap');
+    if(wrap) wrap.innerHTML='';
+  }
+}
+
+function _socialChip(prof, type) {
+  const bg = type==='buddy'?'rgba(61,158,116,.12)':'rgba(74,143,168,.1)';
+  const border = type==='buddy'?'rgba(61,158,116,.3)':'rgba(74,143,168,.25)';
+  const color = type==='buddy'?'#3D9E74':'var(--sky2)';
+  const icon = type==='buddy'?'♥':'👤';
+  const nick = prof.nickname||'?';
+  return `<div onclick="window.open('https://birdyard.app/?u=${ea(nick)}','_blank')"
+    style="background:${bg};border:1px solid ${border};border-radius:20px;padding:.3rem .7rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;max-width:140px">
+    <span style="font-size:.72rem">${icon}</span>
+    <span style="font-size:.72rem;color:${color};font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${esc(nick)}</span>
+  </div>`;
+}
+
+async function _fetchSocialData() {
+  const [{data:bSent},{data:bRecv}] = await Promise.all([
+    sb.from('buddy_requests').select('to_user_id').eq('from_user_id',user.id).eq('status','accepted'),
+    sb.from('buddy_requests').select('from_user_id').eq('to_user_id',user.id).eq('status','accepted'),
+  ]);
+  const buddyIds = [...new Set([...(bSent||[]).map(r=>r.to_user_id),...(bRecv||[]).map(r=>r.from_user_id)])];
+  const {data:followerRows} = await sb.from('follows').select('follower_id').eq('following_id',user.id);
+  const followerIds = (followerRows||[]).map(r=>r.follower_id).filter(id=>!buddyIds.includes(id));
+  const {data:followingRows} = await sb.from('follows').select('following_id').eq('follower_id',user.id);
+  const followingIds = (followingRows||[]).map(r=>r.following_id);
+  const allIds = [...new Set([...buddyIds,...followerIds,...followingIds])];
+  let byId = {};
+  if(allIds.length) {
+    const {data:profs} = await sb.from('user_profiles').select('user_id,nickname,bio').in('user_id',allIds);
+    byId = Object.fromEntries((profs||[]).map(p=>[p.user_id,p]));
+  }
+  return {
+    buddies:   buddyIds.map(id=>byId[id]).filter(Boolean),
+    followers: followerIds.map(id=>byId[id]).filter(Boolean),
+    following: followingIds.map(id=>byId[id]).filter(Boolean),
+  };
+}
+
+window.goSocialPage = async () => {
+  tab='home'; view='social';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  const m=$('main');
+  m.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:40vh"><div class="spinner"></div></div>';
+  try {
+    const data = _socialCache || await _fetchSocialData();
+    _socialCache = data;
+    m.innerHTML = _socialPageHtml(data);
+  } catch(e) {
+    m.innerHTML=`<div class="page"><button class="back-btn" onclick="goHome()">← 홈</button><div style="color:var(--muted);padding:2rem;text-align:center">불러오기 실패</div></div>`;
+  }
+};
+
+function _socialPageHtml({buddies, followers, following}) {
+  const myNick = D.profile?.nickname ? `@${D.profile.nickname}` : '';
+  const row = (p, type) => {
+    const icon = type==='buddy'?'♥':type==='follower'?'👤':'➕';
+    const color = type==='buddy'?'#3D9E74':type==='follower'?'var(--sky2)':'var(--muted)';
+    return `<div onclick="window.open('https://birdyard.app/?u=${ea(p.nickname||'')}','_blank')"
+      style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:3px;margin-bottom:.35rem;cursor:pointer">
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.95rem;font-weight:700;color:var(--wing2);font-family:var(--serif)">
+        ${(p.nickname||'?')[0].toUpperCase()}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.85rem;font-weight:500;color:var(--chalk)"><span style="color:${color};font-size:.75rem;margin-right:.3rem">${icon}</span>@${esc(p.nickname||'')}</div>
+        ${p.bio?`<div style="font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.bio)}</div>`:''}
+      </div>
+      <span style="font-size:.75rem;color:var(--muted)">→</span>
+    </div>`;
+  };
+  const section = (title, list, emptyMsg) => `
+    <div style="margin-bottom:1.4rem">
+      <div class="home-section-title" style="margin-bottom:.6rem">${title} <span style="font-weight:400;color:var(--muted)">${list.length}</span></div>
+      ${list.length ? list.map(p=>row(p, title.includes('버디')?'buddy':title.includes('팔로워')?'follower':'following')).join('') :
+        `<div style="font-size:.78rem;color:var(--muted);padding:.4rem 0">${emptyMsg}</div>`}
+    </div>`;
+  return `<div class="page">
+    <button class="back-btn" onclick="goHome()">← 홈</button>
+    <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.25rem">소셜</div>
+    ${myNick?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">${myNick}</div>`:''}
+    ${section('♥ 버디', buddies, '아직 버디가 없습니다. 프로필을 공유해보세요!')}
+    ${section('👤 팔로워', followers, '아직 팔로워가 없습니다.')}
+    ${section('➕ 팔로잉', following, '아직 팔로잉하는 사람이 없습니다.')}
+  </div>`;
+}
+
 window.goSessionDetail=id=>{
   tab='practice';view='detail';selId=id;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
@@ -1191,6 +1303,7 @@ window.goHome=()=>{
   tab='home';view='list';selId=null;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   render();
+  setTimeout(loadHomeSocial, 0);
 };
 window.shuffleHomeTerm=()=>{
   const pool=D_TERMS.terms.filter(t=>t.definition);
@@ -1938,7 +2051,12 @@ window.openAcctSettings=()=>{
 function render(){
   const m=$('main');
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
-  if(tab==='home'){m.innerHTML=homeView();return;}
+  if(tab==='home'){
+    if(view==='social'){ goSocialPage(); return; }
+    m.innerHTML=homeView();
+    setTimeout(loadHomeSocial, 0);
+    return;
+  }
   if(tab==='videos'){
     if(view==='dict') m.innerHTML=dictView==='detail'?dictDetail():dictList();
     else if(view==='list') m.innerHTML=vList();
@@ -2199,6 +2317,17 @@ function homeView(){
         ${mySf?`<div><span style="font-size:.68rem;color:var(--muted)">스매시팩터 </span><span style="font-size:.82rem;color:#7ab0e8;font-weight:600">${mySf.toFixed(2)}</span></div>`:''}
         ${myCon?`<div><span style="font-size:.68rem;color:var(--muted)">일관성 </span><span style="font-size:.82rem;color:${consistencyColor(Math.round(myCon))};font-weight:600">${Math.round(myCon)}점</span></div>`:''}
       </div>
+    </div>
+  </div>`:''}
+
+  <!-- 소셜 — 팔로워/버디 -->
+  ${D.profile?.is_public?`
+  <div class="home-section">
+    <div class="home-section-title">👥 소셜
+      <button onclick="goSocialPage()" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">전체 보기 →</button>
+    </div>
+    <div id="home-social-wrap">
+      <div style="font-size:.75rem;color:var(--muted)">로딩 중...</div>
     </div>
   </div>`:''}
 
