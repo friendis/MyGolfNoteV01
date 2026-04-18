@@ -1417,6 +1417,11 @@ async function renderPublicProfile(nickname){
   document.querySelector('.tab-bar')?.style.setProperty('display','none');
 
   try{
+    // 로그인된 경우 내 프로필 로드 (D.profile이 없을 수 있음)
+    if(user && !D.profile){
+      const{data:myProf}=await sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle();
+      D.profile=myProf||null;
+    }
     // 닉네임으로 프로필 조회
     const{data:prof,error:pe}=await sb.from('user_profiles')
       .select('*').eq('is_public',true).ilike('nickname',nickname).maybeSingle();
@@ -1580,6 +1585,10 @@ function publicProfilePage(prof,sessions,followerCnt,isFollowing,buddyStatus){
 // ── 팔로우 / 버디 / 알림 ────────────────────────────
 window.toggleFollow=async(targetId,isFollowing)=>{
   if(!user){toast('로그인이 필요합니다');return;}
+  if(!D.profile){
+    const{data:p}=await sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle();
+    D.profile=p||null;
+  }
   if(isFollowing){
     await sb.from('follows').delete().eq('follower_id',user.id).eq('following_id',targetId);
     toast('팔로우 취소됨');
@@ -1594,6 +1603,11 @@ window.toggleFollow=async(targetId,isFollowing)=>{
 
 window.requestBuddy=async(targetId,targetNick)=>{
   if(!user){toast('로그인이 필요합니다');return;}
+  // D.profile이 없으면 DB에서 직접 조회
+  if(!D.profile){
+    const{data:p}=await sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle();
+    D.profile=p||null;
+  }
   if(!D.profile?.nickname){toast('버디 신청을 보내려면 먼저 닉네임을 설정해주세요');return;}
   // 수락 대기 중인 받은 요청이면 → 수락
   const{data:recv}=await sb.from('buddy_requests')
