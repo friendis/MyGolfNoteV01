@@ -454,6 +454,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
         <div class="sync-dot" id="sync-dot"></div>
         <span class="email-lbl" id="hdr-email"></span>
         <span class="guest-badge" id="guest-badge" style="display:none">GUEST</span>
+        <button class="icon-btn" id="notif-btn" onclick="toggleNotifPanel()" style="position:relative;display:none" title="알림">
+          🔔<span id="notif-badge" style="display:none;position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;font-size:.55rem;font-weight:700;min-width:14px;height:14px;border-radius:7px;line-height:14px;text-align:center;padding:0 3px"></span>
+        </button>
         <button class="icon-btn" id="rn-btn" onclick="openModal('release-modal')" style="position:relative" title="업데이트 노트">
           🆕<span class="release-badge" id="rn-badge" style="display:none"></span>
         </button>
@@ -466,6 +469,14 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
           <button class="acct-btn" id="apanel-signup" style="display:none;color:var(--sky2)" onclick="doSignOut();setAuthMode('signup')">✨ 회원가입하고 저장하기</button>
           <div class="acct-sep"></div>
           <button class="acct-btn red" onclick="doSignOut()">로그아웃</button>
+        </div>
+        <!-- 알림 패널 -->
+        <div id="notif-panel" style="display:none;position:absolute;top:100%;right:0;width:min(320px,90vw);background:var(--dusk2);border:1px solid var(--border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:300;max-height:420px;overflow-y:auto">
+          <div style="padding:.6rem .85rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.78rem;font-weight:600;color:var(--chalk)">알림</span>
+            <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">모두 읽음</button>
+          </div>
+          <div id="notif-list"><div style="padding:1.2rem;text-align:center;font-size:.78rem;color:var(--muted)">알림이 없습니다</div></div>
         </div>
       </div>
     </div>
@@ -1084,7 +1095,7 @@ async function loadAll(){
       sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
-    D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at}));
+    D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at,userId:r.user_id,isPublic:r.is_public||false,likeCount:r.like_count||0}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||''}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.profile=pR.data||null;
@@ -1155,6 +1166,8 @@ async function enterApp(u){
   checkNewVersion();
   // 프로필 없으면 온보딩
   if(!isGuest && !D.profile) setTimeout(()=>openModal('onboarding-modal'),500);
+  // 알림 로드 및 실시간 구독
+  if(!isGuest){ loadNotifications(); subscribeNotifications(); }
 }
 window.goList=()=>{view='list';selId=null;render()};
 window.goDetail=id=>{view='detail';selId=id;render()};
@@ -1418,15 +1431,23 @@ async function renderPublicProfile(nickname){
     const{count:followerCnt}=await sb.from('follows')
       .select('*',{count:'exact',head:true}).eq('following_id',prof.user_id);
 
-    // 내가 팔로우 중인지
-    let isFollowing=false;
+    // 내가 팔로우 중인지 + 버디 상태
+    let isFollowing=false, buddyStatus=null; // null/'pending_sent'/'pending_recv'/'accepted'
     if(user&&user.id!==prof.user_id){
       const{data:fData}=await sb.from('follows')
         .select('*').eq('follower_id',user.id).eq('following_id',prof.user_id).maybeSingle();
       isFollowing=!!fData;
+      // 버디 요청 상태 확인
+      const{data:bSent}=await sb.from('buddy_requests')
+        .select('status').eq('from_user_id',user.id).eq('to_user_id',prof.user_id).maybeSingle();
+      const{data:bRecv}=await sb.from('buddy_requests')
+        .select('status').eq('from_user_id',prof.user_id).eq('to_user_id',user.id).maybeSingle();
+      if(bSent?.status==='accepted'||bRecv?.status==='accepted') buddyStatus='accepted';
+      else if(bSent?.status==='pending') buddyStatus='pending_sent';
+      else if(bRecv?.status==='pending') buddyStatus='pending_recv';
     }
 
-    m.innerHTML=publicProfilePage(prof,sessions||[],followerCnt||0,isFollowing);
+    m.innerHTML=publicProfilePage(prof,sessions||[],followerCnt||0,isFollowing,buddyStatus);
   }catch(e){
     m.innerHTML=`<div class="page"><div style="text-align:center;padding:3rem;color:var(--muted)">${esc(e.message)}</div></div>`;
   }
@@ -1441,7 +1462,7 @@ function notFoundPage(nickname){
   </div>`;
 }
 
-function publicProfilePage(prof,sessions,followerCnt,isFollowing){
+function publicProfilePage(prof,sessions,followerCnt,isFollowing,buddyStatus){
   const stats=prof.public_stats||{};
   const clubRows=Object.entries(stats.avgByClub||{})
     .sort((a,b)=>b[1]-a[1])
@@ -1492,10 +1513,18 @@ function publicProfilePage(prof,sessions,followerCnt,isFollowing){
             <span style="font-size:.72rem;color:var(--muted)">팔로워 ${followerCnt}</span>
           </div>
         </div>
-        ${canFollow?`<button onclick="toggleFollow('${prof.user_id}',${isFollowing})"
-          style="background:${isFollowing?'rgba(240,237,230,.08)':'rgba(200,137,58,.15)'};border:1px solid ${isFollowing?'var(--border)':'rgba(200,137,58,.4)'};color:${isFollowing?'var(--muted)':'var(--wing2)'};padding:.4rem .9rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
-          ${isFollowing?'팔로잉':'+ 팔로우'}
-        </button>`:''}
+        ${canFollow?`
+        <div style="display:flex;gap:.4rem;flex-direction:column;align-items:flex-end">
+          <button onclick="toggleFollow('${prof.user_id}',${isFollowing})"
+            style="background:${isFollowing?'rgba(240,237,230,.06)':'rgba(200,137,58,.15)'};border:1px solid ${isFollowing?'var(--border)':'rgba(200,137,58,.4)'};color:${isFollowing?'var(--muted)':'var(--wing2)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
+            ${isFollowing?'✓ 팔로잉':'+ 팔로우'}
+          </button>
+          <button onclick="requestBuddy('${prof.user_id}','${ea(prof.nickname)}')"
+            ${buddyStatus==='accepted'||buddyStatus==='pending_sent'?'disabled':''}
+            style="background:${buddyStatus==='accepted'?'rgba(61,158,116,.15)':buddyStatus==='pending_sent'?'rgba(240,237,230,.04)':buddyStatus==='pending_recv'?'rgba(74,143,168,.15)':'rgba(74,143,168,.1)'};border:1px solid ${buddyStatus==='accepted'?'rgba(61,158,116,.4)':buddyStatus==='pending_recv'?'rgba(74,143,168,.5)':'rgba(74,143,168,.3)'};color:${buddyStatus==='accepted'?'#3D9E74':buddyStatus==='pending_recv'?'var(--sky2)':'var(--muted)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:${buddyStatus?'default':'pointer'};font-family:var(--sans);white-space:nowrap">
+            ${buddyStatus==='accepted'?'♥ 버디':buddyStatus==='pending_sent'?'신청 중...':buddyStatus==='pending_recv'?'수락하기':'🤝 버디 신청'}
+          </button>
+        </div>`:''}
         <button onclick="shareProfileUrl('https://birdyard.app/?u=${ea(prof.nickname)}')"
           style="background:rgba(74,143,168,.12);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:.4rem .75rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">📤</button>
         <button onclick="showProfileQr('https://birdyard.app/?u=${ea(prof.nickname)}')"
@@ -1531,17 +1560,215 @@ function publicProfilePage(prof,sessions,followerCnt,isFollowing){
   </div>`;
 }
 
+// ── 팔로우 / 버디 / 알림 ────────────────────────────
 window.toggleFollow=async(targetId,isFollowing)=>{
   if(!user){toast('로그인이 필요합니다');return;}
   if(isFollowing){
     await sb.from('follows').delete().eq('follower_id',user.id).eq('following_id',targetId);
+    toast('팔로우 취소됨');
   } else {
     await sb.from('follows').insert({follower_id:user.id,following_id:targetId});
+    toast('팔로우했습니다');
   }
-  // 페이지 새로고침
   const url=new URL(location.href);
   const nick=url.searchParams.get('u');
   if(nick) renderPublicProfile(nick);
+};
+
+window.requestBuddy=async(targetId,targetNick)=>{
+  if(!user){toast('로그인이 필요합니다');return;}
+  if(!D.profile?.nickname){toast('버디 신청을 보내려면 먼저 닉네임을 설정해주세요');return;}
+  // 수락 대기 중인 받은 요청이면 → 수락
+  const{data:recv}=await sb.from('buddy_requests')
+    .select('id,status').eq('from_user_id',targetId).eq('to_user_id',user.id).maybeSingle();
+  if(recv?.status==='pending'){
+    await acceptBuddy(recv.id, targetNick); return;
+  }
+  // 새 버디 신청
+  const{error}=await sb.from('buddy_requests')
+    .insert({from_user_id:user.id,to_user_id:targetId});
+  if(error){toast('신청 실패: '+error.message);return;}
+  // 알림 생성
+  await sb.from('notifications').insert({
+    user_id:targetId, type:'buddy_request', from_user_id:user.id,
+    data:{from_nickname:D.profile.nickname}
+  });
+  toast(`@${targetNick}님에게 버디 신청을 보냈습니다`);
+  const url=new URL(location.href);
+  const nick=url.searchParams.get('u');
+  if(nick) renderPublicProfile(nick);
+};
+
+window.acceptBuddy=async(requestId,fromNick)=>{
+  const{error}=await sb.from('buddy_requests')
+    .update({status:'accepted',updated_at:new Date().toISOString()}).eq('id',requestId);
+  if(error){toast('수락 실패');return;}
+  toast(fromNick?`@${fromNick}님과 버디가 됐습니다 🎉`:'버디 신청을 수락했습니다 🎉');
+  loadNotifications();
+  const url=new URL(location.href);
+  const nick=url.searchParams.get('u');
+  if(nick) renderPublicProfile(nick);
+};
+
+window.rejectBuddy=async(requestId)=>{
+  await sb.from('buddy_requests')
+    .update({status:'rejected',updated_at:new Date().toISOString()}).eq('id',requestId);
+  toast('버디 신청을 거절했습니다');
+  loadNotifications();
+};
+
+// ── 알림 패널 ────────────────────────────────────────
+let _notifications=[];
+
+async function loadNotifications(){
+  if(!user||isGuest) return;
+  const{data}=await sb.from('notifications')
+    .select('*').eq('user_id',user.id)
+    .order('created_at',{ascending:false}).limit(30);
+  _notifications=data||[];
+  renderNotifBadge();
+  renderNotifList();
+}
+
+function renderNotifBadge(){
+  const btn=$('notif-btn'),badge=$('notif-badge');
+  if(!btn||!badge) return;
+  btn.style.display='inline-flex';
+  const unread=_notifications.filter(n=>!n.is_read).length;
+  badge.style.display=unread?'block':'none';
+  badge.textContent=unread>9?'9+':unread||'';
+}
+
+function renderNotifList(){
+  const list=$('notif-list'); if(!list) return;
+  if(!_notifications.length){
+    list.innerHTML='<div style="padding:1.2rem;text-align:center;font-size:.78rem;color:var(--muted)">알림이 없습니다</div>';
+    return;
+  }
+  list.innerHTML=_notifications.map(n=>{
+    const timeAgo=_timeAgo(n.created_at);
+    const unreadDot=!n.is_read?`<span style="width:6px;height:6px;border-radius:50%;background:var(--wing2);flex-shrink:0;margin-top:5px"></span>`:'';
+    let content='', actions='';
+    if(n.type==='buddy_request'){
+      const nick=n.data?.from_nickname||'누군가';
+      content=`<strong style="color:var(--chalk)">@${esc(nick)}</strong>님이 버디를 신청했습니다`;
+      actions=`<div style="display:flex;gap:.3rem;margin-top:.4rem">
+        <button onclick="acceptBuddy('${n.id}','${ea(n.data?.from_nickname||'')}')" style="background:rgba(61,158,116,.15);border:1px solid rgba(61,158,116,.3);color:#3D9E74;padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">수락</button>
+        <button onclick="rejectBuddy('${n.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">거절</button>
+      </div>`;
+    } else if(n.type==='buddy_accepted'){
+      const nick=n.data?.from_nickname||'누군가';
+      content=`<strong style="color:var(--chalk)">@${esc(nick)}</strong>님이 버디 신청을 수락했습니다 🎉`;
+    } else if(n.type==='follow'){
+      const nick=n.data?.from_nickname||'누군가';
+      content=`<strong style="color:var(--chalk)">@${esc(nick)}</strong>님이 팔로우했습니다`;
+    } else if(n.type==='note_like'){
+      const nick=n.data?.from_nickname||'누군가';
+      const title=n.data?.note_title||'학습 노트';
+      content=`<strong style="color:var(--chalk)">@${esc(nick)}</strong>님이 <em style="color:var(--dim)">${esc(title)}</em>를 좋아합니다`;
+    }
+    return`<div onclick="markNotifRead('${n.id}')" style="padding:.65rem .85rem;border-bottom:1px solid rgba(240,237,230,.06);display:flex;gap:.5rem;align-items:flex-start;${!n.is_read?'background:rgba(200,137,58,.04)':''}">
+      ${unreadDot}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.75rem;color:var(--dim);line-height:1.5">${content}</div>
+        ${actions}
+        <div style="font-size:.65rem;color:var(--muted);margin-top:2px">${timeAgo}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleNotifPanel=()=>{
+  const panel=$('notif-panel');
+  if(!panel) return;
+  const isOpen=panel.style.display!=='none';
+  panel.style.display=isOpen?'none':'block';
+  if(!isOpen) loadNotifications();
+  // 외부 클릭 닫기
+  if(!isOpen) setTimeout(()=>{
+    const handler=e=>{if(!panel.contains(e.target)&&e.target.id!=='notif-btn'){panel.style.display='none';document.removeEventListener('click',handler);}};
+    document.addEventListener('click',handler);
+  },10);
+};
+
+window.markNotifRead=async(id)=>{
+  await sb.from('notifications').update({is_read:true}).eq('id',id).eq('user_id',user.id);
+  const n=_notifications.find(x=>x.id===id);
+  if(n) n.is_read=true;
+  renderNotifBadge();
+  renderNotifList();
+};
+
+window.markAllNotifRead=async()=>{
+  await sb.from('notifications').update({is_read:true}).eq('user_id',user.id).eq('is_read',false);
+  _notifications.forEach(n=>n.is_read=true);
+  renderNotifBadge();
+  renderNotifList();
+};
+
+function _timeAgo(ts){
+  const d=(Date.now()-new Date(ts))/1000;
+  if(d<60) return '방금';
+  if(d<3600) return `${Math.floor(d/60)}분 전`;
+  if(d<86400) return `${Math.floor(d/3600)}시간 전`;
+  return `${Math.floor(d/86400)}일 전`;
+}
+
+// Realtime 알림 구독
+function subscribeNotifications(){
+  if(!user||isGuest) return;
+  sb.channel('notif:'+user.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`user_id=eq.${user.id}`},
+      payload=>{
+        _notifications.unshift(payload.new);
+        renderNotifBadge();
+        // 토스트 미리보기
+        const n=payload.new;
+        const nick=n.data?.from_nickname||'누군가';
+        if(n.type==='buddy_request') toast(`🤝 @${nick}님이 버디를 신청했습니다`);
+        else if(n.type==='follow') toast(`👀 @${nick}님이 팔로우했습니다`);
+        else if(n.type==='note_like') toast(`❤️ @${nick}님이 학습노트를 좋아합니다`);
+      })
+    .subscribe();
+}
+
+// ── 학습노트 좋아요 ─────────────────────────────────
+window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
+  if(!user){toast('로그인이 필요합니다');return;}
+  if(!D.profile?.nickname){toast('좋아요를 누르려면 먼저 닉네임을 설정해주세요');return;}
+  const{data:existing}=await sb.from('note_likes')
+    .select('id').eq('user_id',user.id).eq('note_id',noteId).maybeSingle();
+  if(existing){
+    // 좋아요 취소
+    await sb.from('note_likes').delete().eq('user_id',user.id).eq('note_id',noteId);
+    await sb.from('videos').update({like_count:0}).eq('id',noteId); // trigger로 관리하면 더 좋음
+    toast('좋아요 취소');
+  } else {
+    // 좋아요 추가
+    await sb.from('note_likes').insert({user_id:user.id,note_id:noteId});
+    // 노트 복사 (내 라이브러리에 저장)
+    const orig=D.videos.find(v=>v.id===noteId);
+    if(orig && orig.user_id!==user.id){
+      const{data:copied}=await sb.from('videos').select('id').eq('user_id',user.id).eq('url',orig.url).maybeSingle();
+      if(!copied){
+        await sb.from('videos').insert({
+          user_id:user.id, url:orig.url, title:orig.title,
+          keywords:[...orig.kw,'💾 좋아요'], memo:`@${noteOwnerId} 의 노트에서 저장`,
+          added_at:today()
+        });
+        await loadAll();
+        toast('❤️ 좋아요! 내 학습노트에 복사됐습니다');
+      } else { toast('❤️ 좋아요!'); }
+    } else { toast('❤️ 좋아요!'); }
+    // 노트 주인에게 알림
+    if(user.id!==noteOwnerId){
+      await sb.from('notifications').insert({
+        user_id:noteOwnerId, type:'note_like', from_user_id:user.id,
+        data:{from_nickname:D.profile.nickname,note_id:noteId,note_title:noteTitle}
+      });
+    }
+  }
+  render();
 };
 
 window.openAcctSettings=()=>{
@@ -2132,7 +2359,23 @@ function vDetail(){
          <div style="font-size:.72rem;color:var(--muted);margin-bottom:.9rem">⚠ Instagram 보안 정책으로 앱 내 재생이 불가합니다.</div>`
       : `<div style="padding:.9rem;background:var(--night);border-radius:2px;color:var(--muted);font-size:.87rem;margin-bottom:.9rem">⚠️ 지원하지 않는 URL 형식입니다.</div>`;
 
-  return `<div class="page"><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="margin-bottom:.9rem"><textarea class="ta" id="vmemo-${v.id}" style="min-height:72px;font-size:.88rem;line-height:1.7;field-sizing:content" placeholder="메모를 입력하세요..." onblur="saveVMemo('${v.id}',this.value)">${ea(v.memo||'')}</textarea></div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div><div style="display:flex;justify-content:flex-end;gap:.45rem"><button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button></div></div>`;
+  // 좋아요 상태 (비동기로 별도 로드하지 않고 로컬에서 확인)
+  const likeCount = v.likeCount||0;
+  const isOwnNote = v.userId===user?.id;
+
+  return `<div class="page"><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="margin-bottom:.9rem"><textarea class="ta" id="vmemo-${v.id}" style="min-height:72px;font-size:.88rem;line-height:1.7;field-sizing:content" placeholder="메모를 입력하세요..." onblur="saveVMemo('${v.id}',this.value)">${ea(v.memo||'')}</textarea></div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;gap:.4rem;align-items:center">
+      ${!isOwnNote?`<button onclick="toggleNoteLike('${v.id}','${ea(v.title)}','${v.userId||''}')"
+        style="background:rgba(193,123,106,.1);border:1px solid rgba(193,123,106,.25);color:var(--red);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
+        ❤️ 좋아요 ${likeCount?`(${likeCount})`:''}
+      </button>`:''}
+      ${isOwnNote?`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.75rem;color:var(--muted)">
+        <input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)"> 공개
+      </label>`:''}
+    </div>
+    <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
+  </div></div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
 
@@ -2174,6 +2417,14 @@ window.saveVTitle=async(id,val)=>{
 window.saveVUrl=async(id,val)=>{
   const v=D.videos.find(x=>x.id===id);if(!v||!val.trim()||val.trim()===v.url)return;
   sync('busy');const{error}=await sb.from('videos').update({url:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}v.url=val.trim();sync('ok');toast('URL 저장됨');goDetail(id);
+};
+window.toggleNotePublic=async(id,val)=>{
+  const v=D.videos.find(x=>x.id===id);if(!v)return;
+  sync('busy');
+  const{error}=await sb.from('videos').update({is_public:val}).eq('id',id).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return;}
+  v.isPublic=val;sync('ok');
+  toast(val?'노트가 공개됐습니다':'노트가 비공개됐습니다');
 };
 window.saveVMemo=async(id,val)=>{
   const v=D.videos.find(x=>x.id===id);if(!v)return;
