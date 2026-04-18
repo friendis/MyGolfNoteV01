@@ -1523,52 +1523,71 @@ window.copyProfileUrl = (url) => {
 
 // ── 공개 프로필 페이지 ──────────────────────────────
 async function renderPublicProfile(nickname){
+  $('loading').style.display='none';
+  $('auth').style.display='none';
+
+  // 로그인된 사용자면 앱 전체 초기화 (헤더/탭바 정상 표시)
+  if(user){
+    $('app').style.display='flex';
+    document.querySelector('header')?.style.removeProperty('display');
+    document.querySelector('.tab-bar')?.style.removeProperty('display');
+    if(!D.profile || !D.videos.length){
+      await loadAll();
+      setupRealtime();
+      loadNotifications();
+      subscribeNotifications();
+      initWebPush();
+    }
+    // 탭 활성화 해제
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  } else {
+    // 비로그인: 앱 컨테이너 표시, 헤더는 보이되 탭바는 숨김
+    $('app').style.display='flex';
+    document.querySelector('header')?.style.removeProperty('display');
+    document.querySelector('.tab-bar')?.style.setProperty('display','none');
+  }
+
   const m=$('main');
   m.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:50vh"><div class="spinner"></div></div>';
-  $('app').style.display='flex';
-  $('auth').style.display='none';
-  $('loading').style.display='none';
-  // 헤더 숨김 처리
-  document.querySelector('header')?.style.setProperty('display','none');
-  document.querySelector('.tab-bar')?.style.setProperty('display','none');
 
   try{
-    // 로그인된 경우 내 프로필 로드 (D.profile이 없을 수 있음)
     if(user && !D.profile){
       const{data:myProf}=await sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle();
       D.profile=myProf||null;
     }
-    // 닉네임으로 프로필 조회
+
     const{data:prof,error:pe}=await sb.from('user_profiles')
       .select('*').eq('is_public',true).ilike('nickname',nickname).maybeSingle();
     if(pe||!prof){m.innerHTML=notFoundPage(nickname);return;}
 
-    // 공개 세션 최근 10개
+    // 공개 세션
     const{data:sessions}=await sb.from('practice_sessions')
       .select('*').eq('user_id',prof.user_id).eq('is_public',true)
       .order('session_date',{ascending:false}).limit(10);
+
+    // 공개 학습노트
+    const{data:notes}=await sb.from('videos')
+      .select('*').eq('user_id',prof.user_id).eq('is_public',true)
+      .order('added_at',{ascending:false}).limit(20);
 
     // 팔로워 수
     const{count:followerCnt}=await sb.from('follows')
       .select('*',{count:'exact',head:true}).eq('following_id',prof.user_id);
 
-    // 내가 팔로우 중인지 + 버디 상태
-    let isFollowing=false, buddyStatus=null; // null/'pending_sent'/'pending_recv'/'accepted'
+    let isFollowing=false, buddyStatus=null;
     if(user&&user.id!==prof.user_id){
-      const{data:fData}=await sb.from('follows')
-        .select('*').eq('follower_id',user.id).eq('following_id',prof.user_id).maybeSingle();
+      const[{data:fData},{data:bSent},{data:bRecv}]=await Promise.all([
+        sb.from('follows').select('follower_id').eq('follower_id',user.id).eq('following_id',prof.user_id).maybeSingle(),
+        sb.from('buddy_requests').select('status').eq('from_user_id',user.id).eq('to_user_id',prof.user_id).maybeSingle(),
+        sb.from('buddy_requests').select('status').eq('from_user_id',prof.user_id).eq('to_user_id',user.id).maybeSingle(),
+      ]);
       isFollowing=!!fData;
-      // 버디 요청 상태 확인
-      const{data:bSent}=await sb.from('buddy_requests')
-        .select('status').eq('from_user_id',user.id).eq('to_user_id',prof.user_id).maybeSingle();
-      const{data:bRecv}=await sb.from('buddy_requests')
-        .select('status').eq('from_user_id',prof.user_id).eq('to_user_id',user.id).maybeSingle();
       if(bSent?.status==='accepted'||bRecv?.status==='accepted') buddyStatus='accepted';
       else if(bSent?.status==='pending') buddyStatus='pending_sent';
       else if(bRecv?.status==='pending') buddyStatus='pending_recv';
     }
 
-    m.innerHTML=publicProfilePage(prof,sessions||[],followerCnt||0,isFollowing,buddyStatus);
+    m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],followerCnt||0,isFollowing,buddyStatus);
   }catch(e){
     m.innerHTML=`<div class="page"><div style="text-align:center;padding:3rem;color:var(--muted)">${esc(e.message)}</div></div>`;
   }
@@ -1583,120 +1602,153 @@ function notFoundPage(nickname){
   </div>`;
 }
 
-function publicProfilePage(prof,sessions,followerCnt,isFollowing,buddyStatus){
+function publicProfilePage(prof,sessions,notes,followerCnt,isFollowing,buddyStatus){
   const stats=prof.public_stats||{};
-  const clubRows=Object.entries(stats.avgByClub||{})
-    .sort((a,b)=>b[1]-a[1])
-    .map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
-      <span style="font-size:.82rem;color:var(--dim)">${esc(c)}</span>
-      <span style="font-size:.82rem;color:var(--wing2);font-weight:600">${v}m</span>
+  const started=prof.golf_started?`${new Date(prof.golf_started).getFullYear()}년 시작`:'';
+  const gameLabel={'screen':'🖥️ 스크린','field':'⛳ 필드','both':'🖥️⛳'}[prof.game_type]||'';
+  const canFollow=user&&user.id!==prof.user_id;
+  const profileUrl=`https://birdyard.app/?u=${prof.nickname}`;
+
+  // 클럽별 캐리
+  const clubRows=Object.entries(stats.avgByClub||{}).sort((a,b)=>b[1]-a[1])
+    .map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+      <span style="font-size:.8rem;color:var(--dim)">${esc(c)}</span>
+      <span style="font-size:.8rem;color:var(--wing2);font-weight:600">${v}m</span>
     </div>`).join('');
 
+  // 비행 기록 카드
   const sessionCards=sessions.map(s=>{
     const shots=s.shots||[];
     const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
     const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
-    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.65rem .85rem;margin-bottom:.4rem">
+    const isGame=s.game_type==='screen'||s.game_type==='field';
+    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <span style="font-size:.8rem;color:var(--chalk);font-weight:500">${esc(s.club||'—')}</span>
-          <span style="font-size:.72rem;color:var(--muted);margin-left:.5rem">${esc(s.session_date)}</span>
+          <span style="font-size:.8rem;color:var(--chalk);font-weight:500">${isGame?(s.game_type==='screen'?'🖥️':'⛳')+' '+(s.course_name||'게임'):esc(s.club||'—')}</span>
+          <span style="font-size:.7rem;color:var(--muted);margin-left:.5rem">${s.session_date}</span>
         </div>
-        ${avgC?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
+        ${isGame&&s.score?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${s.score}타</span>`:avgC?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
       </div>
-      ${s.memo?`<div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
+      ${s.memo?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
     </div>`;
   }).join('');
 
-  const started=prof.golf_started?`${new Date(prof.golf_started).getFullYear()}년 시작`:'';
-  const gameLabel={'screen':'🖥️ 스크린','field':'⛳ 필드','both':'🖥️⛳ 스크린+필드'}[prof.game_type]||'';
-  const canFollow=user&&user.id!==prof.user_id;
-  const isOwnProfile=user&&user.id===prof.user_id;
-  const profileUrl=`https://birdyard.app/?u=${prof.nickname}`;
+  // 학습노트 카드
+  const thumb=url=>{const m=url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);return m?`https://img.youtube.com/vi/${m[1]}/mqdefault.jpg`:null;};
+  const noteCards=notes.map(n=>`
+    <div onclick="window.open('${ea(n.url)}','_blank')"
+      style="display:flex;gap:.65rem;align-items:flex-start;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem;cursor:pointer">
+      ${thumb(n.url)?`<img src="${thumb(n.url)}" style="width:56px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:'<div style="width:56px;height:40px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.8rem;color:var(--chalk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n.title)}</div>
+        <div style="margin-top:3px">${(n.keywords||[]).slice(0,3).map(k=>`<span style="font-size:.62rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 5px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
 
-  return`<div style="max-width:480px;margin:0 auto;padding:1.2rem 1rem 4rem">
-    <!-- 헤더 -->
-    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.2rem">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M4 16 C6 10, 10 6, 16 5 L20 4 L18 8 C16 13, 12 16, 7 17 Z" fill="#C8893A" opacity="0.9"/>
-        <circle cx="17.5" cy="5.5" r="1" fill="#F0CC88"/>
-      </svg>
-      <span style="font-family:var(--serif);font-size:.9rem;color:var(--wing2);letter-spacing:.08em">BIRDYARD</span>
-    </div>
+  // 탭 렌더 함수 (클라이언트 사이드)
+  const tabBtn=(id,label,active)=>`<button id="ptab-${id}" onclick="switchProfTab('${id}')"
+    style="flex:1;padding:.5rem;font-size:.75rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${active?'var(--wing2)':'transparent'};background:none;color:${active?'var(--wing2)':'var(--muted)'}">
+    ${label}
+  </button>`;
 
+  return`<div class="page" style="padding-bottom:4rem">
     <!-- 프로필 카드 -->
-    <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.2);border-radius:4px;padding:1.2rem;margin-bottom:1rem">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
-        <div>
-          <div style="font-family:var(--serif);font-size:1.3rem;font-weight:700;color:var(--chalk)">@${esc(prof.nickname)}</div>
-          ${prof.bio?`<div style="font-size:.82rem;color:var(--dim);margin-top:3px">${esc(prof.bio)}</div>`:''}
-          <div style="display:flex;gap:.6rem;margin-top:.5rem;flex-wrap:wrap">
-            ${started?`<span style="font-size:.72rem;color:var(--muted)">🏌️ ${started}</span>`:''}
-            ${gameLabel?`<span style="font-size:.72rem;color:var(--muted)">${gameLabel}</span>`:''}
-            <span style="font-size:.72rem;color:var(--muted)">팔로워 ${followerCnt}</span>
+    <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.2);border-radius:4px;padding:1rem;margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--chalk)">@${esc(prof.nickname)}</div>
+          ${prof.bio?`<div style="font-size:.78rem;color:var(--dim);margin-top:2px">${esc(prof.bio)}</div>`:''}
+          <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap">
+            ${started?`<span style="font-size:.7rem;color:var(--muted)">🏌️ ${started}</span>`:''}
+            ${gameLabel?`<span style="font-size:.7rem;color:var(--muted)">${gameLabel}</span>`:''}
+            <span style="font-size:.7rem;color:var(--muted)">팔로워 ${followerCnt}</span>
           </div>
         </div>
-        <!-- 액션 버튼 묶음 -->
-        <div style="display:flex;gap:.4rem;flex-direction:column;align-items:flex-end">
+        <div style="display:flex;gap:.35rem;flex-direction:column;align-items:flex-end;flex-shrink:0">
           ${canFollow?`
             <button onclick="toggleFollow('${prof.user_id}',${isFollowing})"
-              style="background:${isFollowing?'rgba(240,237,230,.06)':'rgba(200,137,58,.15)'};border:1px solid ${isFollowing?'var(--border)':'rgba(200,137,58,.4)'};color:${isFollowing?'var(--muted)':'var(--wing2)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
+              style="background:${isFollowing?'rgba(240,237,230,.06)':'rgba(200,137,58,.15)'};border:1px solid ${isFollowing?'var(--border)':'rgba(200,137,58,.4)'};color:${isFollowing?'var(--muted)':'var(--wing2)'};padding:.3rem .7rem;border-radius:3px;font-size:.73rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
               ${isFollowing?'✓ 팔로잉':'+ 팔로우'}
             </button>
             <button onclick="requestBuddy('${prof.user_id}','${ea(prof.nickname)}')"
               ${buddyStatus==='accepted'||buddyStatus==='pending_sent'?'disabled':''}
-              style="background:${buddyStatus==='accepted'?'rgba(61,158,116,.15)':buddyStatus==='pending_sent'?'rgba(240,237,230,.04)':buddyStatus==='pending_recv'?'rgba(74,143,168,.15)':'rgba(74,143,168,.1)'};border:1px solid ${buddyStatus==='accepted'?'rgba(61,158,116,.4)':buddyStatus==='pending_recv'?'rgba(74,143,168,.5)':'rgba(74,143,168,.3)'};color:${buddyStatus==='accepted'?'#3D9E74':buddyStatus==='pending_recv'?'var(--sky2)':'var(--muted)'};padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:${buddyStatus?'default':'pointer'};font-family:var(--sans);white-space:nowrap">
+              style="background:${buddyStatus==='accepted'?'rgba(61,158,116,.15)':buddyStatus==='pending_sent'?'rgba(240,237,230,.04)':buddyStatus==='pending_recv'?'rgba(74,143,168,.15)':'rgba(74,143,168,.1)'};border:1px solid ${buddyStatus==='accepted'?'rgba(61,158,116,.4)':buddyStatus==='pending_recv'?'rgba(74,143,168,.5)':'rgba(74,143,168,.3)'};color:${buddyStatus==='accepted'?'#3D9E74':buddyStatus==='pending_recv'?'var(--sky2)':'var(--muted)'};padding:.3rem .7rem;border-radius:3px;font-size:.73rem;cursor:${buddyStatus?'default':'pointer'};font-family:var(--sans);white-space:nowrap">
               ${buddyStatus==='accepted'?'♥ 버디':buddyStatus==='pending_sent'?'신청 중...':buddyStatus==='pending_recv'?'수락하기':'🤝 버디 신청'}
             </button>
           `:''}
           ${!user?`
             <button onclick="window.location.href='https://birdyard.app'"
-              style="background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.4);color:var(--wing2);padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
-              + 팔로우
-            </button>
+              style="background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.4);color:var(--wing2);padding:.3rem .7rem;border-radius:3px;font-size:.73rem;cursor:pointer;font-family:var(--sans)">+ 팔로우</button>
             <button onclick="window.location.href='https://birdyard.app'"
-              style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:.35rem .8rem;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">
-              🤝 버디 신청
-            </button>
-            <div style="font-size:.63rem;color:var(--muted);text-align:center;margin-top:2px">로그인 필요</div>
+              style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:.3rem .7rem;border-radius:3px;font-size:.73rem;cursor:pointer;font-family:var(--sans)">🤝 버디 신청</button>
+            <div style="font-size:.62rem;color:var(--muted);text-align:right">로그인 필요</div>
           `:''}
-          <div style="display:flex;gap:.3rem;margin-top:.2rem">
+          <div style="display:flex;gap:.3rem">
             <button onclick="shareProfileUrl('${profileUrl}')"
-              style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:.3rem .6rem;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📤 공유</button>
+              style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:.28rem .55rem;border-radius:3px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">📤</button>
             <button onclick="showProfileQr('${profileUrl}')"
-              style="background:rgba(240,237,230,.05);border:1px solid var(--border);color:var(--muted);padding:.3rem .6rem;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">QR</button>
+              style="background:rgba(240,237,230,.05);border:1px solid var(--border);color:var(--muted);padding:.28rem .55rem;border-radius:3px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">QR</button>
           </div>
         </div>
       </div>
-      <div style="display:flex;gap:.5rem">
-        <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.5rem">
-          <div style="font-size:1.1rem;font-weight:600;color:var(--chalk)">${stats.sessions||0}</div>
-          <div style="font-size:.65rem;color:var(--muted)">비행 기록</div>
+      <!-- 통계 요약 -->
+      <div style="display:flex;gap:.4rem;margin-top:.75rem">
+        <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.4rem">
+          <div style="font-size:1rem;font-weight:600;color:var(--chalk)">${stats.sessions||0}</div>
+          <div style="font-size:.62rem;color:var(--muted)">비행 기록</div>
         </div>
-        ${Object.keys(stats.avgByClub||{}).length?`<div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.5rem">
-          <div style="font-size:1.1rem;font-weight:600;color:var(--wing2)">${Math.max(...Object.values(stats.avgByClub))}m</div>
-          <div style="font-size:.65rem;color:var(--muted)">최장 캐리</div>
+        ${Object.keys(stats.avgByClub||{}).length?`<div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.4rem">
+          <div style="font-size:1rem;font-weight:600;color:var(--wing2)">${Math.max(...Object.values(stats.avgByClub))}m</div>
+          <div style="font-size:.62rem;color:var(--muted)">최장 캐리</div>
+        </div>`:''}
+        ${notes.length?`<div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border-radius:3px;padding:.4rem">
+          <div style="font-size:1rem;font-weight:600;color:var(--sky2)">${notes.length}</div>
+          <div style="font-size:.62rem;color:var(--muted)">학습 노트</div>
         </div>`:''}
       </div>
     </div>
 
-    <!-- 클럽별 평균 캐리 -->
-    ${clubRows?`<div style="background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;padding:1rem;margin-bottom:1rem">
-      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.6rem">클럽별 평균 캐리</div>
-      ${clubRows}
-    </div>`:''}
-
-    <!-- 최근 비행 기록 -->
-    ${sessionCards?`<div>
-      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.6rem">최근 비행 기록</div>
-      ${sessionCards}
-    </div>`:''}
-
-    <div style="text-align:center;margin-top:2rem">
-      <a href="https://birdyard.app" style="font-size:.75rem;color:var(--muted)">Birdyard로 내 기록 관리하기 →</a>
+    <!-- 탭 -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:.75rem" id="prof-tabs">
+      ${tabBtn('flight','✈ 비행 기록',true)}
+      ${clubRows?tabBtn('clubs','🏌️ 클럽',false):''}
+      ${notes.length?tabBtn('notes','📹 학습 노트',false):''}
     </div>
+
+    <!-- 비행 기록 탭 -->
+    <div id="prof-panel-flight">
+      ${sessionCards||`<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 비행 기록이 없습니다</div>`}
+    </div>
+
+    <!-- 클럽별 캐리 탭 -->
+    <div id="prof-panel-clubs" style="display:none">
+      ${clubRows?`<div style="background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;padding:.9rem">${clubRows}</div>`:''}
+    </div>
+
+    <!-- 학습 노트 탭 -->
+    <div id="prof-panel-notes" style="display:none">
+      ${noteCards||`<div style="font-size:.78rem;color:var(--muted);text-align:center;padding:1.5rem">공개된 학습 노트가 없습니다</div>`}
+    </div>
+
+    ${!user?`<div style="text-align:center;margin-top:2rem;padding:1rem;background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:4px">
+      <div style="font-size:.78rem;color:var(--dim);margin-bottom:.5rem">Birdyard에서 내 골프 기록을 관리해보세요</div>
+      <a href="https://birdyard.app" style="display:inline-block;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.4rem 1.2rem;border-radius:3px;font-size:.8rem;text-decoration:none">시작하기 →</a>
+    </div>`:''}
   </div>`;
 }
+
+window.switchProfTab=(id)=>{
+  ['flight','clubs','notes'].forEach(t=>{
+    const panel=$(`prof-panel-${t}`);
+    const btn=$(`ptab-${t}`);
+    if(panel) panel.style.display=t===id?'block':'none';
+    if(btn){
+      btn.style.borderBottomColor=t===id?'var(--wing2)':'transparent';
+      btn.style.color=t===id?'var(--wing2)':'var(--muted)';
+    }
+  });
+};
 
 // ── 팔로우 / 버디 / 알림 ────────────────────────────
 window.toggleFollow=async(targetId,isFollowing)=>{
