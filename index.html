@@ -1639,8 +1639,10 @@ async function renderPublicProfile(nickname){
       .order('added_at',{ascending:false}).limit(20);
 
     // 공개 장비
-    const{data:equip}=await sb.from('equipment')
-      .select('*').eq('user_id',prof.user_id).eq('is_public',true).eq('status','owned');
+    const{data:equip, error:equipErr}=await sb.from('equipment')
+      .select('id,name,category,photo_url,purchase_price,is_public,status')
+      .eq('user_id',prof.user_id).eq('is_public',true).eq('status','owned');
+    if(equipErr) console.warn('장비 로드 오류:', equipErr.message);
 
     // 팔로워 수
     const{count:followerCnt}=await sb.from('follows')
@@ -3121,8 +3123,9 @@ window.gotoTabMaybeVisiting = async (t) => {
       m.innerHTML = _visitVList(_visitData.videos, _viewingProfile.nickname);
     } else if(t==='equipment'){
       if(!_visitData.equip){
-        const{data}=await sb.from('equipment').select('*')
+        const{data,error}=await sb.from('equipment').select('*')
           .eq('user_id',_viewingProfile.user_id).eq('status','owned').eq('is_public',true);
+        if(error) console.warn('장비 로드 오류:', error.message, error.code);
         _visitData.equip=data||[];
       }
       m.innerHTML = _visitEList(_visitData.equip, _viewingProfile.nickname);
