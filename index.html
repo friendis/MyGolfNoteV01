@@ -1819,28 +1819,29 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
 
   const noteCards=notes.map(n=>{
     const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
-    const tsHtml=(n.timestamps||n.ts||[]).slice(0,5).map(t=>`
+    const tsHtml=(n.timestamps||n.ts||[]).slice(0,3).map(t=>`
       <span onclick="event.stopPropagation();window.open('${ea(n.url)}?t=${t2s?.(t.time)||0}','_blank')"
         style="display:inline-flex;align-items:center;gap:3px;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.2);border-radius:2px;padding:1px 6px;margin:2px 3px 2px 0;cursor:pointer;font-size:.65rem;color:var(--wing2)">
         ⏱${esc(t.time)} <span style="color:var(--dim)">${esc(t.note)}</span>
       </span>`).join('');
     const isOwnNote=user&&user.id===n.user_id;
     const likeCount=n.like_count||0;
-    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem">
+    return`<div onclick="showPublicNoteDetail('${n.id}','${ea(prof.nickname)}')"
+      style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer">
       <!-- 썸네일 + 제목 -->
-      <div style="display:flex;gap:.65rem;align-items:flex-start;margin-bottom:.5rem" onclick="window.open('${ea(n.url)}','_blank')" style="cursor:pointer">
-        ${tid?`<img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:72px;height:50px;object-fit:cover;border-radius:2px;flex-shrink:0;cursor:pointer" onerror="this.style.display='none'" onclick="window.open('${ea(n.url)}','_blank')">`:`<div style="width:72px;height:50px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">🎬</div>`}
-        <div style="flex:1;min-width:0;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">
-          <div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px">${esc(n.title)}</div>
+      <div style="display:flex;gap:.65rem;align-items:flex-start;margin-bottom:${n.memo||tsHtml?'.5rem':'0'}">
+        ${tid?`<img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:64px;height:44px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:`<div style="width:64px;height:44px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(n.title)}</div>
           <div>${(n.keywords||[]).slice(0,3).map(k=>`<span style="font-size:.6rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 5px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
         </div>
       </div>
-      <!-- 메모 -->
-      ${n.memo?`<div style="font-size:.76rem;color:var(--dim);line-height:1.6;margin-bottom:.45rem;padding:.4rem .55rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 2px 2px 0">${esc(n.memo)}</div>`:''}
-      <!-- 타임스탬프 -->
-      ${tsHtml?`<div style="margin-bottom:.45rem">${tsHtml}</div>`:''}
+      <!-- 메모 미리보기 -->
+      ${n.memo?`<div style="font-size:.73rem;color:var(--dim);line-height:1.5;margin-bottom:.4rem;padding:.35rem .5rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.2);border-radius:0 2px 2px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(n.memo)}</div>`:''}
+      <!-- 타임스탬프 미리보기 -->
+      ${tsHtml?`<div onclick="event.stopPropagation()" style="margin-bottom:.35rem">${tsHtml}</div>`:''}
       <!-- 좋아요/복사 버튼 -->
-      <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap" onclick="event.stopPropagation()">
         ${!isOwnNote?`
           <button onclick="toggleNoteLike('${n.id}','${ea(n.title)}','${n.user_id}')"
             style="background:rgba(193,123,106,.08);border:1px solid rgba(193,123,106,.2);color:var(--red);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">
@@ -1851,7 +1852,8 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
             📋 복사
           </button>
         `:''}
-        ${likeCount?`<span style="font-size:.7rem;color:var(--muted);margin-left:.2rem">❤️ ${likeCount}</span>`:''}
+        ${likeCount?`<span style="font-size:.7rem;color:var(--muted)">❤️ ${likeCount}</span>`:''}
+        <span style="font-size:.68rem;color:var(--muted);margin-left:auto">자세히 보기 →</span>
       </div>
     </div>`;
   }).join('');
@@ -2288,16 +2290,18 @@ window.togglePushSubscription = async () => {
 // ── 학습노트 좋아요 ─────────────────────────────────
 window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
   if(!user){toast('로그인이 필요합니다');return;}
-  if(!D.profile?.nickname){toast('좋아요를 누르려면 먼저 닉네임을 설정해주세요');return;}
+  if(!D.profile?.nickname){
+    const{data:p}=await sb.from('user_profiles').select('nickname').eq('user_id',user.id).maybeSingle();
+    if(!p?.nickname){toast('좋아요를 누르려면 먼저 닉네임을 설정해주세요');return;}
+    if(D.profile) D.profile.nickname=p.nickname;
+  }
   const{data:existing}=await sb.from('note_likes')
     .select('id').eq('user_id',user.id).eq('note_id',noteId).maybeSingle();
   if(existing){
     await sb.from('note_likes').delete().eq('user_id',user.id).eq('note_id',noteId);
-    // like_count 감소
-    const{data:cnt}=await sb.from('note_likes').select('id',{count:'exact',head:true}).eq('note_id',noteId);
-    const newCnt=cnt||0;
-    await sb.from('videos').update({like_count:newCnt}).eq('id',noteId);
-    const v=D.videos.find(x=>x.id===noteId);if(v)v.likeCount=newCnt;
+    const{count:newCnt}=await sb.from('note_likes').select('*',{count:'exact',head:true}).eq('note_id',noteId);
+    await sb.from('videos').update({like_count:newCnt||0}).eq('id',noteId);
+    const v=D.videos.find(x=>x.id===noteId);if(v)v.likeCount=newCnt||0;
     toast('좋아요 취소');
   } else {
     await sb.from('note_likes').insert({user_id:user.id,note_id:noteId});
@@ -2305,7 +2309,6 @@ window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
     await sb.from('videos').update({like_count:newCnt||1}).eq('id',noteId);
     const v=D.videos.find(x=>x.id===noteId);if(v)v.likeCount=newCnt||1;
     toast('❤️ 좋아요!');
-    // 노트 주인에게 알림
     if(user.id!==noteOwnerId){
       await sb.from('notifications').insert({
         user_id:noteOwnerId, type:'note_like', from_user_id:user.id,
@@ -2313,7 +2316,10 @@ window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
       });
     }
   }
-  render();
+  // 공개 프로필 페이지에 있으면 해당 페이지 새로고침, 아니면 앱 렌더
+  const urlNick=new URL(location.href).searchParams.get('u');
+  if(urlNick||_viewingProfile) renderPublicProfile(urlNick||_viewingProfile?.nickname||'');
+  else render();
 };
 
 window.copyNoteToLibrary=async(noteId,noteTitle,noteUrl,noteOwnerId,noteOwnerNick)=>{
@@ -2326,8 +2332,68 @@ window.copyNoteToLibrary=async(noteId,noteTitle,noteUrl,noteOwnerId,noteOwnerNic
     memo:`@${noteOwnerNick||noteOwnerId}의 노트에서 복사`,
     added_at:today()
   });
-  await loadAll();
+  if(user&&D.videos) await loadAll();
   toast('📋 내 학습노트에 복사됐습니다');
+};
+
+window.showPublicNoteDetail=async(noteId,ownerNickname)=>{
+  // 노트 데이터를 DB에서 직접 조회
+  const{data:n}=await sb.from('videos').select('*').eq('id',noteId).maybeSingle();
+  if(!n){toast('노트를 찾을 수 없습니다');return;}
+  const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
+  const isOwnNote=user&&user.id===n.user_id;
+  const likeCount=n.like_count||0;
+
+  const tsHtml=(n.timestamps||[]).map((t,i)=>`
+    <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.35rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+      <span onclick="window.open('${ea(n.url)}?t=${t2s?.(t.time)||0}','_blank')"
+        style="background:rgba(200,137,58,.12);color:var(--wing2);border-radius:2px;padding:1px 7px;font-size:.72rem;cursor:pointer;white-space:nowrap;flex-shrink:0">▶ ${esc(t.time)}</span>
+      <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
+    </div>`).join('');
+
+  const overlay=document.createElement('div');
+  overlay.id='note-detail-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px 4px 0 0;width:min(540px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+    <!-- 핸들 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:.78rem;color:var(--muted)">@${esc(ownerNickname)}의 학습 노트</div>
+      <button onclick="document.getElementById('note-detail-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1">✕</button>
+    </div>
+    <!-- 내용 -->
+    <div style="overflow-y:auto;padding:1rem">
+      <!-- 썸네일 + 제목 -->
+      ${tid?`<div style="margin-bottom:.75rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">
+        <img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:100%;border-radius:3px;max-height:180px;object-fit:cover" onerror="this.style.display='none'">
+      </div>`:''}
+      <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">${esc(n.title)}</div>
+      <div style="margin-bottom:.6rem">${(n.keywords||[]).map(k=>`<span style="font-size:.62rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 6px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
+      <button onclick="window.open('${ea(n.url)}','_blank')" style="display:block;width:100%;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.45rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans);margin-bottom:.75rem">▶ 영상 보러가기</button>
+      ${n.memo?`<div style="margin-bottom:.75rem">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">메모</div>
+        <div style="font-size:.82rem;color:var(--dim);line-height:1.7;white-space:pre-wrap;padding:.5rem .65rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 3px 3px 0">${esc(n.memo)}</div>
+      </div>`:''}
+      ${tsHtml?`<div>
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">구간 타임스탬프</div>
+        ${tsHtml}
+      </div>`:''}
+    </div>
+    <!-- 하단 버튼 -->
+    <div style="padding:.65rem 1rem;border-top:1px solid var(--border);display:flex;gap:.4rem;flex-shrink:0">
+      ${!isOwnNote?`
+        <button onclick="toggleNoteLike('${n.id}','${ea(n.title)}','${n.user_id}');document.getElementById('note-detail-overlay').remove()"
+          style="flex:1;background:rgba(193,123,106,.08);border:1px solid rgba(193,123,106,.2);color:var(--red);padding:.4rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans)">
+          ❤️ 좋아요${likeCount?` (${likeCount})`:''}
+        </button>
+        <button onclick="copyNoteToLibrary('${n.id}','${ea(n.title)}','${ea(n.url)}','${n.user_id}','${ea(ownerNickname)}');document.getElementById('note-detail-overlay').remove()"
+          style="flex:1;background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:.4rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans)">
+          📋 내 노트에 복사
+        </button>
+      `:`<div style="font-size:.78rem;color:var(--muted);padding:.3rem 0">내 학습 노트입니다</div>`}
+    </div>
+  </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
 };
 
 window.showNoteLikers=async(noteId,noteTitle)=>{
@@ -3021,13 +3087,13 @@ function _visitVList(videos, nickname){
   if(!videos.length) return `<div class="page">${_visitHeader(nickname,'학습 노트')}<div class="empty"><div class="empty-icon">📹</div>공개된 학습 노트가 없습니다</div></div>`;
   const cards=videos.map(v=>{
     const tid=v.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
-    return`<div class="card" style="cursor:pointer" onclick="window.open('${ea(v.url)}','_blank')">
+    return`<div class="card" style="cursor:pointer" onclick="showPublicNoteDetail('${v.id}','${ea(nickname)}')">
       <div style="display:flex;gap:.7rem;align-items:flex-start">
         ${tid?`<img class="v-thumb" src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" onerror="this.style.display='none'" alt="">`:`<div class="v-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--dusk2);font-size:1.2rem">🎬</div>`}
         <div style="flex:1;min-width:0">
           <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.title)}</div>
           <div style="margin:3px 0">${v.kw.slice(0,4).map(k=>`<span class="badge b-gold">${esc(k)}</span>`).join('')}</div>
-          <div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''}</div>
+          <div class="card-meta">⏱ ${v.ts.length}개 구간 · ${v.addedAt||''} ${v.likeCount?`· ❤️ ${v.likeCount}`:''}</div>
         </div>
       </div>
     </div>`;
