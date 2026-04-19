@@ -4194,6 +4194,20 @@ window.toggleRecType=v=>{
 
 let _holeScoresData = [];
 let _parEditMode = false;
+let _scoreRelMode = false; // false=타수 직접, true=파기준 상대타수(+/-)
+
+window.toggleScoreMode = () => {
+  _scoreRelMode = !_scoreRelMode;
+  const btn=$('score-mode-btn'), hint=$('score-mode-hint');
+  if(btn){
+    btn.textContent=_scoreRelMode?'상대타수 입력':'타수 입력';
+    btn.style.background=_scoreRelMode?'rgba(74,143,168,.1)':'rgba(200,137,58,.08)';
+    btn.style.borderColor=_scoreRelMode?'rgba(74,143,168,.3)':'rgba(200,137,58,.25)';
+    btn.style.color=_scoreRelMode?'var(--sky2)':'var(--wing2)';
+  }
+  if(hint) hint.textContent=_scoreRelMode?'현재: 파 기준 상대타수 (0=파, +1=보기, -1=버디)':'현재: 타수 직접 입력';
+  renderHoleInputs();
+};
 
 window.toggleParEdit = () => {
   _parEditMode = !_parEditMode;
@@ -4230,12 +4244,23 @@ window.renderHoleInputs = (reset) => {
 
   const holeNums = _holeScoresData.map(h=>`<td style="text-align:center;font-size:.66rem;color:var(--muted);padding:2px 3px;min-width:32px">${h.hole}</td>`).join('');
 
-  const scoreRow = _holeScoresData.map((h,i)=>`
-    <td style="padding:2px 2px;text-align:center">
+  const scoreRow = _holeScoresData.map((h,i)=>{
+    if(_scoreRelMode){
+      // 상대타수 모드: 파 기준 +/- 입력, 0=파
+      const relVal = h.score!=null ? (h.score - h.par) : '';
+      const relStr = relVal===''?'':(relVal>0?`+${relVal}`:relVal===0?'0':`${relVal}`);
+      return`<td style="padding:2px 2px;text-align:center">
+        <input type="number" min="-5" max="10" value="${relVal}"
+          id="hole-score-${i}" oninput="updateHoleScoreRel(${i},this.value)"
+          style="${inputStyle};${h.score!=null?`color:${_scoreColor(relVal||0)};border-color:rgba(240,237,230,.2)`:''};width:34px">
+      </td>`;
+    }
+    return`<td style="padding:2px 2px;text-align:center">
       <input type="number" min="1" max="15" value="${h.score||''}"
         id="hole-score-${i}" oninput="updateHoleScore(${i},'score',this.value)"
         style="${inputStyle};${h.score?`color:${_scoreColor(h.score-h.par)};border-color:rgba(240,237,230,.2)`:''}">
-    </td>`).join('');
+    </td>`;
+  }).join('');
 
   const diffRow = _holeScoresData.map(h=>{
     if(!h.score) return `<td style="text-align:center;font-size:.62rem;padding:1px 3px;color:var(--muted)">-</td>`;
@@ -4264,7 +4289,7 @@ window.renderHoleInputs = (reset) => {
   wrap.innerHTML = `<table style="border-collapse:collapse;min-width:max-content;font-size:.78rem">
     <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px;white-space:nowrap">홀</td>${holeNums}</tr>
     <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">${_parEditMode?'<span style="color:var(--wing2)">파✎</span>':'파'}</td>${parRow}</tr>
-    <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">타수</td>${scoreRow}</tr>
+    <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">${_scoreRelMode?'±':'타수'}</td>${scoreRow}</tr>
     <tr><td style="font-size:.65rem;color:var(--muted);padding:2px 4px">결과</td>${diffRow}</tr>
     ${sub}
   </table>`;
@@ -4274,6 +4299,31 @@ window.renderHoleInputs = (reset) => {
 function _scoreColor(d){
   return d<=-2?'#7AB0E8':d===-1?'#3D9E74':d===0?'var(--chalk)':d===1?'var(--amber)':'var(--red)';
 }
+
+window.updateHoleScoreRel = (i, relVal) => {
+  if(!_holeScoresData[i]) return;
+  if(relVal===''||relVal==null){
+    _holeScoresData[i].score = null;
+  } else {
+    const rel = parseInt(relVal);
+    _holeScoresData[i].score = _holeScoresData[i].par + rel;
+  }
+  _updateScoreSum();
+  if(_parEditMode) renderHoleInputs();
+  else {
+    // 결과 행만 경량 업데이트
+    const diffCells = document.querySelectorAll('#hole-inputs-wrap table tr:nth-child(4) td');
+    _holeScoresData.forEach((h,idx)=>{
+      const cell = diffCells[idx+1]; if(!cell) return;
+      if(!h.score){cell.textContent='-';cell.style.color='var(--muted)';return;}
+      const d=h.score-h.par;
+      cell.textContent=d<=-2?'Eagle':d===-1?'Birdie':d===0?'Par':d===1?'Bogey':d===2?'D.B':'++';
+      cell.style.color=_scoreColor(d);
+      const inp=$(`hole-score-${idx}`);
+      if(inp){inp.style.color=_scoreColor(d);inp.style.borderColor='rgba(240,237,230,.2)';}
+    });
+  }
+};
 
 window.updateHoleScore = (i, field, val) => {
   if(!_holeScoresData[i]) return;
@@ -4428,12 +4478,78 @@ const ss=s=>{
 const consistencyLabel=c=>c==null?'—':c>=85?'매우 높음':c>=70?'높음':c>=55?'보통':c>=40?'낮음':'불안정';
 const consistencyColor=c=>c==null?'var(--muted)':c>=85?'var(--turf)':c>=70?'#7ab0e8':c>=55?'var(--wing2)':c>=40?'var(--amber)':'var(--red)';
 function pList(){
-  const totalShots=D.sessions.reduce((a,s)=>a+(s.shots?.length||0),0),clubs=[...new Set(D.sessions.map(s=>s.club).filter(Boolean))];
-  const ptabs=`<div class="p-tabs" style="display:flex;align-items:center"><button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 목록</button><button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button><button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button></div>`;
-  const srow=`<div class="stats-row"><div class="stat"><div class="stat-n">${D.sessions.length}</div><div class="stat-l">세션</div></div><div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div><div class="stat"><div class="stat-n">${clubs.length}</div><div class="stat-l">클럽 종류</div></div></div>`;
+  const gdrSessions = D.sessions.filter(s=>!s.gameType||s.gameType==='gdr');
+  const gameSessions = D.sessions.filter(s=>s.gameType==='screen'||s.gameType==='field');
+  const totalShots=gdrSessions.reduce((a,s)=>a+(s.shots?.length||0),0);
+  const clubs=[...new Set(gdrSessions.map(s=>s.club).filter(Boolean))];
+  const ptabs=`<div class="p-tabs" style="display:flex;align-items:center">
+    <button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 훈련</button>
+    <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
+    <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
+    <button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+  </div>`;
+  const srow=`<div class="stats-row">
+    <div class="stat"><div class="stat-n">${gdrSessions.length}</div><div class="stat-l">훈련 세션</div></div>
+    <div class="stat"><div class="stat-n">${totalShots}</div><div class="stat-l">총 샷</div></div>
+    <div class="stat"><div class="stat-n">${gameSessions.length}</div><div class="stat-l">게임 기록</div></div>
+  </div>`;
+
+  // ── 게임 기록 탭 ─────────────────────────────────
+  if(pSub==='games'){
+    if(!gameSessions.length) return`<div class="page">${srow}${ptabs}<div class="empty"><div class="empty-icon" style="font-size:1.5rem">⛳</div>게임 기록이 없습니다.<br><small style="color:var(--muted);font-size:.8rem">+ 기록 추가 → 스크린/필드 선택</small></div></div>`;
+    const gameCards=gameSessions.map(s=>{
+      const icon=s.gameType==='screen'?'🖥️':'⛳';
+      const over=s.score&&s.holes?(s.score-s.holes*4):null;
+      const overStr=over!=null?(over>0?`+${over}`:over===0?'E':`${over}`):'';
+      const hd=s.holeScores?.holes||[];
+      const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
+      return`<div class="card" onclick="goDetail('${s.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
+              <span style="font-size:.9rem">${icon}</span>
+              <div class="card-title">${s.date||''}</div>
+              ${s.isPublic?`<span style="font-size:.6rem;color:var(--turf)">● 공개</span>`:''}
+            </div>
+            ${s.courseName?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.courseName)} (${s.holes||18}홀)</div>`:''}
+            <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
+              ${s.score?`<span style="font-size:.76rem;color:var(--muted)">스코어 <span style="color:var(--wing2);font-weight:700">${s.score}타</span>${overStr?` <span style="font-size:.7rem;color:${over<0?'#3D9E74':over===0?'var(--chalk)':'var(--amber)'}">(${overStr})</span>`:''}</span>`:''}
+              ${best&&best.score?`<span style="font-size:.73rem;color:var(--muted)">베스트 <span style="color:#3D9E74;font-weight:600">${best.hole}번홀 ${best.score}타</span></span>`:''}
+            </div>
+          </div>
+          ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">` :''}
+        </div>
+      </div>`;
+    }).join('');
+    const scores=gameSessions.filter(s=>s.score>0).map(s=>s.score);
+    const avg18=gameSessions.filter(s=>s.score>0&&(s.holes||18)===18).map(s=>s.score);
+    const best=scores.length?Math.min(...scores):null;
+    const avgScore=avg18.length?Math.round(avg18.reduce((a,b)=>a+b,0)/avg18.length):null;
+    const summaryRow=scores.length?`<div style="display:flex;gap:.4rem;margin-bottom:.75rem">
+      ${best!=null?`<div style="flex:1;text-align:center;background:rgba(61,158,116,.08);border:1px solid rgba(61,158,116,.2);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:#3D9E74">${best}타</div><div style="font-size:.62rem;color:var(--muted)">베스트</div></div>`:''}
+      ${avgScore!=null?`<div style="flex:1;text-align:center;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:var(--wing2)">${avgScore}타</div><div style="font-size:.62rem;color:var(--muted)">평균(18홀)</div></div>`:''}
+      <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border:1px solid var(--border);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:var(--chalk)">${gameSessions.length}</div><div style="font-size:.62rem;color:var(--muted)">총 게임</div></div>
+    </div>`:'';
+    return`<div class="page">${srow}${ptabs}${summaryRow}${gameCards}</div>`;
+  }
+
+  // ── 비행 통계 탭 ─────────────────────────────────
   if(pSub==='stats'){
-    // 클럽별 데이터 수집 (6종)
-    const cm={};D.sessions.forEach(s=>{
+    const gameScores=gameSessions.filter(s=>s.score>0&&(s.holes||18)===18)
+      .sort((a,b)=>a.date>b.date?1:-1);
+    const gameChartSection=gameScores.length>=2?`
+      <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1.1rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem">⛳ 게임 스코어 추이 (18홀)</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
+          ${(()=>{const sc=gameScores.map(s=>s.score);const best=Math.min(...sc),worst=Math.max(...sc),avgSc=Math.round(sc.reduce((a,b)=>a+b,0)/sc.length);return`
+            <span style="font-size:.75rem;color:var(--muted)">베스트 <strong style="color:#3D9E74">${best}타</strong></span>
+            <span style="font-size:.75rem;color:var(--muted)">평균 <strong style="color:var(--wing2)">${avgSc}타</strong></span>
+            <span style="font-size:.75rem;color:var(--muted)">최근 <strong style="color:var(--chalk)">${gameScores[gameScores.length-1].score}타</strong></span>
+          `;})()}
+        </div>
+        <div style="position:relative;height:130px"><canvas id="game-score-chart"></canvas></div>
+      </div>`:'';
+    const cm={};gdrSessions.forEach(s=>{
       if(!s.club)return;
       const nc=normalizeClub(s.club);
       if(!cm[nc])cm[nc]={c:[],tot:[],h:[],b:[],sf:[],con:[]};
@@ -4445,14 +4561,10 @@ function pList(){
       if(st.avgSf)cm[nc].sf.push(st.avgSf);
       if(st.consistency!=null)cm[nc].con.push(st.consistency);
     });
-
-    // 클럽 순서 (CLUBS 배열 순)
     const clubOrder=CLUBS.map(c=>c);
     const sortedClubs=Object.keys(cm).sort((a,b)=>{const ia=clubOrder.indexOf(a),ib=clubOrder.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
-
     const clubSections=sortedClubs.map(club=>{
       const d=cm[club];const con=avg(d.con);
-      // 선택된 차트 중 2개 이상 데이터 있는 것만 canvas 생성
       const chartDatas={carry:d.c,total:d.tot,hs:d.h,bs:d.b,sf:d.sf,con:d.con};
       const canvases=CHART_DEFS.filter(cd=>selectedChartKeys.has(cd.key)&&(chartDatas[cd.key]||[]).length>=2)
         .map(cd=>`<div class="chart-wrap" style="flex:1;min-width:220px"><div class="chart-title" style="font-size:.68rem">${cd.icon} ${cd.label}${cd.unit?' ('+cd.unit+')':''}</div><div style="position:relative;height:150px"><canvas id="chart-${cd.key}-${esc(club)}"></canvas></div></div>`)
@@ -4476,9 +4588,9 @@ function pList(){
           `<div style="font-size:.73rem;color:var(--muted);padding:.25rem 0">선택한 그래프를 그리려면 같은 클럽 세션이 2개 이상 필요합니다.</div>`}
       </div>`;
     }).join('<div class="divider"></div>');
-
     const selCount = selectedChartKeys.size;
     return`<div class="page">${srow}${ptabs}
+    ${gameChartSection}
     <div style="margin-bottom:.9rem">
       <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem">
         <span style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">그래프 선택</span>
@@ -4491,7 +4603,7 @@ function pList(){
           return`<button onclick="toggleChart('${cd.key}')" class="btn btn-s btn-sm" style="padding:3px 10px;font-size:.7rem;${on?`border-color:${cd.color};color:${cd.lineColor};background:${cd.bg}`:disabled?'opacity:.38;cursor:not-allowed':''}${disabled?' pointer-events:none':''}">${cd.icon} ${cd.label}</button>`;
         }).join('')}
       </div>
-      ${selCount>=3?`<div style="font-size:.65rem;color:var(--amber);margin-top:.3rem">최대 3개까지 선택 가능 · 다른 항목을 보려면 선택된 것을 먼저 해제하세요</div>`:''}
+      ${selCount>=3?`<div style="font-size:.65rem;color:var(--amber);margin-top:.3rem">최대 3개까지 선택 가능</div>`:''}
     </div>
     ${clubSections||`<div class="empty">클럽 기록이 없습니다.</div>`}
     <div class="divider"></div>
@@ -4505,8 +4617,9 @@ function pList(){
     </div>
     </div>`;
   }
-  // 비행 목록 클럽 필터
-  const sessionClubs = [...new Set(D.sessions.map(s=>normalizeClub(s.club)).filter(Boolean))].sort((a,b)=>{
+
+  // ── 비행 훈련 탭 (기본) ──────────────────────────
+  const sessionClubs = [...new Set(gdrSessions.map(s=>normalizeClub(s.club)).filter(Boolean))].sort((a,b)=>{
     const ia=CLUBS.indexOf(a),ib=CLUBS.indexOf(b); return(ia<0?999:ia)-(ib<0?999:ib);
   });
   const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
@@ -4514,8 +4627,8 @@ function pList(){
     <button onclick="setPClubFilter('')" style="padding:2px 9px;border-radius:2px;border:1px solid ${!pClubFilter?'rgba(200,137,58,.4)':'var(--border)'};background:${!pClubFilter?'rgba(200,137,58,.08)':'none'};color:${!pClubFilter?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">전체</button>
     ${sessionClubs.map(c=>{const col=clubColor(c);const on=pClubFilter===c;return`<button onclick="setPClubFilter('${c}')" style="padding:2px 9px;border-radius:2px;border:1px solid ${on?col.line:'var(--border)'};background:${on?col.bg:'none'};color:${on?col.line:'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${c}</button>`;}).join('')}
   </div>` : '';
-  const filteredSessions = pClubFilter ? D.sessions.filter(s=>normalizeClub(s.club)===pClubFilter) : D.sessions;
-  const cards=filteredSessions.length?filteredSessions.map(s=>{const st=ss(s);const con=st.consistency;const nc=normalizeClub(s.club);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 기록이 없습니다.'}</div>`;
+  const filteredSessions = pClubFilter ? gdrSessions.filter(s=>normalizeClub(s.club)===pClubFilter) : gdrSessions;
+  const cards=filteredSessions.length?filteredSessions.map(s=>{const st=ss(s);const con=st.consistency;const nc=normalizeClub(s.club);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 훈련 기록이 없습니다.'}</div>`;
   return`<div class="page">${srow}${ptabs}${filterBar}${cards}</div>`;
 }
 window.toggleChart=key=>{
@@ -4650,6 +4763,43 @@ function clubColor(club) {
 
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
+
+  // 게임 스코어 차트 (통계 탭 상단)
+  const gameScoreEl=$('game-score-chart');
+  if(gameScoreEl){
+    const gameScores=D.sessions.filter(s=>(s.gameType==='screen'||s.gameType==='field')&&s.score>0&&(s.holes||18)===18)
+      .sort((a,b)=>a.date>b.date?1:-1);
+    if(gameScores.length>=2&&typeof Chart!=='undefined'){
+      try{
+        const avgSc=Math.round(gameScores.reduce((a,s)=>a+s.score,0)/gameScores.length);
+        new Chart(gameScoreEl,{
+          type:'line',
+          data:{
+            labels:gameScores.map(s=>s.date?.slice(5)||''),
+            datasets:[{
+              data:gameScores.map(s=>s.score),
+              borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.08)',
+              borderWidth:2,pointRadius:3,fill:true,tension:.3,
+              pointBackgroundColor:gameScores.map(s=>s.score===Math.min(...gameScores.map(x=>x.score))?'#3D9E74':'#C8893A'),
+              pointRadius:gameScores.map(s=>s.score===Math.min(...gameScores.map(x=>x.score))?5:3),
+            },{
+              data:gameScores.map(()=>avgSc),
+              borderColor:'rgba(200,137,58,.3)',borderWidth:1,borderDash:[4,4],
+              pointRadius:0,fill:false,
+            }]
+          },
+          options:{
+            responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}타`}}},
+            scales:{
+              x:{ticks:{font:{size:10},color:'rgba(240,237,230,.4)'},grid:{color:'rgba(240,237,230,.05)'}},
+              y:{reverse:true,ticks:{font:{size:10},color:'rgba(240,237,230,.4)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
+            }
+          }
+        });
+      }catch(e){}
+    }
+  }
 
   // 선택된 차트의 canvas가 하나라도 준비됐는지 확인
   const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
@@ -6820,9 +6970,14 @@ function pAdd() {
       <!-- 홀별 성적 입력 -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
         <div class="sec-label" style="margin-bottom:0">홀별 성적 <span style="font-size:.63rem;color:var(--muted);font-weight:400">선택 · 전체 입력 시 총 타수 자동 계산</span></div>
-        <button onclick="toggleParEdit()" id="par-edit-btn"
-          style="background:none;border:1px solid var(--border);color:var(--muted);font-size:.68rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">파 수정</button>
+        <div style="display:flex;gap:.3rem">
+          <button onclick="toggleParEdit()" id="par-edit-btn"
+            style="background:none;border:1px solid var(--border);color:var(--muted);font-size:.68rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">파 수정</button>
+          <button onclick="toggleScoreMode()" id="score-mode-btn"
+            style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.25);color:var(--wing2);font-size:.68rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">타수 입력</button>
+        </div>
       </div>
+      <div id="score-mode-hint" style="font-size:.65rem;color:var(--muted);margin-bottom:.4rem">현재: 타수 직접 입력</div>
       <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
@@ -6901,13 +7056,14 @@ function pAdd() {
     <!-- 스크린/필드 사진 업로드 -->
     <div id="game-photo-fields" style="display:none">
       <div class="sec-label">사진 업로드 (선택)</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">코스 사진 등을 업로드할 수 있습니다. GPS 정보가 있으면 장소가 자동으로 입력됩니다.</div>
-      <label style="display:block;cursor:pointer">
-        <div class="img-upload">
-          <input type="file" id="pgameimg" accept="image/*" multiple
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">스코어카드·코스 사진을 업로드하세요. GPS 정보가 있으면 장소가 자동으로 입력됩니다.</div>
+      <!-- 파일 선택: label 방식으로 모바일 호환 -->
+      <label style="display:block;cursor:pointer;margin-bottom:.4rem">
+        <div class="img-upload" style="padding:.75rem">
+          <input type="file" id="pgameimg" accept="image/*" multiple capture="environment"
             style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
             onchange="handleGamePhoto(this)">
-          📷 사진 업로드 (선택)
+          📷 사진 선택 (여러 장 가능)
         </div>
       </label>
       <div id="game-photo-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem"></div>
