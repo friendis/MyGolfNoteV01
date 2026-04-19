@@ -6671,10 +6671,8 @@ window.handleGamePhoto = async function(input) {
   // 첫 번째 사진에서 EXIF(날짜·GPS) 추출
   for(const file of files) {
     const exif = await readExif(file);
-    // 날짜 자동 입력
     const dt = exifDateToISO(exif.dateTime);
     if(dt) { const pd=$('pd'); if(pd&&!pd.value) pd.value=dt; }
-    // GPS → 장소 자동 입력
     if(exif.gps?.lat && exif.gps?.lon) {
       const lat = exif.gps.latRef==='S' ? -exif.gps.lat : exif.gps.lat;
       const lon = exif.gps.lonRef==='W' ? -exif.gps.lon : exif.gps.lon;
@@ -6701,16 +6699,54 @@ window.handleGamePhoto = async function(input) {
           }
         }
       }
-      break; // 첫 장에서 GPS 추출 성공하면 이후 건너뜀
+      break;
     }
   }
 
-  // 이미지 업로드용으로 gameFiles에 저장
+  // 이미지 저장 및 미리보기
   if(!window.gameFiles) window.gameFiles = [];
   window.gameFiles = [...window.gameFiles, ...files];
 
+  // 미리보기 렌더링
+  const preview = $('game-photo-preview');
+  if(preview){
+    preview.innerHTML = '';
+    for(let i=0;i<window.gameFiles.length;i++){
+      const f=window.gameFiles[i];
+      const url = URL.createObjectURL(f);
+      const wrap = document.createElement('div');
+      wrap.style.cssText='position:relative;flex:0 0 auto';
+      wrap.innerHTML=`<img src="${url}" style="width:72px;height:54px;object-fit:cover;border-radius:3px;border:1px solid var(--border);display:block">
+        <button type="button" onclick="removeGameFile(${i})" style="position:absolute;top:-5px;right:-5px;background:rgba(13,17,23,.9);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:.7rem;padding:0 4px;border-radius:50%;line-height:16px;width:16px;height:16px;display:flex;align-items:center;justify-content:center">✕</button>`;
+      preview.appendChild(wrap);
+    }
+  }
+
   if(statusEl) statusEl.textContent = `✓ ${window.gameFiles.length}장 첨부됨`;
 };
+window.removeGameFile = (idx) => {
+  if(!window.gameFiles) return;
+  window.gameFiles.splice(idx, 1);
+  // input 값 초기화 (같은 파일 재선택 가능하도록)
+  const inp = $('pgameimg');
+  if(inp) inp.value = '';
+  // 미리보기 다시 그리기
+  const preview = $('game-photo-preview');
+  if(preview){
+    preview.innerHTML = '';
+    (window.gameFiles||[]).forEach((f,i)=>{
+      const url = URL.createObjectURL(f);
+      const wrap = document.createElement('div');
+      wrap.style.cssText='position:relative;flex:0 0 auto';
+      wrap.innerHTML=`<img src="${url}" style="width:72px;height:54px;object-fit:cover;border-radius:3px;border:1px solid var(--border);display:block">
+        <button type="button" onclick="removeGameFile(${i})" style="position:absolute;top:-5px;right:-5px;background:rgba(13,17,23,.9);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:.7rem;padding:0 4px;border-radius:50%;line-height:16px;width:16px;height:16px;display:flex;align-items:center;justify-content:center">✕</button>`;
+      preview.appendChild(wrap);
+    });
+  }
+  const statusEl = $('game-photo-status');
+  if(statusEl) statusEl.textContent = window.gameFiles.length ? `✓ ${window.gameFiles.length}장 첨부됨` : '';
+};
+
 window.handleMultiPhoto = async function(input) {
   const files = Array.from(input.files);
   if(!files.length) return;
@@ -7084,17 +7120,16 @@ function pAdd() {
     <!-- 스크린/필드 사진 업로드 -->
     <div id="game-photo-fields" style="display:none">
       <div class="sec-label">사진 업로드 (선택)</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">스코어카드·코스 사진을 업로드하세요. GPS 정보가 있으면 장소가 자동으로 입력됩니다.</div>
-      <!-- 파일 선택: label 방식으로 모바일 호환 -->
-      <label style="display:block;cursor:pointer;margin-bottom:.4rem">
-        <div class="img-upload" style="padding:.75rem">
-          <input type="file" id="pgameimg" accept="image/*" multiple capture="environment"
-            style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
-            onchange="handleGamePhoto(this)">
-          📷 사진 선택 (여러 장 가능)
-        </div>
-      </label>
-      <div id="game-photo-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem"></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">스코어카드·코스 사진을 사진첩에서 선택하세요. GPS 정보가 있으면 장소가 자동 입력됩니다.</div>
+      <!-- input을 display:none으로 숨기고 버튼으로 트리거 — 모바일 사진첩 호환 -->
+      <input type="file" id="pgameimg" accept="image/*" multiple
+        style="display:none" onchange="handleGamePhoto(this)">
+      <button type="button" onclick="document.getElementById('pgameimg').click()"
+        class="btn btn-s btn-sm" style="width:100%;padding:.65rem;font-size:.82rem;margin-bottom:.5rem">
+        📂 사진첩에서 선택 (여러 장 가능)
+      </button>
+      <div id="game-photo-preview" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.3rem"></div>
+      <div id="game-photo-status" style="font-size:.72rem;color:var(--muted)"></div>
     </div>
 
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
