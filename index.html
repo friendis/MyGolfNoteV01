@@ -1640,7 +1640,7 @@ async function renderPublicProfile(nickname){
 
     // 공개 장비
     const{data:equip, error:equipErr}=await sb.from('equipment')
-      .select('id,name,category,photo_url,purchase_price,is_public,status')
+      .select('id,name,category,photo_url,purchase_price,is_public,status,memo,tags')
       .eq('user_id',prof.user_id).eq('is_public',true);
     if(equipErr) console.warn('장비 로드 오류:', equipErr.message);
 
@@ -1866,18 +1866,24 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
   </button>`;
 
   const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
-  const equipCards=(equip||[]).map(e=>`
-    <div style="display:flex;align-items:center;gap:.7rem;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.6rem .8rem;margin-bottom:.35rem">
-      ${e.photo_url?`<img src="${ea(e.photo_url)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk);flex-shrink:0" alt="">`:''}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.82rem;color:var(--chalk);font-weight:500">${esc(e.name)}</div>
-        <div style="font-size:.7rem;color:var(--muted);margin-top:2px">
-          <span class="badge ${e.status==='owned'?'b-green':'b-amber'}" style="font-size:.62rem">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
-          <span class="badge b-blue" style="font-size:.62rem">${esc(e.category||'')}</span>
-          ${e.purchase_price?`<span style="color:var(--wing2);margin-left:.4rem">${fmtP(e.purchase_price)}</span>`:''}
+  const equipCards=(equip||[]).map(e=>{
+    const customTags=Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string' && typeof t!=='object'):[];
+    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.7rem .85rem;margin-bottom:.4rem">
+      <div style="display:flex;align-items:flex-start;gap:.7rem">
+        ${e.photo_url?`<img src="${ea(e.photo_url)}" style="width:52px;height:52px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk);flex-shrink:0" alt="">`:''}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;color:var(--chalk);font-weight:500;margin-bottom:3px">${esc(e.name)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:${e.memo||customTags.length?'.4rem':'0'}">
+            <span class="badge ${e.status==='owned'?'b-green':'b-amber'}" style="font-size:.62rem">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
+            <span class="badge b-blue" style="font-size:.62rem">${esc(e.category||'')}</span>
+            ${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25);font-size:.62rem">${esc(t)}</span>`).join('')}
+            ${e.purchase_price?`<span style="font-size:.7rem;color:var(--wing2);margin-left:2px">${fmtP(e.purchase_price)}</span>`:''}
+          </div>
+          ${e.memo?`<div style="font-size:.72rem;color:var(--dim);line-height:1.5;padding:.3rem .45rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.2);border-radius:0 2px 2px 0;white-space:pre-wrap;word-break:break-word">${esc(e.memo)}</div>`:''}
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // 통계 비공개 시 탭 (앱 탭바 순서: 학습 노트 → 장비 창고 → 비행 기록)
   const hasNotes=notes.length>0, hasEquip=(equip||[]).length>0;
@@ -3172,18 +3178,23 @@ function _visitVList(videos, nickname){
 function _visitEList(equip, nickname){
   const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
   if(!equip.length) return `<div class="page">${_visitHeader(nickname,'장비 창고')}<div class="empty"><div class="empty-icon">🪶</div>공개된 장비가 없습니다</div></div>`;
-  const cards=equip.map(e=>`<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="flex:1;min-width:0">
-        <div class="card-title">${esc(e.name)}</div>
-        <div style="margin:3px 0">
-          <span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
-          <span class="badge b-blue">${esc(e.category||'')}</span>
+  const cards=equip.map(e=>{
+    const customTags=Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string' && typeof t!=='object'):[];
+    return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.7rem .85rem;margin-bottom:.4rem">
+      <div style="display:flex;align-items:flex-start;gap:.7rem">
+        ${e.photo_url?`<img src="${ea(e.photo_url)}" style="width:52px;height:52px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk);flex-shrink:0" alt="">`:''}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;color:var(--chalk);font-weight:500;margin-bottom:3px">${esc(e.name)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:${e.memo||customTags.length?'.4rem':'0'}">
+            <span class="badge ${e.status==='owned'?'b-green':'b-amber'}" style="font-size:.62rem">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
+            <span class="badge b-blue" style="font-size:.62rem">${esc(e.category||'')}</span>
+            ${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25);font-size:.62rem">${esc(t)}</span>`).join('')}
+          </div>
+          ${e.memo?`<div style="font-size:.72rem;color:var(--dim);line-height:1.5;padding:.3rem .45rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.2);border-radius:0 2px 2px 0;white-space:pre-wrap;word-break:break-word">${esc(e.memo)}</div>`:''}
         </div>
       </div>
-      ${e.photo_url?`<img src="${ea(e.photo_url)}" style="width:44px;height:44px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk);flex-shrink:0;margin-left:.5rem" alt="">` :''}
-    </div>
-  </div>`).join('');
+    </div>`;
+  }).join('');
   const ownedCnt=equip.filter(e=>e.status==='owned').length;
   const wishCnt=equip.filter(e=>e.status==='wishlist').length;
   const summary=[ownedCnt?`보유 ${ownedCnt}개`:'',wishCnt?`관심 ${wishCnt}개`:''].filter(Boolean).join(' · ');
