@@ -2290,36 +2290,55 @@ window.togglePushSubscription = async () => {
 // ── 학습노트 좋아요 ─────────────────────────────────
 window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
   if(!user){toast('로그인이 필요합니다');return;}
-  if(!D.profile?.nickname){
+
+  // 닉네임 확인 (공개 페이지에서 D.profile이 없을 수 있음)
+  let myNick = D.profile?.nickname;
+  if(!myNick){
     const{data:p}=await sb.from('user_profiles').select('nickname').eq('user_id',user.id).maybeSingle();
-    if(!p?.nickname){toast('좋아요를 누르려면 먼저 닉네임을 설정해주세요');return;}
-    if(D.profile) D.profile.nickname=p.nickname;
+    myNick = p?.nickname;
+    if(!myNick){toast('좋아요를 누르려면 먼저 닉네임을 설정해주세요');return;}
+    if(D.profile) D.profile.nickname=myNick;
   }
-  const{data:existing}=await sb.from('note_likes')
+
+  const{data:existing,error:checkErr}=await sb.from('note_likes')
     .select('id').eq('user_id',user.id).eq('note_id',noteId).maybeSingle();
+
+  if(checkErr){toast('오류: '+checkErr.message);return;}
+
   if(existing){
-    await sb.from('note_likes').delete().eq('user_id',user.id).eq('note_id',noteId);
-    const{count:newCnt}=await sb.from('note_likes').select('*',{count:'exact',head:true}).eq('note_id',noteId);
-    await sb.from('videos').update({like_count:newCnt||0}).eq('id',noteId);
-    const v=D.videos.find(x=>x.id===noteId);if(v)v.likeCount=newCnt||0;
+    const{error}=await sb.from('note_likes').delete().eq('user_id',user.id).eq('note_id',noteId);
+    if(error){toast('취소 실패: '+error.message);return;}
+    // like_count는 note 주인 소유라 RPC로 감소 (실패해도 UI는 업데이트)
+    try{ await sb.rpc('decrement_like_count',{note_id:noteId}); }catch(e){}
+    const v=D.videos.find(x=>x.id===noteId);
+    if(v) v.likeCount=Math.max(0,(v.likeCount||1)-1);
     toast('좋아요 취소');
   } else {
-    await sb.from('note_likes').insert({user_id:user.id,note_id:noteId});
-    const{count:newCnt}=await sb.from('note_likes').select('*',{count:'exact',head:true}).eq('note_id',noteId);
-    await sb.from('videos').update({like_count:newCnt||1}).eq('id',noteId);
-    const v=D.videos.find(x=>x.id===noteId);if(v)v.likeCount=newCnt||1;
+    const{error}=await sb.from('note_likes').insert({user_id:user.id,note_id:noteId});
+    if(error){toast('좋아요 실패: '+error.message);return;}
+    // like_count RPC로 증가
+    try{ await sb.rpc('increment_like_count',{note_id:noteId}); }catch(e){}
+    const v=D.videos.find(x=>x.id===noteId);
+    if(v) v.likeCount=(v.likeCount||0)+1;
     toast('❤️ 좋아요!');
+    // 노트 주인에게 알림 (본인 노트 제외)
     if(user.id!==noteOwnerId){
-      await sb.from('notifications').insert({
-        user_id:noteOwnerId, type:'note_like', from_user_id:user.id,
-        data:{from_nickname:D.profile.nickname,note_id:noteId,note_title:noteTitle}
-      });
+      try{
+        await sb.from('notifications').insert({
+          user_id:noteOwnerId, type:'note_like', from_user_id:user.id,
+          data:{from_nickname:myNick,note_id:noteId,note_title:noteTitle}
+        });
+      }catch(e){}
     }
   }
-  // 공개 프로필 페이지에 있으면 해당 페이지 새로고침, 아니면 앱 렌더
+
+  // 페이지 새로고침 (공개 프로필이면 해당 페이지, 아니면 앱)
   const urlNick=new URL(location.href).searchParams.get('u');
-  if(urlNick||_viewingProfile) renderPublicProfile(urlNick||_viewingProfile?.nickname||'');
-  else render();
+  if(urlNick||_viewingProfile){
+    renderPublicProfile(urlNick||_viewingProfile?.nickname||'');
+  } else {
+    render();
+  }
 };
 
 window.copyNoteToLibrary=async(noteId,noteTitle,noteUrl,noteOwnerId,noteOwnerNick)=>{
