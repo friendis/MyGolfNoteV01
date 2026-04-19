@@ -4772,6 +4772,7 @@ function initCharts(){
     if(gameScores.length>=2&&typeof Chart!=='undefined'){
       try{
         const avgSc=Math.round(gameScores.reduce((a,s)=>a+s.score,0)/gameScores.length);
+        const bestScore=Math.min(...gameScores.map(x=>x.score));
         new Chart(gameScoreEl,{
           type:'line',
           data:{
@@ -4779,9 +4780,10 @@ function initCharts(){
             datasets:[{
               data:gameScores.map(s=>s.score),
               borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.08)',
-              borderWidth:2,pointRadius:3,fill:true,tension:.3,
-              pointBackgroundColor:gameScores.map(s=>s.score===Math.min(...gameScores.map(x=>x.score))?'#3D9E74':'#C8893A'),
-              pointRadius:gameScores.map(s=>s.score===Math.min(...gameScores.map(x=>x.score))?5:3),
+              borderWidth:2,fill:true,tension:.3,
+              pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#3D9E74':'#C8893A'),
+              pointRadius:gameScores.map(s=>s.score===bestScore?6:4),
+              pointHoverRadius:gameScores.map(s=>s.score===bestScore?8:6),
             },{
               data:gameScores.map(()=>avgSc),
               borderColor:'rgba(200,137,58,.3)',borderWidth:1,borderDash:[4,4],
@@ -4790,10 +4792,22 @@ function initCharts(){
           },
           options:{
             responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}타`}}},
+            plugins:{
+              legend:{display:false},
+              tooltip:{callbacks:{label:c=>`${c.raw}타`}}
+            },
             scales:{
               x:{ticks:{font:{size:10},color:'rgba(240,237,230,.4)'},grid:{color:'rgba(240,237,230,.05)'}},
               y:{reverse:true,ticks:{font:{size:10},color:'rgba(240,237,230,.4)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
+            },
+            onClick:(e,elements)=>{
+              if(!elements.length)return;
+              const idx=elements[0].index;
+              const session=gameScores[idx];
+              if(session?.id) goDetail(session.id);
+            },
+            onHover:(e,elements)=>{
+              e.native.target.style.cursor=elements.length?'pointer':'default';
             }
           }
         });
@@ -5274,19 +5288,33 @@ function pDetail(){
   <div style="max-width:560px">${renderShotChart(s.shots)}</div>
   ${shotsH}
 
-  <!-- GDR 사진 (하단) -->
+  <!-- GDR/게임 사진 -->
   ${(()=>{
+    const isGame=s.gameType==='screen'||s.gameType==='field';
     const imgs=s.imageUrls?.length>1?s.imageUrls:s.imgUrl?[s.imgUrl]:[];
-    if(!imgs.length)return'';
+    const sectionLabel=isGame?'게임 사진':'GDR 사진';
     return`<div class="divider"></div>
-    <div class="sec-label">GDR 사진 (${imgs.length}장)</div>
-    <div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.9rem;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div class="sec-label" style="margin-bottom:0">${sectionLabel} ${imgs.length?`(${imgs.length}장)`:''}</div>
+      <label style="cursor:pointer">
+        <div class="btn btn-s btn-sm" style="font-size:.72rem;display:inline-flex;align-items:center;gap:4px">
+          <input type="file" accept="image/*" multiple
+            style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+            onchange="addSessionPhoto('${s.id}',this)">
+          📸 사진 추가
+        </div>
+      </label>
+    </div>
+    ${imgs.length?`<div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.4rem;margin-bottom:.9rem;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch">
       ${imgs.map((url,i)=>`
         <div style="position:relative;flex:0 0 auto;width:min(72vw,240px);scroll-snap-align:start" onclick="openPhotoViewer(${i},'${s.id}')">
-          <img src="${ea(url)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:zoom-in;display:block" alt="SHOT ${i+1}">
-          <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,.65);color:#fff;font-size:.65rem;font-weight:600;padding:2px 6px;border-radius:2px;letter-spacing:.06em">SHOT ${i+1}</div>
+          <img src="${ea(url)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;border:1px solid var(--border);cursor:zoom-in;display:block" alt="">
+          <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,.65);color:#fff;font-size:.65rem;font-weight:600;padding:2px 6px;border-radius:2px">${i+1}/${imgs.length}</div>
+          <button onclick="event.stopPropagation();removeSessionPhoto('${s.id}',${i})"
+            style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,.65);border:none;color:#fff;cursor:pointer;font-size:.75rem;padding:2px 5px;border-radius:2px;line-height:1">✕</button>
         </div>`).join('')}
-    </div>`;
+    </div>`:`<div style="font-size:.75rem;color:var(--muted);padding:.4rem 0;margin-bottom:.9rem">등록된 사진이 없습니다.</div>`}
+    <div id="session-photo-status-${s.id}" style="font-size:.72rem;color:var(--muted)"></div>`;
   })()}
 
   <div class="divider"></div>
@@ -7333,6 +7361,55 @@ window.delSession=async id=>{
 let _ePhotoTarget = null;   // {type:'equip'|'add', id?:string}
 let _ePhotoSelected = null; // {url, file?}
 let _ePhotoUploadFile = null;
+
+window.addSessionPhoto = async (sid, input) => {
+  const s = D.sessions.find(x=>x.id===sid); if(!s) return;
+  const statusEl = $(`session-photo-status-${sid}`);
+  const files = Array.from(input.files||[]);
+  if(!files.length) return;
+  if(statusEl) statusEl.textContent = '업로드 중...';
+
+  const curImgs = s.imageUrls?.length ? [...s.imageUrls] : s.imgUrl ? [s.imgUrl] : [];
+  const newUrls = [];
+
+  for(const file of files){
+    try{
+      const ext = file.name.split('.').pop()||'jpg';
+      const path = `${user.id}/${sid}_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const{error:upErr} = await sb.storage.from('gdr-photos').upload(path, file, {upsert:false});
+      if(upErr){if(statusEl)statusEl.textContent='업로드 실패: '+upErr.message;continue;}
+      const{data:urlData} = sb.storage.from('gdr-photos').getPublicUrl(path);
+      newUrls.push(urlData.publicUrl);
+    }catch(e){if(statusEl)statusEl.textContent='오류: '+e.message;}
+  }
+
+  if(!newUrls.length) return;
+  const allImgs = [...curImgs, ...newUrls];
+  const{error} = await sb.from('practice_sessions').update({
+    image_url: allImgs[0],
+    image_urls: allImgs
+  }).eq('id',sid).eq('user_id',user.id);
+  if(error){if(statusEl)statusEl.textContent='저장 실패: '+error.message; return;}
+  s.imgUrl = allImgs[0];
+  s.imageUrls = allImgs;
+  if(statusEl) statusEl.textContent = `✓ ${newUrls.length}장 추가됐습니다`;
+  goDetail(sid);
+};
+
+window.removeSessionPhoto = async (sid, idx) => {
+  const s = D.sessions.find(x=>x.id===sid); if(!s) return;
+  if(!confirm('이 사진을 삭제하시겠습니까?')) return;
+  const curImgs = s.imageUrls?.length ? [...s.imageUrls] : s.imgUrl ? [s.imgUrl] : [];
+  curImgs.splice(idx, 1);
+  const{error} = await sb.from('practice_sessions').update({
+    image_url: curImgs[0]||null,
+    image_urls: curImgs
+  }).eq('id',sid).eq('user_id',user.id);
+  if(error){toast('삭제 실패');return;}
+  s.imgUrl = curImgs[0]||'';
+  s.imageUrls = curImgs;
+  goDetail(sid);
+};
 
 window.openEquipPhotoFromDetail = (eid) => {
   openEquipPhoto(eid);
