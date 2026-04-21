@@ -2300,12 +2300,15 @@ window.previewNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>
   if(!n){toast('노트를 찾을 수 없습니다');return;}
 
   const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
-  const tsHtml=(n.timestamps||[]).map(t=>`
-    <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
-      <span onclick="window.open('${ea(n.url)}?t=${t2s?.(t.time)||0}','_blank')"
+  const embedBase=tid?`https://www.youtube-nocookie.com/embed/${tid}?rel=0&modestbranding=1`:null;
+  const tsHtml=(n.timestamps||[]).map(t=>{
+    const sec=t2s?.(t.time)||0;
+    return`<div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+      <span onclick="(function(){const f=document.getElementById('share-yt-frame');if(f&&'${embedBase}'){f.src='${embedBase}&start=${sec}&autoplay=1';}else{window.open('${ea(n.url)}?t=${sec}','_blank');}})()"
         style="background:rgba(200,137,58,.12);color:var(--wing2);border-radius:2px;padding:1px 7px;font-size:.72rem;cursor:pointer;white-space:nowrap;flex-shrink:0">▶ ${esc(t.time)}</span>
       <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const srcKw=(n.keywords||[]).filter(k=>k&&typeof k==='string');
 
   const overlay=document.createElement('div');
@@ -2321,18 +2324,23 @@ window.previewNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>
     </div>
     <!-- 내용 스크롤 -->
     <div style="overflow-y:auto;padding:1rem">
-      ${tid?`<div style="margin-bottom:.75rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">
-        <img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:100%;border-radius:3px;max-height:180px;object-fit:cover" onerror="this.style.display='none'">
-      </div>`:''}
-      <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.4rem;cursor:pointer;line-height:1.4" onclick="window.open('${ea(n.url)}','_blank')">${esc(n.title)}</div>
+      ${tid?`<div id="share-media-wrap" style="position:relative;margin-bottom:.75rem;background:#000;border-radius:3px;overflow:hidden;cursor:pointer" onclick="(function(el){el.innerHTML='<iframe id=\\'share-yt-frame\\' src=\\'${embedBase}&autoplay=1\\' style=\\'width:100%;aspect-ratio:16/9;border:none;display:block\\' allowfullscreen allow=\\'accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture\\'></iframe>';el.style.cursor='default';el.onclick=null;})(this)">
+        <img src="https://img.youtube.com/vi/${tid}/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/${tid}/mqdefault.jpg'" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;opacity:.85">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:56px;height:56px;border-radius:50%;background:rgba(200,137,58,.92);display:flex;align-items:center;justify-content:center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+      </div>`:embedBase?`<div class="yt-wrap" style="margin-bottom:.75rem"><iframe id="share-yt-frame" src="${embedBase}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>`:''}
+      <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.4rem;line-height:1.4">${esc(n.title)}</div>
       ${srcKw.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:.65rem">${srcKw.map(k=>`<span class="badge b-gold" style="font-size:.72rem">${esc(k)}</span>`).join('')}</div>`:''}
-      <button onclick="window.open('${ea(n.url)}','_blank')" style="display:block;width:100%;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:.4rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans);margin-bottom:.8rem">▶ 영상 보러가기</button>
       ${n.memo?`<div style="margin-bottom:.75rem">
         <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">메모</div>
         <div style="font-size:.82rem;color:var(--dim);line-height:1.7;white-space:pre-wrap;word-break:break-word;padding:.45rem .6rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 3px 3px 0">${esc(n.memo)}</div>
       </div>`:''}
       ${tsHtml?`<div>
-        <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프</div>
+        <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프 ${embedBase?'<span style="font-size:.68rem;color:var(--muted);font-weight:400">(클릭 시 해당 구간 재생)</span>':''}
+        </div>
         ${tsHtml}
       </div>`:''}
     </div>
@@ -2575,44 +2583,45 @@ window.copyNoteToLibrary=async(noteId,noteTitle,noteUrl,noteOwnerId,noteOwnerNic
 };
 
 window.showPublicNoteDetail=async(noteId,ownerNickname)=>{
-  // 노트 데이터를 DB에서 직접 조회
   const{data:n}=await sb.from('videos').select('*').eq('id',noteId).maybeSingle();
   if(!n){toast('노트를 찾을 수 없습니다');return;}
   const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
+  const embedBase=tid?`https://www.youtube-nocookie.com/embed/${tid}?rel=0&modestbranding=1`:null;
   const isOwnNote=user&&user.id===n.user_id;
   const likeCount=n.like_count||0;
 
-  const tsHtml=(n.timestamps||[]).map((t,i)=>`
-    <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.35rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
-      <span onclick="window.open('${ea(n.url)}?t=${t2s?.(t.time)||0}','_blank')"
+  const tsHtml=(n.timestamps||[]).map(t=>{
+    const sec=t2s?.(t.time)||0;
+    return`<div style="display:flex;align-items:flex-start;gap:.5rem;padding:.35rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+      <span onclick="(function(){const f=document.getElementById('pub-yt-frame');if(f&&'${embedBase}'){f.src='${embedBase}&start=${sec}&autoplay=1';}else{window.open('${ea(n.url)}?t=${sec}','_blank');}})()"
         style="background:rgba(200,137,58,.12);color:var(--wing2);border-radius:2px;padding:1px 7px;font-size:.72rem;cursor:pointer;white-space:nowrap;flex-shrink:0">▶ ${esc(t.time)}</span>
       <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const overlay=document.createElement('div');
   overlay.id='note-detail-overlay';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;display:flex;align-items:flex-end;justify-content:center;padding:0';
   overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px 4px 0 0;width:min(540px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
-    <!-- 핸들 -->
     <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="font-size:.78rem;color:var(--muted)">@${esc(ownerNickname)}의 학습 노트</div>
       <button onclick="document.getElementById('note-detail-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1">✕</button>
     </div>
-    <!-- 내용 -->
     <div style="overflow-y:auto;padding:1rem">
-      <!-- 썸네일 + 제목 -->
-      ${tid?`<div style="margin-bottom:.75rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">
-        <img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:100%;border-radius:3px;max-height:180px;object-fit:cover" onerror="this.style.display='none'">
-      </div>`:''}
-      <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">${esc(n.title)}</div>
+      ${embedBase
+        ?`<div class="yt-wrap" style="margin-bottom:.75rem"><iframe id="pub-yt-frame" src="${embedBase}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>`
+        : tid?`<div style="margin-bottom:.75rem">
+        <img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:100%;border-radius:3px;max-height:180px;object-fit:cover;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')" onerror="this.style.display='none'">
+      </div>`:''
+      }
+      <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem">${esc(n.title)}</div>
       <div style="margin-bottom:.6rem">${(n.keywords||[]).map(k=>`<span style="font-size:.70rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 6px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
-      <button onclick="window.open('${ea(n.url)}','_blank')" style="display:block;width:100%;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.45rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans);margin-bottom:.75rem">▶ 영상 보러가기</button>
       ${n.memo?`<div style="margin-bottom:.75rem">
         <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">메모</div>
         <div style="font-size:.82rem;color:var(--dim);line-height:1.7;white-space:pre-wrap;padding:.5rem .65rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 3px 3px 0">${esc(n.memo)}</div>
       </div>`:''}
       ${tsHtml?`<div>
-        <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">구간 타임스탬프</div>
+        <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">구간 타임스탬프 ${embedBase?'<span style="font-size:.68rem;font-weight:400">(클릭 시 해당 구간 재생)</span>':''}</div>
         ${tsHtml}
       </div>`:''}
     </div>
