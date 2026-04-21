@@ -2134,8 +2134,8 @@ function renderNotifList(){
             <div style="font-size:.78rem;color:var(--chalk);font-weight:500;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</div>
             ${msg?`<div style="font-size:.72rem;color:var(--dim);margin-bottom:3px;font-style:italic">"${esc(msg)}"</div>`:''}
             <div style="display:flex;gap:.3rem;flex-wrap:wrap">
-              <button onclick="acceptNoteShare('${n.id}','${ea(noteId)}','${ea(title)}','${ea(url)}','${ea(nick)}')"
-                style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📋 내 라이브러리에 복사</button>
+              <button onclick="previewNoteShare('${n.id}','${ea(noteId)}','${ea(title)}','${ea(url)}','${ea(nick)}')"
+                style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📋 내용 확인 후 저장</button>
               ${url?`<button onclick="window.open('${ea(url)}','_blank')"
                 style="background:none;border:1px solid var(--border);color:var(--muted);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">▶ 영상 보기</button>`:''}
             </div>
@@ -2264,19 +2264,103 @@ window.confirmSendNote=async(toUserId, toNick, noteId, noteTitle, noteUrl)=>{
   document.getElementById('note-share-overlay')?.remove();
 };
 
-window.acceptNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>{
-  if(!user){toast('로그인이 필요합니다');return;}
-  // 이미 내 라이브러리에 있는지 확인
-  const{data:dup}=await sb.from('videos').select('id').eq('user_id',user.id).eq('url',noteUrl).maybeSingle();
-  if(dup){toast('이미 내 학습노트에 있습니다');return;}
-  // 복사
+// ── 노트 전체 데이터 복사 (공통 함수) ───────────────
+async function _copyNoteWithFullData(sourceNoteId, senderNick, labelTag){
+  // 원본 노트 전체 조회
+  const{data:orig}=await sb.from('videos').select('*').eq('id',sourceNoteId).maybeSingle();
+  if(!orig) return {error:'노트를 찾을 수 없습니다'};
+
+  // 중복 확인
+  const{data:dup}=await sb.from('videos').select('id').eq('user_id',user.id).eq('url',orig.url).maybeSingle();
+  if(dup) return {error:'이미 내 학습노트에 있습니다'};
+
+  // 원본 태그·메모·타임스탬프 그대로 복사, 출처 태그만 앞에 추가
+  const srcKw = Array.isArray(orig.keywords) ? orig.keywords.filter(k=>k&&typeof k==='string') : [];
+  const mergedKw = [labelTag, `@${senderNick}`, ...srcKw.filter(k=>k!==labelTag&&!k.startsWith('@'))];
+
   const{error}=await sb.from('videos').insert({
-    user_id:user.id, url:noteUrl, title:noteTitle,
-    keywords:['📤 전달받음',`@${senderNick}`],
-    memo:`@${senderNick}님이 전달한 노트`,
-    added_at:today()
+    user_id: user.id,
+    url: orig.url,
+    title: orig.title,
+    keywords: mergedKw,
+    memo: orig.memo||'',
+    timestamps: orig.timestamps||[],
+    added_at: today()
   });
-  if(error){toast('복사 실패: '+error.message);return;}
+  if(error) return {error: error.message};
+  return {ok:true, orig};
+}
+
+// 노트 전달 수신: 미리보기 → 저장 선택
+window.previewNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>{
+  if(!user){toast('로그인이 필요합니다');return;}
+
+  // 원본 노트 전체 조회
+  const{data:n}=await sb.from('videos').select('*').eq('id',noteId).maybeSingle();
+  if(!n){toast('노트를 찾을 수 없습니다');return;}
+
+  const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
+  const tsHtml=(n.timestamps||[]).map(t=>`
+    <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+      <span onclick="window.open('${ea(n.url)}?t=${t2s?.(t.time)||0}','_blank')"
+        style="background:rgba(200,137,58,.12);color:var(--wing2);border-radius:2px;padding:1px 7px;font-size:.72rem;cursor:pointer;white-space:nowrap;flex-shrink:0">▶ ${esc(t.time)}</span>
+      <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
+    </div>`).join('');
+  const srcKw=(n.keywords||[]).filter(k=>k&&typeof k==='string');
+
+  const overlay=document.createElement('div');
+  overlay.id='note-preview-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:3000;display:flex;align-items:flex-end;justify-content:center';
+  overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px 4px 0 0;width:min(540px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+    <!-- 헤더 -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div>
+        <div style="font-size:.72rem;color:var(--muted)">📤 @${esc(senderNick)}님이 전달한 노트</div>
+      </div>
+      <button onclick="document.getElementById('note-preview-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1">✕</button>
+    </div>
+    <!-- 내용 스크롤 -->
+    <div style="overflow-y:auto;padding:1rem">
+      ${tid?`<div style="margin-bottom:.75rem;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">
+        <img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:100%;border-radius:3px;max-height:180px;object-fit:cover" onerror="this.style.display='none'">
+      </div>`:''}
+      <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.4rem;cursor:pointer;line-height:1.4" onclick="window.open('${ea(n.url)}','_blank')">${esc(n.title)}</div>
+      ${srcKw.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:.65rem">${srcKw.map(k=>`<span class="badge b-gold" style="font-size:.72rem">${esc(k)}</span>`).join('')}</div>`:''}
+      <button onclick="window.open('${ea(n.url)}','_blank')" style="display:block;width:100%;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:.4rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans);margin-bottom:.8rem">▶ 영상 보러가기</button>
+      ${n.memo?`<div style="margin-bottom:.75rem">
+        <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">메모</div>
+        <div style="font-size:.82rem;color:var(--dim);line-height:1.7;white-space:pre-wrap;word-break:break-word;padding:.45rem .6rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 3px 3px 0">${esc(n.memo)}</div>
+      </div>`:''}
+      ${tsHtml?`<div>
+        <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프</div>
+        ${tsHtml}
+      </div>`:''}
+    </div>
+    <!-- 하단 버튼 -->
+    <div style="padding:.65rem 1rem;border-top:1px solid var(--border);display:flex;gap:.4rem;flex-shrink:0">
+      <button id="note-preview-save-btn" onclick="doAcceptNoteShare('${notifId}','${noteId}','${ea(senderNick)}')"
+        style="flex:1;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.45rem;border-radius:3px;font-size:.82rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+        📋 내 학습노트에 저장
+      </button>
+      <button onclick="document.getElementById('note-preview-overlay').remove()"
+        style="flex:1;background:rgba(240,237,230,.04);border:1px solid var(--border);color:var(--muted);padding:.45rem;border-radius:3px;font-size:.82rem;cursor:pointer;font-family:var(--sans)">
+        저장 안 함
+      </button>
+    </div>
+  </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+};
+
+window.doAcceptNoteShare=async(notifId, noteId, senderNick)=>{
+  const btn=$('note-preview-save-btn');
+  if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+  const result=await _copyNoteWithFullData(noteId, senderNick, '📤 전달받음');
+  if(result.error){
+    toast(result.error);
+    if(btn){btn.disabled=false;btn.textContent='📋 내 학습노트에 저장';}
+    return;
+  }
   // note_shares status 업데이트
   await sb.from('note_shares').update({status:'accepted'}).eq('note_id',noteId).eq('to_user_id',user.id).eq('status','pending');
   // 알림 읽음 처리
@@ -2286,7 +2370,8 @@ window.acceptNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>{
   await loadAll();
   renderNotifBadge();
   renderNotifList();
-  toast('📋 내 학습노트에 복사됐습니다');
+  document.getElementById('note-preview-overlay')?.remove();
+  toast('📋 내 학습노트에 저장됐습니다');
 };
 
 function _timeAgo(ts){
@@ -2483,14 +2568,8 @@ window.toggleNoteLike=async(noteId,noteTitle,noteOwnerId)=>{
 
 window.copyNoteToLibrary=async(noteId,noteTitle,noteUrl,noteOwnerId,noteOwnerNick)=>{
   if(!user){toast('로그인이 필요합니다');return;}
-  const{data:copied}=await sb.from('videos').select('id').eq('user_id',user.id).eq('url',noteUrl).maybeSingle();
-  if(copied){toast('이미 내 학습노트에 있습니다');return;}
-  await sb.from('videos').insert({
-    user_id:user.id, url:noteUrl, title:noteTitle,
-    keywords:['💾 복사',`@${noteOwnerNick||'공유'}`],
-    memo:`@${noteOwnerNick||noteOwnerId}의 노트에서 복사`,
-    added_at:today()
-  });
+  const result=await _copyNoteWithFullData(noteId, noteOwnerNick||noteOwnerId, '💾 복사');
+  if(result.error){toast(result.error);return;}
   if(user&&D.videos) await loadAll();
   toast('📋 내 학습노트에 복사됐습니다');
 };
