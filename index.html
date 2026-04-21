@@ -2334,6 +2334,10 @@ window.previewNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>
       </div>`:embedBase?`<div class="yt-wrap" style="margin-bottom:.75rem"><iframe id="share-yt-frame" src="${embedBase}" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>`:''}
       <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.4rem;line-height:1.4">${esc(n.title)}</div>
       ${srcKw.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:.65rem">${srcKw.map(k=>`<span class="badge b-gold" style="font-size:.72rem">${esc(k)}</span>`).join('')}</div>`:''}
+      ${!embedBase&&n.url?`<a href="${ea(n.url)}" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;gap:.4rem;background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:.4rem .75rem;border-radius:3px;font-size:.8rem;text-decoration:none;margin-bottom:.75rem;font-family:var(--sans)">
+        🔗 원본 링크로 보기 <span style="font-size:.72rem;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${esc(n.url)}</span>
+      </a>`:''}
       ${n.memo?`<div style="margin-bottom:.75rem">
         <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">메모</div>
         <div style="font-size:.82rem;color:var(--dim);line-height:1.7;white-space:pre-wrap;word-break:break-word;padding:.45rem .6rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 3px 3px 0">${esc(n.memo)}</div>
@@ -2616,6 +2620,10 @@ window.showPublicNoteDetail=async(noteId,ownerNickname)=>{
       }
       <div style="font-size:.95rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem">${esc(n.title)}</div>
       <div style="margin-bottom:.6rem">${(n.keywords||[]).map(k=>`<span style="font-size:.70rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 6px;margin-right:3px">${esc(k)}</span>`).join('')}</div>
+      ${!embedBase&&n.url?`<a href="${ea(n.url)}" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;gap:.4rem;background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:.4rem .75rem;border-radius:3px;font-size:.8rem;text-decoration:none;margin-bottom:.75rem;font-family:var(--sans)">
+        🔗 원본 링크로 보기 <span style="font-size:.72rem;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${esc(n.url)}</span>
+      </a>`:''}
       ${n.memo?`<div style="margin-bottom:.75rem">
         <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">메모</div>
         <div style="font-size:.82rem;color:var(--dim);line-height:1.7;white-space:pre-wrap;padding:.5rem .65rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.25);border-radius:0 3px 3px 0">${esc(n.memo)}</div>
