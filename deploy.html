@@ -3,142 +3,212 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GolfNote 배포 도구</title>
+<title>Birdyard 배포 도구</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0d1b2e;color:#dce8f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
-.box{background:#13243d;border:1px solid rgba(200,168,75,.35);border-radius:16px;padding:2rem;width:100%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
-h1{font-size:1.3rem;color:#e6c76a;margin-bottom:.3rem}
-.sub{font-size:.78rem;color:#4a6a8a;margin-bottom:1.5rem;letter-spacing:.5px}
-.fg{margin-bottom:1rem}
-label{display:block;font-size:.7rem;font-weight:700;color:#4a6a8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
-input{width:100%;background:#0d1b2e;border:1px solid rgba(200,168,75,.18);color:#dce8f5;padding:.6rem .85rem;border-radius:8px;font-family:inherit;font-size:.88rem;outline:none}
-input:focus{border-color:rgba(200,168,75,.5)}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0D1117;color:#F0EDE6;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem}
+.wrap{width:100%;max-width:560px}
+
+/* 헤더 */
+.logo{font-family:Georgia,serif;font-size:1.5rem;color:#C8893A;letter-spacing:.15em;margin-bottom:.2rem}
+.logo-sub{font-size:.72rem;color:#4a5568;letter-spacing:.2em;text-transform:uppercase;margin-bottom:2rem}
+
+/* 카드 */
+.card{background:#161B22;border:1px solid rgba(200,137,58,.2);border-radius:10px;padding:1.5rem;margin-bottom:1rem}
+.card-title{font-size:.68rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card-title .dot{width:8px;height:8px;border-radius:50%}
+.dot-dev{background:#A78BFA}
+.dot-prod{background:#C8893A}
+.dot-gray{background:#4a5568}
+
+/* 폼 */
+.fg{margin-bottom:.85rem}
+label{display:block;font-size:.68rem;font-weight:600;color:#4a6a8a;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem}
+input,select{width:100%;background:#0D1117;border:1px solid rgba(240,237,230,.12);color:#F0EDE6;padding:.55rem .8rem;border-radius:6px;font-family:inherit;font-size:.85rem;outline:none;transition:border-color .15s}
+input:focus,select:focus{border-color:rgba(200,137,58,.45)}
 input[type=password]{letter-spacing:2px}
-.btn{width:100%;padding:.7rem;border-radius:8px;border:none;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;transition:all .15s}
-.btn-p{background:linear-gradient(135deg,#8a7030,#c8a84b);color:#0d1b2e}
-.btn-p:hover:not(:disabled){background:linear-gradient(135deg,#c8a84b,#e6c76a)}
-.btn-p:disabled{opacity:.5;cursor:not-allowed}
-.log{margin-top:1.25rem;background:#0d1b2e;border:1px solid rgba(200,168,75,.15);border-radius:8px;padding:.75rem 1rem;min-height:80px;font-size:.82rem;font-family:monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all}
-.ok{color:#52b870}.err{color:#c05050}.info{color:#7a9ab8}.gold{color:#e6c76a}
-.divider{height:1px;background:rgba(200,168,75,.15);margin:1.25rem 0}
-.note{font-size:.75rem;color:#4a6a8a;line-height:1.6;margin-top:.5rem}
+input[type=file]{color:#7a9ab8;border-style:dashed;padding:.45rem .8rem}
+
+/* 버튼 */
+.btn{width:100%;padding:.65rem;border-radius:6px;border:none;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-dev{background:rgba(167,139,250,.15);color:#A78BFA;border:1px solid rgba(167,139,250,.35)}
+.btn-dev:hover:not(:disabled){background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.6)}
+.btn-prod{background:rgba(200,137,58,.15);color:#C8893A;border:1px solid rgba(200,137,58,.35)}
+.btn-prod:hover:not(:disabled){background:rgba(200,137,58,.25);border-color:rgba(200,137,58,.6)}
+.btn-sm{font-size:.78rem;padding:.4rem .9rem;width:auto;border-radius:4px}
+
+/* 상태 뱃지 */
+.badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.05em}
+.badge-dev{background:rgba(167,139,250,.15);color:#A78BFA;border:1px solid rgba(167,139,250,.3)}
+.badge-prod{background:rgba(200,137,58,.12);color:#C8893A;border:1px solid rgba(200,137,58,.25)}
+.badge-ok{background:rgba(61,158,116,.15);color:#3D9E74;border:1px solid rgba(61,158,116,.3)}
+.badge-idle{background:rgba(74,101,128,.1);color:#4a6a8a;border:1px solid rgba(74,101,128,.2)}
+
+/* 로그 */
+.log{background:#0D1117;border:1px solid rgba(240,237,230,.08);border-radius:6px;padding:.75rem 1rem;min-height:72px;max-height:200px;overflow-y:auto;font-size:.78rem;font-family:'SF Mono',Consolas,monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all;margin-top:.85rem}
+.ok{color:#3D9E74}.err{color:#E05252}.info{color:#7a9ab8}.gold{color:#C8893A}.purple{color:#A78BFA}
+
+/* 구분선 */
+.divider{height:1px;background:rgba(240,237,230,.07);margin:1.25rem 0}
+
+/* 화살표 */
+.arrow{text-align:center;color:#4a5568;font-size:1.2rem;margin:.3rem 0;line-height:1}
+
+/* 상태 표시 */
+.status-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid rgba(240,237,230,.06)}
+.status-row:last-child{border-bottom:none}
+.status-label{font-size:.75rem;color:#7a9ab8}
+
+/* 노트 */
+.note{font-size:.7rem;color:#4a5568;line-height:1.6;margin-top:.35rem}
+.warn{font-size:.72rem;color:rgba(200,137,58,.75);background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.18);border-radius:4px;padding:.45rem .7rem;margin-top:.5rem;line-height:1.5}
 </style>
 </head>
 <body>
-<div class="box">
-  <h1>⛳ GolfNote 배포 도구</h1>
-  <div class="sub">GitHub Pages 자동 배포</div>
+<div class="wrap">
+  <div class="logo">BIRDYARD</div>
+  <div class="logo-sub">배포 도구 · Deploy Tool</div>
 
-  <div class="fg">
-    <label>GitHub 사용자명</label>
-    <input type="text" id="username" placeholder="예: hongildong">
-  </div>
-  <div class="fg">
-    <label>저장소 이름</label>
-    <input type="text" id="repo" placeholder="예: MyGolfNoteV01" value="MyGolfNoteV01">
-  </div>
-  <div class="fg">
-    <label>GitHub Personal Access Token</label>
-    <from>
+  <!-- 설정 카드 -->
+  <div class="card">
+    <div class="card-title"><span class="dot dot-gray"></span>GitHub 설정</div>
+    <div class="fg">
+      <label>사용자명</label>
+      <input type="text" id="username" placeholder="friendis" value="friendis">
+    </div>
+    <div class="fg">
+      <label>저장소 이름</label>
+      <input type="text" id="repo" placeholder="MyGolfNoteV01" value="MyGolfNoteV01">
+    </div>
+    <div class="fg">
+      <label>Personal Access Token</label>
       <input type="password" id="token" placeholder="ghp_...">
-    </from>
-    <div class="note">토큰은 이 페이지 안에서만 사용되며 어디에도 저장되지 않습니다.</div>
-  </div>
-  <div class="fg">
-    <label>배포할 파일 선택</label>
-    <input type="file" id="file" accept=".html" style="color:#7a9ab8;border-style:dashed">
-    <div class="note">GolfNote-v3.html 파일을 선택하세요</div>
+      <div class="note">토큰은 이 페이지 안에서만 사용되며 어디에도 저장되지 않습니다.</div>
+    </div>
   </div>
 
-  <button class="btn btn-p" id="deploy-btn" onclick="deploy()">🚀 GitHub에 배포</button>
+  <!-- STEP 1: DEV 배포 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="dot dot-dev"></span>
+      STEP 1 — DEV 배포
+      <span id="dev-badge" class="badge badge-idle" style="margin-left:auto">대기 중</span>
+    </div>
 
-  <div class="divider"></div>
-  <div class="log" id="log">배포 로그가 여기 표시됩니다...</div>
+    <div class="fg">
+      <label>배포할 파일 선택</label>
+      <input type="file" id="dev-file" accept=".html">
+      <div class="note">Birdyard.html (최신 빌드 파일) 선택</div>
+    </div>
+
+    <div style="background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.15);border-radius:6px;padding:.65rem .85rem;margin-bottom:.85rem">
+      <div class="status-row">
+        <span class="status-label">업로드 경로</span>
+        <code style="font-size:.75rem;color:#A78BFA">dev/index.html</code>
+      </div>
+      <div class="status-row">
+        <span class="status-label">접속 URL</span>
+        <span id="dev-url-display" style="font-size:.72rem;color:#7a9ab8">—</span>
+      </div>
+    </div>
+
+    <button class="btn btn-dev" id="dev-btn" onclick="deployDev()">
+      ⬡ DEV에 배포
+    </button>
+
+    <div class="log" id="dev-log">DEV 배포 로그...</div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- STEP 2: PROD 승격 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="dot dot-prod"></span>
+      STEP 2 — PROD 승격
+      <span id="prod-badge" class="badge badge-idle" style="margin-left:auto">대기 중</span>
+    </div>
+
+    <div class="warn">⚠ DEV에서 충분히 검증한 후에만 진행하세요. PROD는 실제 사용자에게 바로 반영됩니다.</div>
+
+    <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:6px;padding:.65rem .85rem;margin:.85rem 0">
+      <div class="status-row">
+        <span class="status-label">업로드 경로</span>
+        <code style="font-size:.75rem;color:#C8893A">index.html</code>
+      </div>
+      <div class="status-row">
+        <span class="status-label">방식</span>
+        <span style="font-size:.72rem;color:#7a9ab8">DEV 파일을 그대로 PROD로 복사</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">접속 URL</span>
+        <span id="prod-url-display" style="font-size:.72rem;color:#7a9ab8">—</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
+      <input type="checkbox" id="prod-confirm" style="width:auto;accent-color:#C8893A">
+      <label for="prod-confirm" style="font-size:.78rem;color:#7a9ab8;text-transform:none;letter-spacing:0;cursor:pointer;margin:0">
+        DEV에서 테스트 완료. PROD에 배포할 준비가 됐습니다.
+      </label>
+    </div>
+
+    <button class="btn btn-prod" id="prod-btn" onclick="deployProd()" disabled>
+      🚀 PROD에 배포 (승격)
+    </button>
+
+    <div class="log" id="prod-log">PROD 배포 로그...</div>
+  </div>
+
+  <!-- 배포 히스토리 -->
+  <div class="card">
+    <div class="card-title"><span class="dot dot-gray"></span>이번 세션 배포 기록</div>
+    <div id="history" style="font-size:.75rem;color:#4a5568;line-height:1.8">아직 배포 기록 없음</div>
+  </div>
+
 </div>
 
 <script>
-function log(msg, cls='info') {
-  const el = document.getElementById('log');
+let devContent = null;  // DEV 배포된 파일 내용 (PROD 승격에 재사용)
+const history = [];
+
+function logTo(id, msg, cls='info') {
+  const el = document.getElementById(id);
   const time = new Date().toLocaleTimeString('ko-KR');
   el.innerHTML += `<span class="${cls}">[${time}] ${msg}\n</span>`;
   el.scrollTop = el.scrollHeight;
 }
 
-async function deploy() {
-  const username = document.getElementById('username').value.trim();
-  const repo     = document.getElementById('repo').value.trim();
-  const token    = document.getElementById('token').value.trim();
-  const fileInput= document.getElementById('file');
-  const btn      = document.getElementById('deploy-btn');
+function clearLog(id) {
+  document.getElementById(id).innerHTML = '';
+}
 
-  if(!username || !repo || !token) { log('사용자명, 저장소, 토큰을 모두 입력하세요', 'err'); return; }
-  if(!fileInput.files[0]) { log('배포할 HTML 파일을 선택하세요', 'err'); return; }
+function getInputs() {
+  return {
+    username: document.getElementById('username').value.trim(),
+    repo: document.getElementById('repo').value.trim(),
+    token: document.getElementById('token').value.trim(),
+  };
+}
 
-  btn.disabled = true; btn.textContent = '배포 중...';
-  document.getElementById('log').innerHTML = '';
-
-  try {
-    // 1. 파일 읽기
-    log('파일 읽는 중...');
-    const content = await readFile(fileInput.files[0]);
-    const b64 = btoa(unescape(encodeURIComponent(content)));
-    log(`파일 크기: ${(content.length/1024).toFixed(1)}KB`, 'ok');
-
-    // 2. 현재 index.html SHA 가져오기 (업데이트에 필요)
-    log('GitHub 저장소 확인 중...');
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    };
-    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
-
-    let sha = null;
-    const getRes = await fetch(`${apiBase}/contents/index.html`, { headers });
-    if(getRes.ok) {
-      const existing = await getRes.json();
-      sha = existing.sha;
-      log(`기존 index.html 발견 (SHA: ${sha.slice(0,7)}...)`, 'info');
-    } else if(getRes.status === 404) {
-      log('index.html 없음 — 새로 생성합니다', 'info');
-    } else {
-      const err = await getRes.json();
-      throw new Error(`저장소 접근 실패: ${err.message}`);
-    }
-
-    // 3. 파일 업로드
-    log('GitHub에 업로드 중...');
-    const body = {
-      message: `🚀 GolfNote 업데이트 ${new Date().toLocaleString('ko-KR')}`,
-      content: b64,
-      ...(sha ? { sha } : {})
-    };
-    const putRes = await fetch(`${apiBase}/contents/index.html`, {
-      method: 'PUT', headers, body: JSON.stringify(body)
-    });
-    if(!putRes.ok) {
-      const err = await putRes.json();
-      throw new Error(`업로드 실패: ${err.message}`);
-    }
-    const result = await putRes.json();
-    log('업로드 완료!', 'ok');
-    log(`커밋: ${result.commit?.sha?.slice(0,7)}`, 'ok');
-
-    // 4. Pages 상태 확인
-    log('GitHub Pages 배포 대기 중... (보통 1~2분)');
-    const siteUrl = `https://${username}.github.io/${repo}`;
-    log(`배포 완료! 잠시 후 아래 주소로 접속하세요:`, 'gold');
-    log(`👉 ${siteUrl}`, 'gold');
-    log('※ 반영까지 1~2분 소요될 수 있습니다', 'info');
-
-  } catch(e) {
-    log(`오류: ${e.message}`, 'err');
-  } finally {
-    btn.disabled = false; btn.textContent = '🚀 GitHub에 배포';
+function updateUrls() {
+  const {username, repo} = getInputs();
+  if(username && repo) {
+    document.getElementById('dev-url-display').textContent =
+      `https://${username}.github.io/${repo}/dev/`;
+    document.getElementById('prod-url-display').textContent =
+      `https://${username}.github.io/${repo}/`;
   }
 }
+document.getElementById('username').addEventListener('input', updateUrls);
+document.getElementById('repo').addEventListener('input', updateUrls);
+updateUrls();
+
+// 체크박스 → PROD 버튼 활성화
+document.getElementById('prod-confirm').addEventListener('change', function() {
+  document.getElementById('prod-btn').disabled = !this.checked;
+});
 
 function readFile(file) {
   return new Promise((res, rej) => {
@@ -147,6 +217,177 @@ function readFile(file) {
     r.onerror = rej;
     r.readAsText(file, 'UTF-8');
   });
+}
+
+function toB64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function getSHA(apiBase, path, headers) {
+  const res = await fetch(`${apiBase}/contents/${path}`, { headers });
+  if(res.ok) {
+    const data = await res.json();
+    return data.sha;
+  }
+  return null;
+}
+
+async function putFile(apiBase, path, content, message, sha, headers) {
+  const body = { message, content: toB64(content), ...(sha ? { sha } : {}) };
+  const res = await fetch(`${apiBase}/contents/${path}`, {
+    method: 'PUT', headers, body: JSON.stringify(body)
+  });
+  if(!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || '업로드 실패');
+  }
+  return await res.json();
+}
+
+async function deployDev() {
+  const {username, repo, token} = getInputs();
+  const fileInput = document.getElementById('dev-file');
+  const btn = document.getElementById('dev-btn');
+  const badge = document.getElementById('dev-badge');
+
+  if(!username || !repo || !token) {
+    logTo('dev-log', 'GitHub 설정을 모두 입력하세요', 'err'); return;
+  }
+  if(!fileInput.files[0]) {
+    logTo('dev-log', '배포할 HTML 파일을 선택하세요', 'err'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '배포 중...';
+  badge.className = 'badge badge-dev';
+  badge.textContent = '배포 중...';
+  clearLog('dev-log');
+
+  try {
+    logTo('dev-log', '파일 읽는 중...', 'purple');
+    const content = await readFile(fileInput.files[0]);
+    logTo('dev-log', `파일 크기: ${(content.length/1024).toFixed(1)} KB`, 'ok');
+
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
+
+    logTo('dev-log', 'dev/index.html SHA 확인 중...', 'purple');
+    const sha = await getSHA(apiBase, 'dev/index.html', headers);
+    if(sha) logTo('dev-log', `기존 파일 발견 (SHA: ${sha.slice(0,7)}...)`, 'info');
+    else logTo('dev-log', 'dev/index.html 없음 — 새로 생성합니다', 'info');
+
+    logTo('dev-log', 'dev/index.html 업로드 중...', 'purple');
+    const now = new Date().toLocaleString('ko-KR');
+    const result = await putFile(
+      apiBase, 'dev/index.html', content,
+      `🧪 DEV 배포 ${now}`, sha, headers
+    );
+    logTo('dev-log', `업로드 완료! 커밋: ${result.commit?.sha?.slice(0,7)}`, 'ok');
+
+    devContent = content;  // PROD 승격용 저장
+
+    const devUrl = `https://${username}.github.io/${repo}/dev/`;
+    logTo('dev-log', `DEV URL: ${devUrl}`, 'gold');
+    logTo('dev-log', '※ GitHub Pages 반영까지 1~2분 소요', 'info');
+
+    badge.className = 'badge badge-ok';
+    badge.textContent = '✓ 완료';
+
+    addHistory('DEV', fileInput.files[0].name, result.commit?.sha?.slice(0,7), devUrl);
+
+  } catch(e) {
+    logTo('dev-log', `오류: ${e.message}`, 'err');
+    badge.className = 'badge badge-idle';
+    badge.textContent = '실패';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬡ DEV에 배포';
+  }
+}
+
+async function deployProd() {
+  const {username, repo, token} = getInputs();
+  const btn = document.getElementById('prod-btn');
+  const badge = document.getElementById('prod-badge');
+
+  if(!devContent) {
+    logTo('prod-log', 'DEV 배포를 먼저 진행하세요. DEV 파일을 PROD에 그대로 복사합니다.', 'err');
+    return;
+  }
+  if(!confirm('PROD에 배포하면 실제 사용자에게 즉시 반영됩니다.\n계속하시겠습니까?')) return;
+
+  btn.disabled = true;
+  btn.textContent = '배포 중...';
+  badge.className = 'badge badge-prod';
+  badge.textContent = '배포 중...';
+  clearLog('prod-log');
+
+  try {
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
+
+    logTo('prod-log', 'index.html SHA 확인 중...', 'gold');
+    const sha = await getSHA(apiBase, 'index.html', headers);
+    if(sha) logTo('prod-log', `기존 파일 발견 (SHA: ${sha.slice(0,7)}...)`, 'info');
+
+    logTo('prod-log', 'index.html 업로드 중 (DEV → PROD 승격)...', 'gold');
+    const now = new Date().toLocaleString('ko-KR');
+    const result = await putFile(
+      apiBase, 'index.html', devContent,
+      `🚀 PROD 배포 ${now} (DEV 검증 완료)`, sha, headers
+    );
+    logTo('prod-log', `업로드 완료! 커밋: ${result.commit?.sha?.slice(0,7)}`, 'ok');
+
+    const prodUrl = `https://${username}.github.io/${repo}/`;
+    logTo('prod-log', `PROD URL: ${prodUrl}`, 'gold');
+    logTo('prod-log', '※ GitHub Pages 반영까지 1~2분 소요', 'info');
+
+    badge.className = 'badge badge-ok';
+    badge.textContent = '✓ 완료';
+
+    // 체크박스 다시 해제
+    document.getElementById('prod-confirm').checked = false;
+    btn.disabled = true;
+
+    addHistory('PROD', '(DEV 파일 승격)', result.commit?.sha?.slice(0,7), prodUrl);
+
+  } catch(e) {
+    logTo('prod-log', `오류: ${e.message}`, 'err');
+    badge.className = 'badge badge-idle';
+    badge.textContent = '실패';
+    btn.disabled = false;
+    btn.textContent = '🚀 PROD에 배포 (승격)';
+  } finally {
+    if(!document.getElementById('prod-badge').textContent.includes('완료')) {
+      btn.disabled = false;
+      btn.textContent = '🚀 PROD에 배포 (승격)';
+    }
+  }
+}
+
+function addHistory(type, filename, commitSha, url) {
+  const time = new Date().toLocaleTimeString('ko-KR');
+  history.unshift({ type, filename, commitSha, url, time });
+  const el = document.getElementById('history');
+  el.innerHTML = history.map(h => {
+    const color = h.type === 'PROD' ? '#C8893A' : '#A78BFA';
+    return `<div style="display:flex;gap:.5rem;align-items:baseline;padding:.2rem 0;border-bottom:1px solid rgba(240,237,230,.04)">
+      <span style="color:${color};font-weight:700;font-size:.7rem;min-width:36px">${h.type}</span>
+      <span style="color:#4a6a8a">${h.time}</span>
+      <span style="color:#7a9ab8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.filename}</span>
+      ${h.commitSha ? `<span style="color:#4a5568;font-family:monospace;font-size:.68rem;margin-left:auto;flex-shrink:0">${h.commitSha}</span>` : ''}
+    </div>`;
+  }).join('');
 }
 </script>
 </body>
