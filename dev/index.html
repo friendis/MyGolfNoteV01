@@ -3,7 +3,7 @@
   ║                        BIRDYARD                             ║
   ║              Golf Learning Management App                    ║
   ╠══════════════════════════════════════════════════════════════╣
-  ║  Copyright (c) 2026 현민. All rights reserved.              ║
+  ║  Copyright (c) 2025 현민. All rights reserved.              ║
   ║                                                              ║
   ║  이 소스코드 및 관련 문서는 저작권법의 보호를 받습니다.         ║
   ║  저작권자의 명시적인 서면 허가 없이는 이 소프트웨어의           ║
@@ -664,7 +664,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 // ── 환경 분기: /dev/ 경로면 dev 스키마 사용 ──────────
 const IS_DEV = location.pathname.includes('/dev/') || location.pathname.includes('/dev');
 const sb=createClient(SB_URL,SB_KEY,{db:{schema:IS_DEV?'dev':'public'}});
-let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='stats',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
+let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='stats',vSub='mine',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
 let isGuest=false;
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
@@ -3023,6 +3023,15 @@ function homeView(){
   </div>`;
 }
 function vList(){
+  // ── 탭 헤더 ──────────────────────────────────────
+  const vtabs=`<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);margin-bottom:.9rem">
+    <button onclick="setVSub('mine')" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${vSub==='mine'?'var(--wing2)':'transparent'};background:none;color:${vSub==='mine'?'var(--wing2)':'var(--muted)'}">내 노트</button>
+    <button onclick="setVSub('explore')" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${vSub==='explore'?'var(--wing2)':'transparent'};background:none;color:${vSub==='explore'?'var(--wing2)':'var(--muted)'}">🔍 탐색</button>
+    <button class="btn btn-p btn-sm" style="flex-shrink:0;margin-left:auto;margin-bottom:2px" onclick="goAdd()">+ 노트 추가</button>
+  </div>`;
+
+  if(vSub==='explore') return exploreView(vtabs);
+
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
   const filtered = dictKw ? D.videos.filter(v=>v.kw.includes(dictKw)) : D.videos;
   const mkCard = v => {
@@ -3067,9 +3076,153 @@ function vList(){
     return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.70rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="dictViewDetail('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
-  return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
-  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
+  return `<div class="page">${guestBanner()}${vtabs}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
 }
+window.setVSub=t=>{vSub=t;render();if(t==='explore')setTimeout(loadExplore,50);};
+
+// 탐색 탭 현재 상태
+let _exploreState={tags:[],notes:[],activeTag:'',query:'',sort:'popular',loading:false,page:0};
+
+function exploreView(vtabs){
+  const s=_exploreState;
+  const activePills=s.tags.map(t=>`
+    <button onclick="setExploreTag('${ea(t.tag)}')"
+      style="padding:4px 10px;border-radius:14px;border:1px solid ${s.activeTag===t.tag?'rgba(200,137,58,.6)':'rgba(240,237,230,.15)'};background:${s.activeTag===t.tag?'rgba(200,137,58,.15)':'rgba(240,237,230,.04)'};color:${s.activeTag===t.tag?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans);white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
+      ${esc(t.tag)}<span style="font-size:.65rem;opacity:.65">${t.cnt}</span>
+    </button>`).join('');
+
+  const sortBar=`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap">
+    ${s.activeTag?`<div style="display:flex;align-items:center;gap:.3rem;padding:3px 10px;border-radius:14px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.75rem">
+      🏷 ${esc(s.activeTag)}
+      <button onclick="setExploreTag('')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.8rem;padding:0;line-height:1;margin-left:2px">✕</button>
+    </div>`:''}
+    <div style="margin-left:auto;display:flex;gap:.3rem">
+      <button onclick="setExploreSort('popular')" style="padding:3px 9px;border-radius:3px;border:1px solid ${s.sort==='popular'?'rgba(200,137,58,.4)':'var(--border)'};background:${s.sort==='popular'?'rgba(200,137,58,.1)':'none'};color:${s.sort==='popular'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">인기순</button>
+      <button onclick="setExploreSort('recent')" style="padding:3px 9px;border-radius:3px;border:1px solid ${s.sort==='recent'?'rgba(200,137,58,.4)':'var(--border)'};background:${s.sort==='recent'?'rgba(200,137,58,.1)':'none'};color:${s.sort==='recent'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">최신순</button>
+    </div>
+  </div>`;
+
+  return`<div class="page">${vtabs}
+    <!-- 검색창 -->
+    <div style="display:flex;gap:.4rem;margin-bottom:.65rem">
+      <input class="inp" id="explore-search" placeholder="🔍 제목 또는 태그 검색..."
+        value="${esc(s.query)}"
+        oninput="debounceExploreSearch(this.value)"
+        style="flex:1">
+      ${s.query?`<button onclick="clearExploreSearch()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:0 .7rem;border-radius:3px;cursor:pointer;font-size:.8rem">✕</button>`:''}
+    </div>
+    <!-- 인기 태그 -->
+    ${s.tags.length?`<div style="overflow-x:auto;padding-bottom:.4rem;margin-bottom:.65rem;scrollbar-width:none">
+      <div style="display:flex;gap:.35rem;width:max-content">${activePills}</div>
+    </div>`:'<div style="height:32px"></div>'}
+    <!-- 정렬 -->
+    ${sortBar}
+    <!-- 노트 목록 -->
+    <div id="explore-cards">
+      ${s.loading?`<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.82rem">불러오는 중...</div>`
+        :s.notes.length?s.notes.map(n=>exploreNoteCard(n)).join('')
+        :`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>${s.activeTag||s.query?'검색 결과가 없습니다':'공개된 학습노트가 없습니다'}</div>`}
+    </div>
+    ${s.notes.length>=20&&!s.loading?`<button onclick="loadMoreExplore()" class="btn btn-s btn-sm" style="width:100%;margin-top:.5rem">더 보기</button>`:''}
+  </div>`;
+}
+
+function exploreNoteCard(n){
+  const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
+  const nick=n._nick||'';
+  const isOwnNote=user&&user.id===n.user_id;
+  return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem">
+    <!-- 작성자 -->
+    ${nick?`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem">
+      <div style="width:20px;height:20px;border-radius:50%;background:rgba(200,137,58,.15);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--wing2);font-weight:700;flex-shrink:0">${nick[0].toUpperCase()}</div>
+      <span onclick="renderPublicProfile('${ea(nick)}')" style="font-size:.72rem;color:var(--wing2);cursor:pointer">@${esc(nick)}</span>
+      ${n.like_count?`<span style="font-size:.7rem;color:var(--muted);margin-left:auto">❤️ ${n.like_count}</span>`:''}
+    </div>`:''}
+    <!-- 썸네일 + 제목 -->
+    <div onclick="showPublicNoteDetail('${n.id}','${ea(nick)}')" style="display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.4rem;cursor:pointer">
+      ${tid?`<img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:64px;height:44px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:`<div style="width:64px;height:44px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🎬</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(n.title)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:2px">${(n.keywords||[]).slice(0,4).map(k=>`<span onclick="event.stopPropagation();setExploreTag('${ea(k)}')" style="font-size:.68rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 5px;cursor:pointer">${esc(k)}</span>`).join('')}</div>
+      </div>
+    </div>
+    <!-- 메모 미리보기 -->
+    ${n.memo?`<div style="font-size:.73rem;color:var(--dim);line-height:1.5;margin-bottom:.4rem;padding:.3rem .45rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.18);border-radius:0 2px 2px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap">${esc(n.memo)}</div>`:''}
+    <!-- 액션 버튼 -->
+    <div style="display:flex;gap:.3rem;align-items:center" onclick="event.stopPropagation()">
+      ${!isOwnNote?`
+        <button onclick="toggleNoteLike('${n.id}','${ea(n.title)}','${n.user_id}')"
+          style="background:rgba(193,123,106,.08);border:1px solid rgba(193,123,106,.2);color:var(--red);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">❤️ 좋아요</button>
+        <button onclick="copyNoteToLibrary('${n.id}','${ea(n.title)}','${ea(n.url)}','${n.user_id}','${ea(nick)}')"
+          style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📋 복사</button>
+        <button onclick="sendNoteShare('${n.id}','${ea(n.title)}','${ea(n.url)}')"
+          style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📤 전달</button>
+      `:'<span style="font-size:.7rem;color:var(--muted)">내 노트</span>'}
+      <span style="font-size:.68rem;color:var(--muted);margin-left:auto">${n.added_at||''}</span>
+    </div>
+  </div>`;
+}
+
+async function loadExplore(reset=true){
+  if(reset){
+    _exploreState.loading=true;
+    _exploreState.page=0;
+    const el=$('explore-cards');
+    if(el) el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.82rem">불러오는 중...</div>';
+  }
+
+  try{
+    // 인기 태그 (최초 1회만)
+    if(reset&&!_exploreState.tags.length){
+      const{data:tags}=await sb.rpc('get_popular_tags',{limit_n:25});
+      if(tags) _exploreState.tags=(tags||[]).filter(t=>t.tag&&!t.tag.startsWith('@')&&!t.tag.startsWith('💾')&&!t.tag.startsWith('📤'));
+    }
+
+    // 노트 쿼리
+    const {activeTag,query,sort,page}=_exploreState;
+    const from=page*20, to=from+19;
+    let q=sb.from('videos').select('id,url,title,keywords,memo,like_count,added_at,user_id')
+      .eq('is_public',true).neq('user_id',user?.id||'00000000-0000-0000-0000-000000000000')
+      .range(from,to);
+    if(sort==='popular') q=q.order('like_count',{ascending:false});
+    else q=q.order('added_at',{ascending:false});
+    if(activeTag) q=q.contains('keywords',[activeTag]);
+    if(query) q=q.or(`title.ilike.%${query}%,keywords.cs.{${query}}`);
+    const{data:notes}=await q;
+
+    // 닉네임 조회
+    const uids=[...new Set((notes||[]).map(n=>n.user_id))];
+    let nickMap={};
+    if(uids.length){
+      const{data:profs}=await sb.from('user_profiles').select('user_id,nickname').in('user_id',uids);
+      nickMap=Object.fromEntries((profs||[]).map(p=>[p.user_id,p.nickname||'']));
+    }
+    const notesWithNick=(notes||[]).map(n=>({...n,_nick:nickMap[n.user_id]||''}));
+
+    if(reset) _exploreState.notes=notesWithNick;
+    else _exploreState.notes=[..._exploreState.notes,...notesWithNick];
+
+  }catch(e){console.error('탐색 로드 오류:',e);}
+  finally{_exploreState.loading=false;}
+
+  // 탐색 탭이 활성화된 경우만 리렌더
+  if(tab==='videos'&&view==='list'&&vSub==='explore') render();
+}
+
+window.setExploreTag=tag=>{
+  _exploreState.activeTag=_exploreState.activeTag===tag?'':tag;
+  loadExplore();
+};
+window.setExploreSort=s=>{_exploreState.sort=s;loadExplore();};
+window.clearExploreSearch=()=>{_exploreState.query='';loadExplore();};
+window.loadMoreExplore=()=>{_exploreState.page++;loadExplore(false);};
+
+let _exploreSearchTimer=null;
+window.debounceExploreSearch=q=>{
+  clearTimeout(_exploreSearchTimer);
+  _exploreSearchTimer=setTimeout(()=>{_exploreState.query=q;loadExplore();},400);
+};
 window.filterV=(q,cat)=>{
   const f=D.videos.filter(v=>(!q||v.title.includes(q)||v.kw.some(k=>k.includes(q)))&&(!cat||v.kw.includes(cat)));
   const c=$('vcards');if(!c)return;
@@ -3466,15 +3619,17 @@ function _visitPList(sessions, nickname){
 }
 
 window.gotoTab=t=>{
-  // 방문 모드 해제하고 내 탭으로
   if(_viewingProfile) _setVisitingProfile(null);
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';pClubFilter='';
   window._eActiveTag=''; window._eActiveTagKind='';
   if(t!=='home') homeTermIdx=-1;
+  // 탐색 탭 상태 초기화 (다른 탭으로 이동 시 페이지 리셋)
+  if(t==='videos'&&vSub==='explore'){_exploreState.page=0;}
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   if($('tab-'+t))$('tab-'+t).classList.add('on');
   render();
+  if(t==='videos'&&vSub==='explore') setTimeout(loadExplore,50);
 };
 function vDetail(){
   const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
