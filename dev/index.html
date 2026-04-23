@@ -2441,6 +2441,7 @@ function urlBase64ToUint8Array(base64String) {
 
 async function initWebPush() {
   if(!user || isGuest) return;
+  if(IS_DEV) return; // DEV 환경에서는 Web Push 비활성화 (sw.js 없음)
   if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
   try {
