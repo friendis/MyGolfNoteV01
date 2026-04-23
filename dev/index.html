@@ -5924,7 +5924,7 @@ function pvBindCanvas(){
     if(e.touches.length===0)pvDragging=false;
     // 핀치 종료 후 scale 1 미만이면 리셋
     if(!pvPinching){const _im=$("pv-img"),_ca=$("pv-canvas");const _fitS=Math.min(_ca.clientWidth/(_im.naturalWidth||1),_ca.clientHeight/(_im.naturalHeight||1));if(pvScale<_fitS*1.05){pvFitImage();pvApplyTransform();}}
-  });
+  },{passive:true});
 
   // 더블 탭/클릭으로 2× 토글
   let pvLastTap=0;
@@ -5955,7 +5955,7 @@ function pvBindCanvas(){
       pvApplyTransform();
     }
     pvLastTap=now;
-  });
+  },{passive:true});
 }
 
 // 키보드 지원
