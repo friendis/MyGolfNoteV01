@@ -63,6 +63,8 @@ input[type=file]{color:#7a9ab8;border-style:dashed;padding:.45rem .8rem}
 /* 노트 */
 .note{font-size:.7rem;color:#4a5568;line-height:1.6;margin-top:.35rem}
 .warn{font-size:.72rem;color:rgba(200,137,58,.75);background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.18);border-radius:4px;padding:.45rem .7rem;margin-top:.5rem;line-height:1.5}
+.tag-chip{background:rgba(240,237,230,.05);border:1px solid rgba(240,237,230,.15);color:#7a9ab8;font-size:.72rem;padding:3px 9px;border-radius:12px;cursor:pointer;font-family:inherit;transition:all .12s}
+.tag-chip:hover{background:rgba(200,137,58,.1);border-color:rgba(200,137,58,.3);color:#C8893A}
 </style>
 </head>
 <body>
@@ -85,6 +87,11 @@ input[type=file]{color:#7a9ab8;border-style:dashed;padding:.45rem .8rem}
       <label>Personal Access Token</label>
       <input type="password" id="token" placeholder="ghp_...">
       <div class="note">토큰은 이 페이지 안에서만 사용되며 어디에도 저장되지 않습니다.</div>
+    </div>
+    <div class="fg">
+      <label>Anthropic API Key <span style="font-weight:400;color:#4a5568">(릴리즈 노트 자동 생성용 · 선택)</span></label>
+      <input type="password" id="anthropic-key" placeholder="sk-ant-api03-...">
+      <div class="note">입력 시 DEV→PROD 변경 사항을 Claude가 분석해 릴리즈 노트를 자동 작성합니다.</div>
     </div>
   </div>
 
@@ -145,6 +152,44 @@ input[type=file]{color:#7a9ab8;border-style:dashed;padding:.45rem .8rem}
         <span class="status-label">접속 URL</span>
         <span id="prod-url-display" style="font-size:.72rem;color:#7a9ab8">—</span>
       </div>
+    </div>
+
+    <!-- 릴리즈 노트 -->
+    <div style="margin-bottom:.85rem">
+      <label style="font-size:.68rem;font-weight:700;color:#C8893A;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:.4rem">
+        릴리즈 노트 <span style="font-weight:400;color:#4a5568">(CHANGELOG.md에 저장 · 앱에서 사용자에게 표시)</span>
+      </label>
+      <div style="display:flex;gap:.4rem;margin-bottom:.4rem;flex-wrap:wrap" id="release-tag-btns">
+        <button type="button" onclick="insertTag('✨ 새 기능')" class="tag-chip">✨ 새 기능</button>
+        <button type="button" onclick="insertTag('🐛 버그 수정')" class="tag-chip">🐛 버그 수정</button>
+        <button type="button" onclick="insertTag('⚡ 성능 개선')" class="tag-chip">⚡ 성능 개선</button>
+        <button type="button" onclick="insertTag('🎨 UI 개선')" class="tag-chip">🎨 UI 개선</button>
+        <button type="button" onclick="insertTag('🔧 기타 수정')" class="tag-chip">🔧 기타 수정</button>
+        <button type="button" id="ai-gen-btn" onclick="autoGenerateNotes()"
+          class="tag-chip" style="background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.35);color:#A78BFA;margin-left:auto">
+          ✦ AI 자동 작성
+        </button>
+      </div>
+      <div id="ai-gen-status" style="font-size:.72rem;color:#4a6a8a;margin-bottom:.4rem;display:none"></div>
+      <textarea id="release-notes" placeholder="이번 업데이트 내용을 간략히 작성해주세요.
+
+예시:
+✨ 새 기능
+• 학습노트 AI 자동 분석 기능 추가
+• 버디에게 노트 전달 기능
+
+🐛 버그 수정
+• 공개 프로필 저장 오류 수정"
+        style="width:100%;background:#0D1117;border:1px solid rgba(240,237,230,.12);color:#F0EDE6;padding:.65rem .8rem;border-radius:6px;font-family:inherit;font-size:.82rem;resize:vertical;min-height:130px;line-height:1.6;outline:none;box-sizing:border-box"
+        oninput="updateReleasePreview()"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.3rem">
+        <span id="release-char-count" style="font-size:.68rem;color:#4a5568">0자</span>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:#4a6a8a">
+          <input type="checkbox" id="show-preview" onchange="togglePreview()" style="accent-color:#C8893A;width:auto">
+          미리보기
+        </label>
+      </div>
+      <div id="release-preview" style="display:none;background:#161B22;border:1px solid rgba(200,137,58,.2);border-radius:6px;padding:.75rem 1rem;margin-top:.5rem;font-size:.82rem;color:#F0EDE6;line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
     </div>
 
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
@@ -310,13 +355,200 @@ async function deployDev() {
   }
 }
 
+async function autoGenerateNotes() {
+  const anthropicKey = document.getElementById('anthropic-key').value.trim();
+  if(!anthropicKey) {
+    alert('설정에서 Anthropic API Key를 먼저 입력해주세요.');
+    document.getElementById('anthropic-key').focus();
+    return;
+  }
+  if(!devContent) {
+    alert('DEV 배포를 먼저 진행해주세요. DEV 파일과 현재 PROD 파일을 비교해서 릴리즈 노트를 작성합니다.');
+    return;
+  }
+
+  const btn = document.getElementById('ai-gen-btn');
+  const status = document.getElementById('ai-gen-status');
+  btn.disabled = true;
+  btn.textContent = '✦ 분석 중...';
+  status.style.display = 'block';
+  status.textContent = '현재 PROD 파일을 가져오는 중...';
+
+  try {
+    // 1. 현재 PROD 파일 가져오기
+    const {username, repo, token} = getInputs();
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
+
+    let prodContent = '';
+    const res = await fetch(`${apiBase}/contents/index.html`, { headers });
+    if(res.ok) {
+      const data = await res.json();
+      // Base64 디코딩 (한글 포함 UTF-8)
+      const binary = atob(data.content.replace(/\n/g, ''));
+      const bytes = new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      prodContent = new TextDecoder('utf-8').decode(bytes);
+      status.textContent = `현재 PROD 파일 확인 완료 (${(prodContent.length/1024).toFixed(0)}KB) → Claude로 분석 중...`;
+    } else {
+      status.textContent = 'PROD 파일 없음 (첫 배포) → Claude로 분석 중...';
+    }
+
+    // 2. 변경 사항 추출 (JS/HTML 함수명·주요 변경점 위주로 샘플링)
+    // 두 파일이 너무 크므로 의미있는 diff 포인트만 추출
+    const extractSignature = (code) => {
+      const lines = code.split('\n');
+      const sigs = [];
+      lines.forEach(line => {
+        const t = line.trim();
+        // window.xxx 함수, function xxx, CSS 클래스 추가, 주요 UI 텍스트 등
+        if(/^window\.[a-zA-Z]+=/.test(t)) sigs.push(t.slice(0,80));
+        else if(/^function [a-zA-Z]/.test(t)) sigs.push(t.slice(0,60));
+        else if(/const [A-Z_]{3,}=/.test(t)) sigs.push(t.slice(0,60));
+      });
+      return sigs;
+    };
+
+    const prodSigs = new Set(prodContent ? extractSignature(prodContent) : []);
+    const devSigs = extractSignature(devContent);
+
+    const added = devSigs.filter(s => !prodSigs.has(s));
+    const removed = prodContent ? [...prodSigs].filter(s => !devSigs.includes(s)) : [];
+
+    // HTML 변경 (버튼 텍스트, 라벨 등 UI 관련)
+    const extractUiTexts = (code) => {
+      const matches = [];
+      (code.match(/>[가-힣a-zA-Z\s]{4,30}</g) || []).forEach(m => {
+        const t = m.slice(1,-1).trim();
+        if(t) matches.push(t);
+      });
+      return [...new Set(matches)].slice(0,100);
+    };
+    const prodUi = new Set(prodContent ? extractUiTexts(prodContent) : []);
+    const devUi = extractUiTexts(devContent);
+    const newUi = devUi.filter(t => !prodUi.has(t)).slice(0,30);
+
+    const diffSummary = [
+      added.length ? `신규 함수/기능 (${added.length}개):\n${added.slice(0,20).join('\n')}` : '',
+      removed.length ? `제거된 항목 (${removed.length}개):\n${removed.slice(0,10).join('\n')}` : '',
+      newUi.length ? `새로운 UI 텍스트:\n${newUi.join(', ')}` : '',
+    ].filter(Boolean).join('\n\n');
+
+    // 3. Claude API 호출
+    const prompt = `당신은 Birdyard 골프 앱의 개발자입니다. 아래 코드 변경 사항을 분석해서 사용자가 이해할 수 있는 릴리즈 노트를 작성해주세요.
+
+## 코드 변경 분석
+${diffSummary || '(첫 배포 또는 분석 불가)'}
+
+## 작성 규칙
+- 사용자 관점에서 "무엇이 달라졌는지" 중심으로 작성
+- 기술적인 용어 대신 기능 이름으로 설명
+- 아래 이모지 섹션 형식 사용:
+  ✨ 새 기능
+  • [기능명] — [한 줄 설명]
+
+  🐛 버그 수정
+  • [수정 내용]
+
+  🎨 UI 개선
+  • [개선 내용]
+
+- 변경이 없거나 불명확한 섹션은 생략
+- 전체 5~12줄 이내로 간결하게
+- 한국어로 작성`;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if(!claudeRes.ok) {
+      const err = await claudeRes.json();
+      throw new Error(err.error?.message || `API 오류 ${claudeRes.status}`);
+    }
+
+    const claudeData = await claudeRes.json();
+    const generated = claudeData.content?.[0]?.text?.trim() || '';
+
+    if(!generated) throw new Error('응답이 비어있습니다');
+
+    // 4. textarea에 삽입 (기존 내용이 있으면 앞에 추가)
+    const ta = document.getElementById('release-notes');
+    ta.value = generated + (ta.value.trim() ? '\n\n' + ta.value : '');
+    updateReleasePreview();
+
+    status.textContent = `✓ 자동 작성 완료! 내용을 검토하고 수정해주세요.`;
+    status.style.color = '#3D9E74';
+    btn.textContent = '✦ 재생성';
+
+  } catch(e) {
+    status.textContent = `오류: ${e.message}`;
+    status.style.color = '#E05252';
+    btn.textContent = '✦ AI 자동 작성';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function insertTag(tag) {
+  const ta = document.getElementById('release-notes');
+  const pos = ta.selectionStart;
+  const before = ta.value.slice(0, pos);
+  const after = ta.value.slice(pos);
+  const insert = (before && !before.endsWith('\n') ? '\n' : '') + tag + '\n';
+  ta.value = before + insert + after;
+  ta.selectionStart = ta.selectionEnd = pos + insert.length;
+  ta.focus();
+  updateReleasePreview();
+}
+
+function updateReleasePreview() {
+  const val = document.getElementById('release-notes').value;
+  document.getElementById('release-char-count').textContent = val.length + '자';
+  const preview = document.getElementById('release-preview');
+  if(preview.style.display !== 'none') preview.textContent = val;
+}
+
+function togglePreview() {
+  const preview = document.getElementById('release-preview');
+  const show = document.getElementById('show-preview').checked;
+  preview.style.display = show ? 'block' : 'none';
+  if(show) updateReleasePreview();
+}
+
+function buildChangelog(notes, version, commitSha) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\.\s*/g,'-').replace(/-$/,'');
+  const timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  return `## ${version} — ${dateStr} ${timeStr}\n${commitSha ? `> 커밋: ${commitSha}\n` : ''}\n${notes}\n`;
+}
+
 async function deployProd() {
   const {username, repo, token} = getInputs();
   const btn = document.getElementById('prod-btn');
   const badge = document.getElementById('prod-badge');
+  const releaseNotes = document.getElementById('release-notes').value.trim();
 
   if(!devContent) {
-    logTo('prod-log', 'DEV 배포를 먼저 진행하세요. DEV 파일을 PROD에 그대로 복사합니다.', 'err');
+    logTo('prod-log', 'DEV 배포를 먼저 진행하세요.', 'err');
+    return;
+  }
+  if(!releaseNotes) {
+    logTo('prod-log', '릴리즈 노트를 작성해주세요.', 'err');
+    document.getElementById('release-notes').focus();
     return;
   }
   if(!confirm('PROD에 배포하면 실제 사용자에게 즉시 반영됩니다.\n계속하시겠습니까?')) return;
@@ -327,39 +559,70 @@ async function deployProd() {
   badge.textContent = '배포 중...';
   clearLog('prod-log');
 
-  try {
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    };
-    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  const apiBase = `https://api.github.com/repos/${username}/${repo}`;
 
+  try {
+    // 1. index.html 업로드
     logTo('prod-log', 'index.html SHA 확인 중...', 'gold');
     const sha = await getSHA(apiBase, 'index.html', headers);
-    if(sha) logTo('prod-log', `기존 파일 발견 (SHA: ${sha.slice(0,7)}...)`, 'info');
+    if(sha) logTo('prod-log', `기존 파일 (SHA: ${sha.slice(0,7)}...)`, 'info');
 
-    logTo('prod-log', 'index.html 업로드 중 (DEV → PROD 승격)...', 'gold');
+    logTo('prod-log', 'index.html 업로드 중...', 'gold');
     const now = new Date().toLocaleString('ko-KR');
     const result = await putFile(
       apiBase, 'index.html', devContent,
-      `🚀 PROD 배포 ${now} (DEV 검증 완료)`, sha, headers
+      `🚀 PROD 배포 ${now}`, sha, headers
     );
-    logTo('prod-log', `업로드 완료! 커밋: ${result.commit?.sha?.slice(0,7)}`, 'ok');
+    const commitSha = result.commit?.sha?.slice(0,7);
+    logTo('prod-log', `index.html 완료! 커밋: ${commitSha}`, 'ok');
 
+    // 2. CHANGELOG.md 업로드 (기존 내용 앞에 추가)
+    logTo('prod-log', 'CHANGELOG.md 업데이트 중...', 'gold');
+    const changelogSha = await getSHA(apiBase, 'CHANGELOG.md', headers);
+    let existingChangelog = '';
+
+    if(changelogSha) {
+      // 기존 파일 읽기
+      const res = await fetch(`${apiBase}/contents/CHANGELOG.md`, { headers });
+      if(res.ok) {
+        const data = await res.json();
+        existingChangelog = atob(data.content.replace(/\n/g, ''));
+      }
+    }
+
+    // 버전 카운트 (기존 항목 수 + 1)
+    const versionNum = (existingChangelog.match(/^## /gm) || []).length + 1;
+    const versionStr = `v1.${versionNum}`;
+    const newEntry = buildChangelog(releaseNotes, versionStr, commitSha);
+    const header = existingChangelog.startsWith('# CHANGELOG') ? '' : '# CHANGELOG — Birdyard\n\n';
+    const fullChangelog = header + newEntry + '\n' + (existingChangelog.replace(/^# CHANGELOG.*\n\n?/,'') || '');
+
+    await putFile(
+      apiBase, 'CHANGELOG.md', fullChangelog,
+      `📝 릴리즈 노트 ${versionStr}`, changelogSha, headers
+    );
+    logTo('prod-log', `CHANGELOG.md 완료! (${versionStr})`, 'ok');
+
+    // 3. 완료
     const prodUrl = `https://${username}.github.io/${repo}/`;
     logTo('prod-log', `PROD URL: ${prodUrl}`, 'gold');
+    logTo('prod-log', `릴리즈: ${versionStr}`, 'purple');
     logTo('prod-log', '※ GitHub Pages 반영까지 1~2분 소요', 'info');
 
     badge.className = 'badge badge-ok';
     badge.textContent = '✓ 완료';
-
-    // 체크박스 다시 해제
     document.getElementById('prod-confirm').checked = false;
     btn.disabled = true;
+    document.getElementById('release-notes').value = '';
+    updateReleasePreview();
 
-    addHistory('PROD', '(DEV 파일 승격)', result.commit?.sha?.slice(0,7), prodUrl);
+    addHistory('PROD', versionStr, commitSha, prodUrl);
 
   } catch(e) {
     logTo('prod-log', `오류: ${e.message}`, 'err');
@@ -367,11 +630,6 @@ async function deployProd() {
     badge.textContent = '실패';
     btn.disabled = false;
     btn.textContent = '🚀 PROD에 배포 (승격)';
-  } finally {
-    if(!document.getElementById('prod-badge').textContent.includes('완료')) {
-      btn.disabled = false;
-      btn.textContent = '🚀 PROD에 배포 (승격)';
-    }
   }
 }
 
