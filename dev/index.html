@@ -2198,6 +2198,41 @@ window.markAllNotifRead=async()=>{
 };
 
 // ── 노트 전달 ─────────────────────────────────────────
+window.sendNoteShareWithPublicCheck=async(noteId, noteTitle, noteUrl, isPublic)=>{
+  if(!isPublic){
+    // 비공개 상태 — 공개 전환 안내
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem';
+    overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:min(340px,100%);padding:1.4rem">
+      <div style="font-size:.9rem;font-weight:600;color:var(--chalk);margin-bottom:.6rem">📤 버디에게 전달하려면 공개가 필요해요</div>
+      <div style="font-size:.8rem;color:var(--dim);line-height:1.6;margin-bottom:1.1rem">
+        버디가 노트를 확인하려면 이 노트가 공개 상태여야 합니다.<br>
+        지금 공개로 전환할까요?
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button id="note-public-confirm" style="flex:1;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.45rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+          ✓ 공개로 전환하고 전달
+        </button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans)">
+          취소
+        </button>
+      </div>
+    </div>`;
+    overlay.querySelector('#note-public-confirm').addEventListener('click', async()=>{
+      overlay.remove();
+      // 공개로 전환
+      await toggleNotePublic(noteId, true);
+      // 잠깐 대기 후 전달 팝업
+      setTimeout(()=>sendNoteShare(noteId, noteTitle, noteUrl), 300);
+    });
+    overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+    document.body.appendChild(overlay);
+    return;
+  }
+  // 이미 공개 상태면 바로 전달 팝업
+  sendNoteShare(noteId, noteTitle, noteUrl);
+};
+
 window.sendNoteShare=async(noteId, noteTitle, noteUrl)=>{
   if(!user){toast('로그인이 필요합니다');return;}
   if(!D.profile?.nickname){toast('닉네임을 먼저 설정해주세요');return;}
@@ -3680,13 +3715,22 @@ function vDetail(){
         ❤️ ${likeCount}명이 좋아합니다
       </button>`:''}
     </div>
-    <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
+    <!-- 공간 확보 — 삭제 버튼은 아래 별도 영역 -->
   </div>
-  ${isOwnNote?`<div style="display:flex;justify-content:flex-end;margin-top:.3rem">
-    <button onclick="sendNoteShare('${v.id}','${ea(v.title)}','${ea(v.url)}')"
+  ${isOwnNote?`
+  <!-- 버디에게 전달 + 공개 토글 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.5rem">
+    <button onclick="sendNoteShareWithPublicCheck('${v.id}','${ea(v.title)}','${ea(v.url)}',${v.isPublic})"
       style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">📤 버디에게 전달</button>
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none">
+      <input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)">
+      <span>공개</span>
+    </label>
+  </div>
+  <!-- 삭제 버튼: 구분선으로 분리해 실수 클릭 방지 -->
+  <div style="margin-top:.75rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.15);display:flex;justify-content:flex-end">
+    <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
   </div>`:''}
-  ${isOwnNote?`<div class="public-toggle"><label><input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label></div>`:''}
   </div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
