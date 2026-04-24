@@ -216,7 +216,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .home-section{margin-bottom:1.2rem}
 .home-section-title{font-size:.72rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.65rem;display:flex;align-items:center;gap:.4rem}
 .home-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.2rem}
-.home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s}
+.home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column;align-items:center}
 .home-kpi:hover{border-color:rgba(200,137,58,.3)}
 .home-kpi-n{font-family:var(--serif);font-size:1.6rem;font-weight:700;line-height:1;color:var(--chalk)}
 .home-kpi-l{font-size:.67rem;color:var(--muted);margin-top:4px;letter-spacing:.06em}
@@ -3058,13 +3058,22 @@ function homeView(){
   <!-- KPI 카드 -->
   <div class="home-kpi-row">
     <div class="home-kpi" onclick="gotoTab('videos')">
-      <div class="home-kpi-n">${D.videos.length}</div><div class="home-kpi-l">학습 노트</div>
+      <div class="home-kpi-n">${D.videos.length}</div>
+      <div class="home-kpi-l">학습 노트</div>
+      <button onclick="event.stopPropagation();gotoTab('videos');goAdd()"
+        style="margin-top:.4rem;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.28);color:var(--wing2);font-size:.7rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);line-height:1.4">+ 추가</button>
     </div>
     <div class="home-kpi" onclick="gotoTab('equipment')">
-      <div class="home-kpi-n">${D.equip.filter(e=>e.status==='owned').length}</div><div class="home-kpi-l">보유 장비</div>
+      <div class="home-kpi-n">${D.equip.filter(e=>e.status==='owned').length}</div>
+      <div class="home-kpi-l">보유 장비</div>
+      <button onclick="event.stopPropagation();gotoTab('equipment');goAdd()"
+        style="margin-top:.4rem;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.28);color:var(--wing2);font-size:.7rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);line-height:1.4">+ 추가</button>
     </div>
     <div class="home-kpi" onclick="gotoTab('practice')">
-      <div class="home-kpi-n">${D.sessions.length}</div><div class="home-kpi-l">비행 기록</div>
+      <div class="home-kpi-n">${D.sessions.length}</div>
+      <div class="home-kpi-l">비행 기록</div>
+      <button onclick="event.stopPropagation();gotoTab('practice');goAdd()"
+        style="margin-top:.4rem;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.28);color:var(--wing2);font-size:.7rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);line-height:1.4">+ 추가</button>
     </div>
   </div>
 
@@ -3122,12 +3131,6 @@ function homeView(){
 
   <!-- 오늘의 용어 -->
   ${termHtml?`<div class="home-section">${termHtml}</div>`:''}
-
-  <!-- 빠른 시작 -->
-  <div style="display:flex;gap:.5rem;margin-top:.5rem">
-    <button class="btn btn-p" style="flex:1" onclick="gotoTab('practice');goAdd()">+ 비행 기록</button>
-    <button class="btn btn-s" style="flex:1" onclick="gotoTab('videos');goAdd()">+ 학습 노트</button>
-  </div>
   </div>`;
 }
 function vList(){
