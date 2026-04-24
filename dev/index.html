@@ -3750,7 +3750,22 @@ window.delVideo=async id=>{
   if(!confirm('영상을 삭제하시겠습니까?'))return;
   sync('busy');const{error}=await sb.from('videos').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.videos=D.videos.filter(v=>v.id!==id);sync('ok');toast('삭제됨');goList();
 };
-function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div>
+<div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb();onVUrlInput()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div>
+<!-- AI 자동 분석 버튼 (YouTube일 때만 표시) -->
+<div id="yt-analyze-wrap" style="display:none;margin-bottom:.85rem">
+  <button class="btn-analyze" id="yt-analyze-btn" onclick="analyzeYouTube()" style="width:100%;padding:.55rem;font-size:.82rem;justify-content:center;display:flex;align-items:center;gap:.4rem">
+    ✦ AI로 자동 분석 <span style="font-size:.72rem;opacity:.7">(메모·타임스탬프·태그 자동 생성)</span>
+  </button>
+  <div id="yt-analyze-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;text-align:center"></div>
+</div>
+<div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div>
+<!-- 타임스탬프 미리보기 (AI 분석 후 자동 채워짐) -->
+<div id="vts-preview" style="display:none;margin-bottom:.75rem">
+  <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프 <span style="font-size:.68rem;font-weight:400">(AI 분석 결과)</span></div>
+  <div id="vts-list"></div>
+</div>
+<div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.prevThumb=()=>{
   const url=$('vu').value.trim();
   const t=thumb(url),img=$('vthumb');
@@ -3779,21 +3794,97 @@ window.prevThumb=()=>{
   }
 };
 window.addKw=c=>{const e=$('vk');e.value=e.value.trim()?(e.value.trim()+', '+c):c};
+
+// YouTube URL 입력 시 AI 분석 버튼 표시
+window.onVUrlInput=()=>{
+  const url=$('vu')?.value.trim()||'';
+  const wrap=$('yt-analyze-wrap');
+  if(wrap) wrap.style.display=vidId(url)?'block':'none';
+};
+
+// AI 자동 분석
+window._ytAnalyzedTs=[];
+
+window.analyzeYouTube=async()=>{
+  const url=$('vu')?.value.trim()||'';
+  if(!vidId(url)){toast('YouTube URL을 먼저 입력하세요');return;}
+  const btn=$('yt-analyze-btn'),status=$('yt-analyze-status');
+  btn.disabled=true;btn.textContent='✦ 분석 중... (10~30초 소요)';
+  if(status){status.textContent='영상 내용을 읽고 있습니다...';status.style.color='var(--muted)';}
+  try{
+    const prompt=`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.
+
+{
+  "title": "영상 제목 (한국어로)",
+  "keywords": ["태그1", "태그2", "태그3"],
+  "memo": "핵심 내용 요약 (3~5줄, 한국어. 배울 수 있는 핵심 포인트 중심)",
+  "timestamps": [
+    {"time": "0:30", "note": "해당 구간 핵심 내용"},
+    {"time": "1:45", "note": "해당 구간 핵심 내용"}
+  ]
+}
+
+규칙:
+- keywords: 골프 관련 핵심 태그 3~6개 (예: 드라이버, 백스윙, 어드레스)
+- timestamps: 핵심 구간 3~8개
+- 모든 응답은 한국어`;
+
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({type:'youtube',youtubeUrl:url,model:'gemini-2.5-flash',maxOutputTokens:3000,prompt})
+    });
+    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    const data=await resp.json();
+    const raw=data.result||data.text||'';
+    const jsonMatch=raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('AI 응답을 파싱할 수 없습니다');
+    const parsed=JSON.parse(jsonMatch[0]);
+
+    // 폼 자동 입력
+    if(parsed.title){const vt=$('vt');if(vt&&!vt.value) vt.value=parsed.title;}
+    if(parsed.keywords?.length){const vk=$('vk');if(vk) vk.value=parsed.keywords.join(', ');}
+    if(parsed.memo){const vm=$('vm');if(vm) vm.value=parsed.memo;}
+
+    // 타임스탬프 미리보기
+    window._ytAnalyzedTs=parsed.timestamps||[];
+    const tsList=$('vts-list'),tsWrap=$('vts-preview');
+    if(tsList&&tsWrap&&window._ytAnalyzedTs.length){
+      tsWrap.style.display='block';
+      tsList.innerHTML=window._ytAnalyzedTs.map(t=>`
+        <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+          <span style="background:rgba(200,137,58,.12);color:var(--wing2);border-radius:2px;padding:1px 7px;font-size:.72rem;white-space:nowrap;flex-shrink:0">▶ ${esc(t.time)}</span>
+          <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
+        </div>`).join('');
+    }
+    btn.textContent='✓ 분석 완료';
+    btn.style.borderColor='rgba(61,158,116,.4)';
+    btn.style.color='#3D9E74';
+    if(status) status.textContent=`태그 ${(parsed.keywords||[]).length}개 · 타임스탬프 ${window._ytAnalyzedTs.length}개 생성됨`;
+  }catch(e){
+    console.error('YouTube 분석 오류:',e);
+    btn.disabled=false;btn.textContent='✦ AI로 자동 분석';
+    if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
+    toast('분석 실패: '+e.message);
+  }
+};
+
 window.saveVideo=async()=>{
   const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}
   if(!vidId(url)&&!isInsta(url)){toast('YouTube 또는 Instagram URL을 입력하세요');return}
   if(overLimit('videos')){toast(limitMsg('videos'));return}
-  // 중복 최종 확인
   const vid=vidId(url);
   const dup=D.videos.find(v=>vid?vidId(v.url)===vid:v.url.trim()===url);
   if(dup){
     if(!confirm(`"${dup.title}" 이 영상이 이미 저장돼 있습니다.\n그래도 새로 추가하시겠습니까?`))return;
   }
   const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim();
+  const timestamps=window._ytAnalyzedTs||[];
   const btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
-  const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps:[],added_at:today()});
+  const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps,added_at:today()});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
+  window._ytAnalyzedTs=[];
   await loadAll();toast('노트 추가됨');goList();
 };
 function eList(){
