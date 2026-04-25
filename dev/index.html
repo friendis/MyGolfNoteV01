@@ -5161,32 +5161,17 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
     const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',signal:ctrl.signal,
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'scorecard',model:'gemini-2.5-flash',maxOutputTokens:4000,
-        prompt:`이 골프 스코어카드 사진을 분석해서 아래 형식의 JSON으로만 응답하세요. 마크다운, 설명, 주석 없이 순수 JSON만 출력하세요.
+      body:JSON.stringify({type:'scorecard',model:'gemini-2.5-flash',maxOutputTokens:8000,
+        prompt:`이 골프 스코어카드 사진을 분석해서 JSON으로만 응답하세요. 공백/개행 없는 minified JSON 한 줄로만 출력하세요.
 
-응답 형식:
-{
-  "crop": {"x": 0.05, "y": 0.3, "w": 0.9, "h": 0.35},
-  "players": ["이름1"],
-  "holes": 18,
-  "scores": [
-    {
-      "player": "이름1",
-      "hole_scores": [
-        {"hole": 1, "par": 4, "score": 5},
-        {"hole": 2, "par": 3, "score": 3}
-      ],
-      "total": 90
-    }
-  ]
-}
+형식(한 줄, 공백 없음):
+{"crop":{"x":0.0,"y":0.0,"w":1.0,"h":1.0},"players":["이름1"],"holes":18,"scores":[{"player":"이름1","hole_scores":[{"hole":1,"par":4,"score":5},{"hole":2,"par":3,"score":3}],"total":90}]}
 
 규칙:
-- crop: 스코어카드 표 영역의 상대 좌표 (0.0~1.0)
-- 홀별 par 불명확하면 4 사용
-- 플레이어 이름 없으면 "Player 1", "Player 2" 형식
-- hole_scores는 실제 홀 수만큼 모두 포함
-- JSON 외 다른 텍스트 절대 출력 금지`,
+- crop: 스코어카드 표 영역 상대좌표(0.0~1.0)
+- hole_scores: 모든 홀 포함 (9홀이면 9개, 18홀이면 18개)
+- par 불명확시 4, 이름 없으면 "Player 1"
+- 반드시 한 줄 minified JSON만 출력, 다른 텍스트 금지`,
         imageBase64:_scorecardOrigB64,imageMime:_scorecardMime})
     });
     clearTimeout(tOut);
