@@ -2860,7 +2860,6 @@ function render(){
     m.innerHTML=homeView();
     setTimeout(loadHomeSocial, 0);
     setTimeout(loadPopularNotes, 50);
-    setTimeout(checkChangelog, 300); // 새 업데이트 알림
     return;
   }
   if(tab==='videos'){
@@ -6909,208 +6908,92 @@ window.saveApiKeys = () => {
   toast('API 키가 저장됐습니다');
 };
 // ── 릴리즈 노트 ─────────────────────────────────────
-const RELEASE_NOTES = [
-  {
-    version: 'v1.12.3',
-    date: '2026-04-07',
-    items: [
-      {tag:'new',     title:'AI 분석 결과 기기 간 동기화',   desc:'클럽별 분석·장비 궁합·성장 분석 결과가 서버에 저장됩니다. 다른 기기에서 로그인해도 마지막 분석 내용을 확인할 수 있습니다.'},
-      {tag:'new',     title:'장소 자동 기억',               desc:'사진의 GPS 위치로 장소를 자동 입력하고, 한 번 방문한 곳은 이름을 기억해 다음 방문 시 자동으로 채워줍니다.'},
-      {tag:'new',     title:'처음 방문 장소 알림',           desc:'처음 찍힌 GPS 위치면 장소 입력란이 보라색으로 강조되고 안내 문구가 표시됩니다.'},
-      {tag:'improve', title:'비행 기록 추가 상단 저장 버튼', desc:'제목 오른쪽에 저장/취소 버튼이 추가되어 사진 업로드 후 스크롤 없이 바로 저장할 수 있습니다.'},
-    ]
-  },
-  {
-    version: 'v1.12.2',
-    date: '2026-04-06',
-    items: [
-      {tag:'improve', title:'AI 분석 버튼 이름 개선',     desc:'분석 후 "닫기" 대신 "✦ 장비·스윙 (04/06)" 형식으로 분석 날짜를 버튼에 표시합니다. 클릭하면 결과를 토글합니다.'},
-      {tag:'new',     title:'AI 분석 결과 영구 저장',     desc:'클럽별 분석, 장비 궁합, 성장 분석 결과를 localStorage에 저장합니다. 다시 로그인해도 마지막 분석 결과가 자동으로 복원됩니다.'},
-    ]
-  },
-  {
-    version: 'v1.12.1',
-    date: '2026-04-05',
-    items: [
-      {tag:'improve', title:'클럽별 AI 분석 2종으로 분리', desc:'비행 통계의 클럽별 분석이 "장비·스윙"과 "성장 추이" 두 가지로 나뉩니다. 장비·스윙은 스윙 패턴·보유장비 궁합·권장 사양을, 성장 추이는 개선된 점과 더 개선할 점을 분석합니다.'},
-    ]
-  },
-  {
-    version: 'v1.12.0',
-    date: '2026-04-05',
-    items: [
-      {tag:'new',    title:'시작화면',                   desc:'로그인 후 구력·연습빈도·실력비교·최근성과·오늘의용어가 표시되는 홈 화면으로 시작합니다. 로고를 누르면 언제든 홈으로 이동합니다.'},
-      {tag:'new',    title:'스크린/필드 게임 기록',       desc:'비행 기록 추가에서 GDR 분석 외 스크린·필드 골프 스코어를 직접 입력할 수 있습니다.'},
-      {tag:'new',    title:'골프 프로필',                desc:'첫 접속 시 골프 시작 날짜와 게임 타입을 입력합니다. 계정 설정에서 언제든 수정 가능합니다.'},
-      {tag:'new',    title:'실력 벤치마크',              desc:'홈 화면에서 내 드라이버 캐리를 프로/상급/중급/초급과 비교해 볼 수 있습니다.'},
-    ]
-  },
-  {
-    version: 'v1.11.1',
-    date: '2026-04-05',
-    items: [
-      {tag:'fix',    title:'용어 사전 네비게이션 수정',    desc:'사전 목록 돌아가기, 카테고리 탭, 관련 노트 클릭이 동작하지 않던 문제를 수정했습니다.'},
-      {tag:'fix',    title:'태그 필터 해제 버튼 수정',     desc:'학습 노트에서 태그 필터를 해제하는 ✕ 버튼이 동작하지 않던 문제를 수정했습니다.'},
-      {tag:'new',    title:'메모창 불렛/번호 자동 입력',   desc:'모든 메모창에서 - 또는 1. 입력 후 Enter 시 다음 줄에 불렛/번호가 자동으로 이어집니다. Tab으로 들여쓰기, Shift+Tab으로 내어쓰기 가능합니다.'},
-    ]
-  },
-  {
-    version: 'v1.11.0',
-    date: '2026-04-04',
-    items: [
-      {tag:'new',    title:'골프 용어 사전',             desc:'학습 노트 탭에서 📖 용어 사전 버튼으로 진입할 수 있습니다. 기본 100개 용어가 내장되며, 카테고리·가나다 순 탐색, 검색, 연관 용어 하이퍼링크를 제공합니다.'},
-      {tag:'new',    title:'AI 용어 검색 + 사전 추가',   desc:'사전에 없는 용어를 검색하면 Gemini가 설명과 연관 용어를 생성해 공용 사전에 자동 추가합니다.'},
-      {tag:'new',    title:'용어별 개인 메모',           desc:'각 용어 상세 페이지에서 내가 이해한 내용을 메모로 남길 수 있습니다. 메모는 개인별로 독립 저장됩니다.'},
-      {tag:'new',    title:'태그 클릭 → 노트 필터 + 사전 연동', desc:'학습 노트의 태그를 클릭하면 같은 태그 영상만 필터링되고, 상단에 해당 용어의 사전 설명이 표시됩니다.'},
-    ]
-  },
-  {
-    version: 'v1.10.4',
-    date: '2026-04-04',
-    items: [
-      {tag:'new', title:'비행 기록 하단 고정 네비게이션', desc:'비행 기록 상세 화면 하단에 이전/다음 기록 이동 버튼과 목록 버튼이 항상 표시됩니다. 스크롤 위치에 관계없이 바로 이동할 수 있습니다.'},
-    ]
-  },
-  {
-    version: 'v1.10.3',
-    date: '2026-04-04',
-    items: [
-      {tag:'improve','title':'보유 클럽 표시 + 통계 정규화', desc:'보유 장비로 기록된 클럽은 목록에 클럽 번호로 표시되고, 비행 통계는 같은 번호끼리 묶어 비교합니다.'},
-      {tag:'improve','title':'메모창 자동 높이',              desc:'비행 기록 메모창이 내용에 따라 자동으로 늘어납니다.'},
-      {tag:'new',    title:'사진 인라인 뷰어',               desc:'GDR 사진을 가로 스크롤로 탐색할 수 있으며, 탭 시 전체화면 뷰어에서 좌우 이동·키보드 방향키로 확인할 수 있습니다. 각 사진에 샷 번호가 오버레이됩니다.'},
-    ]
-  },
-  {
-    version: 'v1.10.2',
-    date: '2026-04-04',
-    items: [
-      {tag:'fix', title:'비행 기록 클럽 변경 저장 수정', desc:'클럽 선택 드롭다운 변경 시 저장이 되지 않던 문제를 수정했습니다. 인라인 이벤트 대신 DOM 바인딩 방식으로 변경해 안정적으로 저장됩니다.'},
-    ]
-  },
-  {
-    version: 'v1.10.1',
-    date: '2026-04-04',
-    items: [
-      {tag:'fix', title:'비행 기록 클럽 변경 오류 수정', desc:'비행 기록 상세에서 클럽을 변경해도 저장되지 않던 문제를 수정했습니다.'},
-    ]
-  },
-  {
-    version: 'v1.10.0',
-    date: '2026-04-04',
-    items: [
-      {tag:'new',    title:'아이언 세트 번호 관리',         desc:'장비 창고에서 아이언 분류 장비에 보유한 번호(2I~9I)를 체크박스로 선택·저장할 수 있습니다. 비행 기록 추가·편집 시 보유 아이언이 번호별로 분리되어 표시됩니다.'},
-      {tag:'improve','title':'보유 장비 클럽 선택 개선',    desc:'비행 기록 클럽 선택 드롭다운에 보유 장비가 장비명과 함께 표시됩니다. 아이언 세트는 등록된 번호별로 개별 항목으로 나타납니다.'},
-    ]
-  },
-  {
-    version: 'v1.9.0',
-    date: '2026-04-04',
-    items: [
-      {tag:'new', title:'비행 기록에서 보유 장비 클럽 선택', desc:'비행 기록 추가·편집 시 클럽 선택 드롭다운 상단에 장비 창고의 보유 장비가 "🪶 보유 장비" 그룹으로 표시됩니다. 기존 전체 클럽 목록도 함께 제공됩니다.'},
-    ]
-  },
-  {
-    version: 'v1.8.0',
-    date: '2026-04-04',
-    items: [
-      {tag:'improve','title':'장비 AI 분석 — 보유/관심 분리',  desc:'보유 장비는 실사용 비행 데이터 기반으로 장비-스윙 궁합·샤프트·로프트 적합성과 유지 또는 변경 여부를 분석합니다. 관심 장비는 전체 스윙 프로필을 기반으로 구매 적합성을 분석합니다.'},
-    ]
-  },
-  {
-    version: 'v1.7.0',
-    date: '2026-04-04',
-    items: [
-      {tag:'improve','title':'메모창 높이 조절',           desc:'모든 메모창을 하단을 드래그해 원하는 높이로 자유롭게 조절할 수 있습니다.'},
-      {tag:'improve','title':'장비 AI 분석 강화',          desc:'비행 데이터 기반 샤프트·로프트·방향 안정성·구매 적합 여부를 개조식으로 간결하게 분석합니다. 분석 결과 전체를 스크롤로 확인할 수 있습니다.'},
-    ]
-  },
-  {
-    version: 'v1.6.0',
-    date: '2026-04-04',
-    items: [
-      {tag:'new',    title:'장비 메모 인라인 편집',      desc:'장비 창고 상세 화면에서 메모를 textarea로 직접 수정할 수 있습니다. 줄바꿈을 자유롭게 입력할 수 있으며 포커스를 잃을 때 자동 저장됩니다.'},
-      {tag:'new',    title:'비밀번호 변경 / 찾기',       desc:'계정 설정에서 비밀번호를 직접 변경하거나 이메일로 재설정 링크를 받을 수 있습니다. 로그인 화면에도 비밀번호 찾기 기능이 추가됐습니다.'},
-      {tag:'new',    title:'업데이트 노트',              desc:'새 버전 배포 시 헤더 버튼으로 변경 내역을 확인할 수 있습니다. 새 버전이면 뱃지로 알림을 표시합니다.'},
-      {tag:'new',    title:'저작권 표시',                desc:'코드 최상단에 저작권 문구가 추가됐습니다.'},
-      {tag:'improve','title':'회원가입 오류 안내 개선',  desc:'가입 후 이메일 인증 필요 안내와 인증 미완료 시 로그인 오류 메시지를 더 명확하게 표시합니다.'},
-      {tag:'fix',    title:'중복 함수 제거',             desc:'editEMemo 함수가 중복 선언되어 있던 문제를 정리했습니다.'},
-    ]
-  },
-  {
-    version: 'v1.5.0',
-    date: '2026-03-30',
-    items: [
-      {tag:'new',    title:'클럽별 추이 그래프',       desc:'비행 통계에서 클럽별 색상이 다른 멀티라인 그래프로 캐리·헤드스피드·일관성 추이를 한눈에 확인할 수 있습니다.'},
-      {tag:'new',    title:'클럽별 추천 분석',         desc:'클럽별 스윙 패턴·방향 편향·스핀 데이터를 기반으로 맞춤 장비를 추천하고, 결과를 캐싱해 재분석 없이 바로 확인할 수 있습니다.'},
-      {tag:'new',    title:'장비 궁합 분석',           desc:'장비 창고에서 비행 통계와 보유 장비를 비교해 궁합을 평가합니다.'},
-      {tag:'fix',    title:'그래프 렌더링 오류 수정',  desc:'비행 통계 탭 전환 시 차트가 표시되지 않던 문제를 수정했습니다.'},
-      {tag:'fix',    title:'클럽 추천 닫기 버튼 오류', desc:'분석 결과를 닫은 후 추천 버튼이 동작하지 않던 문제를 수정했습니다.'},
-    ]
-  },
-  {
-    version: 'v1.4.0',
-    date: '2026-03-27',
-    items: [
-      {tag:'new',    title:'샷 일관성 분석',           desc:'각 세션의 캐리 변동계수를 기반으로 0~100점의 일관성 점수를 계산합니다. 비행 목록 카드, 세션 상세, 통계 탭에서 확인 가능합니다.'},
-      {tag:'new',    title:'테스트 계정 체험',         desc:'회원가입 없이 테스트 계정으로 앱의 모든 기능을 체험할 수 있습니다.'},
-      {tag:'new',    title:'Instagram URL 지원',       desc:'학습 노트에 Instagram Reel·포스트 URL을 저장하고 링크로 바로 열 수 있습니다.'},
-      {tag:'new',    title:'장비 AI 사양 분석',        desc:'장비명을 기반으로 Gemini가 사양·장점·단점·추천 대상을 분석합니다.'},
-      {tag:'improve','title':'AI 스윙 분석 개선',      desc:'잘 친 샷과 개선 필요한 샷을 번호로 구분해 표시하고, 분석 결과를 DB에 저장해 재분석 없이 바로 확인합니다.'},
-      {tag:'improve','title':'추가 버튼 위치 개선',    desc:'각 탭의 추가 버튼을 검색창·탭 버튼과 같은 줄 우측에 배치했습니다.'},
-    ]
-  },
-  {
-    version: 'v1.3.0',
-    date: '2026-03-20',
-    items: [
-      {tag:'new',    title:'비행 기록 편집',           desc:'날짜·클럽·장소·메모를 세션 상세 화면에서 직접 수정할 수 있습니다.'},
-      {tag:'new',    title:'성장 분석',               desc:'전체 세션 데이터를 기반으로 성장 추이를 AI가 분석합니다.'},
-      {tag:'new',    title:'사진 분석 재시도',         desc:'분석 실패한 사진을 개별 또는 일괄로 재시도할 수 있습니다.'},
-      {tag:'fix',    title:'GDR 클럽 번호 오류 수정', desc:'Gemini가 클럽을 숫자로 반환할 때 발생하던 TypeError를 수정했습니다.'},
-    ]
-  },
-];
 
-const CURRENT_VERSION = 'v1.12.3';
-const RN_KEY = 'birdyard_seen_version';
+const CURRENT_VERSION = 'v1.12.3'; // fallback용 (CHANGELOG.md가 없을 때)
+const RN_KEY = 'birdyard_seen_changelog'; // checkChangelog()와 동일한 키 공유
 
-function renderReleaseNotes() {
-  const el = $('release-content'); if(!el) return;
-  el.innerHTML = RELEASE_NOTES.map((r, ri) => `
-    <div style="${ri>0?'margin-top:1.2rem':''}">
-      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem">
-        <span class="rn-version">${r.version}</span>
-        <span style="font-size:.73rem;color:var(--muted)">${r.date}</span>
-        ${ri===0?'<span style="font-size:.72rem;font-weight:500;color:var(--turf);background:rgba(61,158,116,.12);border:1px solid rgba(61,158,116,.2);padding:1px 7px;border-radius:2px">최신</span>':''}
-      </div>
-      ${r.items.map(it=>`
-        <div class="rn-item">
-          <div class="rn-item-title">
-            <span class="rn-tag ${it.tag}">${it.tag==='new'?'신규':it.tag==='fix'?'수정':'개선'}</span>
-            ${it.title}
+async function checkNewVersion() {
+  // CHANGELOG.md에서 최신 버전 가져오기
+  try {
+    const CHANGELOG_URL = 'https://raw.githubusercontent.com/friendis/MyGolfNoteV01/main/CHANGELOG.md';
+    const res = await fetch(CHANGELOG_URL + '?t=' + Date.now());
+    if(!res.ok) { _renderFallbackReleaseNotes(); return; }
+    const text = await res.text();
+
+    // 모든 ## v 섹션 파싱
+    const sections = [];
+    const lines = text.split('\n');
+    let cur = null;
+
+    for(const line of lines) {
+      if(line.startsWith('## ')) {
+        const vMatch = line.match(/##\s+(v[\d.]+)\s*[—-]\s*(.+)/);
+        if(vMatch) {
+          if(cur) sections.push(cur);
+          cur = { version: vMatch[1], date: vMatch[2].trim(), lines: [] };
+        }
+      } else if(cur) {
+        if(!line.startsWith('> 커밋:') && !line.startsWith('# ')) {
+          cur.lines.push(line);
+        }
+      }
+    }
+    if(cur) sections.push(cur);
+
+    if(!sections.length) { _renderFallbackReleaseNotes(); return; }
+
+    // 릴리즈 노트 모달 내용 렌더링
+    const el = $('release-content');
+    if(el) {
+      el.innerHTML = sections.map((sec, i) => {
+        const content = sec.lines.join('\n')
+          .split('\n')
+          .map(line => {
+            if(!line.trim()) return '<div style="height:.25rem"></div>';
+            if(line.startsWith('#')) return '';
+            if(/^(✨|🐛|⚡|🎨|🔧|💡)/.test(line))
+              return `<div style="font-size:.8rem;font-weight:600;color:var(--wing2);margin:.55rem 0 .2rem">${line}</div>`;
+            if(line.startsWith('• '))
+              return `<div style="font-size:.78rem;color:var(--dim);padding:.1rem 0;display:flex;gap:.35rem"><span style="color:var(--muted);flex-shrink:0">•</span><span>${line.slice(2)}</span></div>`;
+            return `<div style="font-size:.78rem;color:var(--dim)">${line}</div>`;
+          }).join('');
+        return `<div style="${i>0?'margin-top:1.1rem;padding-top:1rem;border-top:1px solid var(--border)':''}">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+            <span class="rn-version">${sec.version}</span>
+            <span style="font-size:.72rem;color:var(--muted)">${sec.date}</span>
+            ${i===0?'<span style="font-size:.7rem;color:var(--turf);background:rgba(61,158,116,.12);border:1px solid rgba(61,158,116,.2);padding:1px 7px;border-radius:2px">최신</span>':''}
           </div>
-          <div class="rn-item-desc">${it.desc}</div>
-        </div>`).join('')}
-    </div>`).join('');
+          ${content}
+        </div>`;
+      }).join('');
+    }
+
+    // 뱃지 표시 여부
+    const latestVer = sections[0].version;
+    const seen = localStorage.getItem(RN_KEY);
+    const badge = $('rn-badge');
+    if(badge) badge.style.display = (seen !== latestVer) ? 'block' : 'none';
+
+    // 업데이트 확인 버튼 클릭 시 최신 버전 저장
+    window._latestChangelogVersion = latestVer;
+
+  } catch(e) {
+    _renderFallbackReleaseNotes();
+  }
+}
+
+function _renderFallbackReleaseNotes() {
+  const el = $('release-content');
+  if(el) el.innerHTML = '<div style="font-size:.8rem;color:var(--muted);padding:1rem 0;text-align:center">업데이트 정보를 불러올 수 없습니다.</div>';
 }
 
 window.closeReleaseModal = () => {
   closeModal('release-modal');
-  // 확인 후 뱃지 제거 + 버전 저장
-  localStorage.setItem(RN_KEY, CURRENT_VERSION);
+  const ver = window._latestChangelogVersion || CURRENT_VERSION;
+  localStorage.setItem(RN_KEY, ver);
   const badge = $('rn-badge');
   if(badge) badge.style.display = 'none';
 };
-
-function checkNewVersion() {
-  renderReleaseNotes();
-  const seen = localStorage.getItem(RN_KEY);
-  if(seen !== CURRENT_VERSION) {
-    // 새 버전 — 뱃지만 표시 (자동 팝업 없음)
-    const badge = $('rn-badge');
-    if(badge) badge.style.display = 'block';
-  }
-}
 
 window.openModal = id => {
   $(id).classList.add('on');
