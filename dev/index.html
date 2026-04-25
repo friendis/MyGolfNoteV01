@@ -5272,26 +5272,30 @@ async function _drawCropCanvas(crop, corners){
         tempC.width=iw; tempC.height=ih;
         tempC.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0);
         const srcCtx=tempC.getContext('2d',{willReadFrequently:true});
+        const dstCtx=canvas.getContext('2d');
 
-        for(let oy=0;oy<OUT_H;oy++){
-          const t=oy/OUT_H;
-          // 왼쪽 경계선 보간
-          const lx=pts.tl.x+(pts.bl.x-pts.tl.x)*t;
-          const ly=pts.tl.y+(pts.bl.y-pts.tl.y)*t;
-          // 오른쪽 경계선 보간
-          const rx=pts.tr.x+(pts.br.x-pts.tr.x)*t;
-          const ry=pts.tr.y+(pts.br.y-pts.tr.y)*t;
-          const lineW=Math.sqrt((rx-lx)**2+(ry-ly)**2);
-          const dstW=OUT_W;
-          for(let ox=0;ox<dstW;ox++){
-            const s=ox/dstW;
-            const sx=lx+(rx-lx)*s;
-            const sy=ly+(ry-ly)*s;
-            const px=srcCtx.getImageData(Math.round(sx),Math.round(sy),1,1).data;
-            ctx.fillStyle=`rgba(${px[0]},${px[1]},${px[2]},${px[3]/255})`;
-            ctx.fillRect(ox,oy,1,1);
+        // 청크 단위로 처리해 메인 스레드 블로킹 방지
+        const CHUNK=20; // 한 번에 처리할 행 수
+        let oy=0;
+        const drawChunk=()=>{
+          const end=Math.min(oy+CHUNK,OUT_H);
+          for(;oy<end;oy++){
+            const t=oy/OUT_H;
+            const lx=pts.tl.x+(pts.bl.x-pts.tl.x)*t, ly=pts.tl.y+(pts.bl.y-pts.tl.y)*t;
+            const rx=pts.tr.x+(pts.br.x-pts.tr.x)*t, ry=pts.tr.y+(pts.br.y-pts.tr.y)*t;
+            for(let ox=0;ox<OUT_W;ox++){
+              const s=ox/OUT_W;
+              const sx=Math.round(lx+(rx-lx)*s), sy=Math.round(ly+(ry-ly)*s);
+              const px=srcCtx.getImageData(sx,sy,1,1).data;
+              dstCtx.fillStyle=`rgba(${px[0]},${px[1]},${px[2]},${px[3]/255})`;
+              dstCtx.fillRect(ox,oy,1,1);
+            }
           }
-        }
+          if(oy<OUT_H) requestAnimationFrame(drawChunk);
+          else { window._scCropW=canvas.width; imgS.style.display='block'; res(); }
+        };
+        requestAnimationFrame(drawChunk);
+        return; // corners 분기는 drawChunk에서 res() 호출
       } else if(crop){
         // fallback: 직사각형 크롭
         const cx=Math.floor((crop.x||0)*iw), cy=Math.floor((crop.y||0)*ih);
@@ -8056,7 +8060,7 @@ window.saveSession = async () => {
 
   const { error, data: inserted } = await sb.from('practice_sessions').insert({
     user_id: user.id, session_date: date, club, location: loc, memo,
-    total_shots: shots.length, shots,
+    shots,
     image_url: imageUrls[0] || '',
     image_urls: imageUrls,
     game_type: recType,
