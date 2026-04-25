@@ -3,7 +3,7 @@
   ║                        BIRDYARD                             ║
   ║              Golf Learning Management App                    ║
   ╠══════════════════════════════════════════════════════════════╣
-  ║  Copyright (c) 2026 현민. All rights reserved.              ║
+  ║  Copyright (c) 2025 현민. All rights reserved.              ║
   ║                                                              ║
   ║  이 소스코드 및 관련 문서는 저작권법의 보호를 받습니다.         ║
   ║  저작권자의 명시적인 서면 허가 없이는 이 소프트웨어의           ║
@@ -216,7 +216,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .home-section{margin-bottom:1.2rem}
 .home-section-title{font-size:.72rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.65rem;display:flex;align-items:center;gap:.4rem}
 .home-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.2rem}
-.home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s}
+.home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column;align-items:center}
 .home-kpi:hover{border-color:rgba(200,137,58,.3)}
 .home-kpi-n{font-family:var(--serif);font-size:1.6rem;font-weight:700;line-height:1;color:var(--chalk)}
 .home-kpi-l{font-size:.67rem;color:var(--muted);margin-top:4px;letter-spacing:.06em}
@@ -364,6 +364,19 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 </style>
 </head>
 <body>
+<!-- DEV 환경 표시: /dev/ 경로일 때만 렌더링 -->
+<script>
+if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
+  var bar=document.createElement('div');
+  bar.id='dev-bar';
+  bar.style.cssText='position:fixed;top:0;left:0;right:0;height:28px;background:#1a0a2e;border-bottom:2px solid #A78BFA;z-index:99999;display:flex;align-items:center;justify-content:center;gap:8px;font-family:monospace;font-size:11px;color:#A78BFA;letter-spacing:.1em';
+  bar.innerHTML='<span style="width:7px;height:7px;border-radius:50%;background:#A78BFA;display:inline-block;animation:devpulse 1.4s ease-in-out infinite"></span>DEV — 테스트 환경 · 실제 데이터에 영향 없음';
+  var style=document.createElement('style');
+  style.textContent='@keyframes devpulse{0%,100%{opacity:1}50%{opacity:.3}}body{padding-top:28px!important}';
+  document.head.appendChild(style);
+  document.currentScript.parentNode.insertBefore(bar,document.currentScript);
+}
+</script>
 
 <div id="loading">
   <div class="spinner"></div>
@@ -648,8 +661,10 @@ import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm
 Chart.register(...registerables);
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
-const sb=createClient(SB_URL,SB_KEY);
-let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='stats',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
+// ── 환경 분기: /dev/ 경로면 dev 스키마 사용 ──────────
+const IS_DEV = location.pathname.includes('/dev/') || location.pathname.includes('/dev');
+const sb=createClient(SB_URL,SB_KEY,{db:{schema:IS_DEV?'dev':'public'}});
+let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='stats',vSub='mine',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
 let isGuest=false;
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
@@ -1240,6 +1255,77 @@ async function loadPopularNotes(){
     const wrap=$('home-popular-notes');
     if(wrap) wrap.style.display='none';
   }
+}
+
+// ── 릴리즈 노트 (CHANGELOG) ─────────────────────────
+let _changelogChecked = false; // 세션당 1회만
+
+async function checkChangelog() {
+  if(_changelogChecked || isGuest) return;
+  _changelogChecked = true;
+
+  try {
+    const CHANGELOG_URL = 'https://raw.githubusercontent.com/friendis/MyGolfNoteV01/main/CHANGELOG.md';
+    const res = await fetch(CHANGELOG_URL + '?t=' + Date.now());
+    if(!res.ok) return;
+    const text = await res.text();
+
+    // 첫 번째 버전 항목 파싱
+    const firstEntry = text.match(/^## (v[\d.]+.*?)$([\s\S]*?)(?=^## |\Z)/m);
+    if(!firstEntry) return;
+
+    const version = firstEntry[1].trim();
+    const content = firstEntry[2].trim();
+
+    // 마지막으로 본 버전 확인
+    const seenKey = 'birdyard_seen_changelog';
+    const lastSeen = localStorage.getItem(seenKey);
+    if(lastSeen === version) return; // 이미 본 버전
+
+    // 모달 표시
+    showChangelogModal(version, content, seenKey);
+  } catch(e) {
+    // 네트워크 오류 등은 조용히 무시
+  }
+}
+
+function showChangelogModal(version, content, storageKey) {
+  const existing = document.getElementById('changelog-modal');
+  if(existing) existing.remove();
+
+  // 마크다운 간단 렌더링
+  const rendered = content
+    .replace(/^(✨|🐛|⚡|🎨|🔧|💡|📤|📋)[^\n]+$/gm, s=>`<div style="font-size:.8rem;font-weight:600;color:var(--wing2);margin:.65rem 0 .25rem">${s}</div>`)
+    .replace(/^• (.+)$/gm, s=>`<div style="font-size:.78rem;color:var(--dim);padding:.1rem 0;display:flex;gap:.4rem"><span style="color:var(--muted);flex-shrink:0">•</span><span>${s.slice(2)}</span></div>`)
+    .replace(/^> (.+)$/gm, s=>`<div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">${s.slice(2)}</div>`)
+    .replace(/\n\n+/g, '\n');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'changelog-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:4000;display:flex;align-items:flex-end;justify-content:center';
+  overlay.innerHTML = `<div style="background:var(--surface);border:1px solid rgba(200,137,58,.25);border-radius:10px 10px 0 0;width:min(520px,100%);max-height:75vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:.9rem 1.1rem .6rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+        <span style="font-size:1rem">🎉</span>
+        <span style="font-family:var(--serif);font-size:.95rem;font-weight:700;color:var(--wing2)">Birdyard 업데이트</span>
+        <span style="font-size:.7rem;color:var(--muted);margin-left:.2rem">${esc(version)}</span>
+      </div>
+    </div>
+    <div style="overflow-y:auto;padding:.85rem 1.1rem;flex:1">${rendered}</div>
+    <div style="padding:.75rem 1.1rem;border-top:1px solid var(--border);display:flex;gap:.4rem;flex-shrink:0">
+      <button onclick="document.getElementById('changelog-modal').remove();localStorage.setItem('${storageKey}','${esc(version)}')"
+        style="flex:1;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.45rem;border-radius:4px;font-size:.85rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+        확인했어요
+      </button>
+    </div>
+  </div>`;
+  overlay.addEventListener('click', e => {
+    if(e.target === overlay){
+      overlay.remove();
+      localStorage.setItem(storageKey, version);
+    }
+  });
+  document.body.appendChild(overlay);
 }
 
 async function loadHomeSocial() {
@@ -2183,6 +2269,41 @@ window.markAllNotifRead=async()=>{
 };
 
 // ── 노트 전달 ─────────────────────────────────────────
+window.sendNoteShareWithPublicCheck=async(noteId, noteTitle, noteUrl, isPublic)=>{
+  if(!isPublic){
+    // 비공개 상태 — 공개 전환 안내
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem';
+    overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:min(340px,100%);padding:1.4rem">
+      <div style="font-size:.9rem;font-weight:600;color:var(--chalk);margin-bottom:.6rem">📤 버디에게 전달하려면 공개가 필요해요</div>
+      <div style="font-size:.8rem;color:var(--dim);line-height:1.6;margin-bottom:1.1rem">
+        버디가 노트를 확인하려면 이 노트가 공개 상태여야 합니다.<br>
+        지금 공개로 전환할까요?
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button id="note-public-confirm" style="flex:1;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.45rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+          ✓ 공개로 전환하고 전달
+        </button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans)">
+          취소
+        </button>
+      </div>
+    </div>`;
+    overlay.querySelector('#note-public-confirm').addEventListener('click', async()=>{
+      overlay.remove();
+      // 공개로 전환
+      await toggleNotePublic(noteId, true);
+      // 잠깐 대기 후 전달 팝업
+      setTimeout(()=>sendNoteShare(noteId, noteTitle, noteUrl), 300);
+    });
+    overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+    document.body.appendChild(overlay);
+    return;
+  }
+  // 이미 공개 상태면 바로 전달 팝업
+  sendNoteShare(noteId, noteTitle, noteUrl);
+};
+
 window.sendNoteShare=async(noteId, noteTitle, noteUrl)=>{
   if(!user){toast('로그인이 필요합니다');return;}
   if(!D.profile?.nickname){toast('닉네임을 먼저 설정해주세요');return;}
@@ -2426,6 +2547,7 @@ function urlBase64ToUint8Array(base64String) {
 
 async function initWebPush() {
   if(!user || isGuest) return;
+  if(IS_DEV) return; // DEV 환경에서는 Web Push 비활성화 (sw.js 없음)
   if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
   try {
@@ -2705,6 +2827,7 @@ function render(){
     m.innerHTML=homeView();
     setTimeout(loadHomeSocial, 0);
     setTimeout(loadPopularNotes, 50);
+    setTimeout(checkChangelog, 300); // 새 업데이트 알림
     return;
   }
   if(tab==='videos'){
@@ -2935,13 +3058,22 @@ function homeView(){
   <!-- KPI 카드 -->
   <div class="home-kpi-row">
     <div class="home-kpi" onclick="gotoTab('videos')">
-      <div class="home-kpi-n">${D.videos.length}</div><div class="home-kpi-l">학습 노트</div>
+      <div class="home-kpi-n">${D.videos.length}</div>
+      <div class="home-kpi-l">학습 노트</div>
+      <button onclick="event.stopPropagation();gotoTab('videos');goAdd()"
+        style="margin-top:.4rem;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.28);color:var(--wing2);font-size:.7rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);line-height:1.4">+ 추가</button>
     </div>
     <div class="home-kpi" onclick="gotoTab('equipment')">
-      <div class="home-kpi-n">${D.equip.filter(e=>e.status==='owned').length}</div><div class="home-kpi-l">보유 장비</div>
+      <div class="home-kpi-n">${D.equip.filter(e=>e.status==='owned').length}</div>
+      <div class="home-kpi-l">보유 장비</div>
+      <button onclick="event.stopPropagation();gotoTab('equipment');goAdd()"
+        style="margin-top:.4rem;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.28);color:var(--wing2);font-size:.7rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);line-height:1.4">+ 추가</button>
     </div>
     <div class="home-kpi" onclick="gotoTab('practice')">
-      <div class="home-kpi-n">${D.sessions.length}</div><div class="home-kpi-l">비행 기록</div>
+      <div class="home-kpi-n">${D.sessions.length}</div>
+      <div class="home-kpi-l">비행 기록</div>
+      <button onclick="event.stopPropagation();gotoTab('practice');goAdd()"
+        style="margin-top:.4rem;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.28);color:var(--wing2);font-size:.7rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);line-height:1.4">+ 추가</button>
     </div>
   </div>
 
@@ -2999,15 +3131,18 @@ function homeView(){
 
   <!-- 오늘의 용어 -->
   ${termHtml?`<div class="home-section">${termHtml}</div>`:''}
-
-  <!-- 빠른 시작 -->
-  <div style="display:flex;gap:.5rem;margin-top:.5rem">
-    <button class="btn btn-p" style="flex:1" onclick="gotoTab('practice');goAdd()">+ 비행 기록</button>
-    <button class="btn btn-s" style="flex:1" onclick="gotoTab('videos');goAdd()">+ 학습 노트</button>
-  </div>
   </div>`;
 }
 function vList(){
+  // ── 탭 헤더 ──────────────────────────────────────
+  const vtabs=`<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);margin-bottom:.9rem">
+    <button onclick="setVSub('mine')" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${vSub==='mine'?'var(--wing2)':'transparent'};background:none;color:${vSub==='mine'?'var(--wing2)':'var(--muted)'}">내 노트</button>
+    <button onclick="setVSub('explore')" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${vSub==='explore'?'var(--wing2)':'transparent'};background:none;color:${vSub==='explore'?'var(--wing2)':'var(--muted)'}">🔍 탐색</button>
+    <button class="btn btn-p btn-sm" style="flex-shrink:0;margin-left:auto;margin-bottom:2px" onclick="goAdd()">+ 노트 추가</button>
+  </div>`;
+
+  if(vSub==='explore') return exploreView(vtabs);
+
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
   const filtered = dictKw ? D.videos.filter(v=>v.kw.includes(dictKw)) : D.videos;
   const mkCard = v => {
@@ -3052,9 +3187,153 @@ function vList(){
     return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.70rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="dictViewDetail('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
-  return `<div class="page">${guestBanner()}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
-  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 노트 추가</button><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
+  return `<div class="page">${guestBanner()}${vtabs}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
 }
+window.setVSub=t=>{vSub=t;render();if(t==='explore')setTimeout(loadExplore,50);};
+
+// 탐색 탭 현재 상태
+let _exploreState={tags:[],notes:[],activeTag:'',query:'',sort:'popular',loading:false,page:0};
+
+function exploreView(vtabs){
+  const s=_exploreState;
+  const activePills=s.tags.map(t=>`
+    <button onclick="setExploreTag('${ea(t.tag)}')"
+      style="padding:4px 10px;border-radius:14px;border:1px solid ${s.activeTag===t.tag?'rgba(200,137,58,.6)':'rgba(240,237,230,.15)'};background:${s.activeTag===t.tag?'rgba(200,137,58,.15)':'rgba(240,237,230,.04)'};color:${s.activeTag===t.tag?'var(--wing2)':'var(--muted)'};font-size:.72rem;cursor:pointer;font-family:var(--sans);white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
+      ${esc(t.tag)}<span style="font-size:.65rem;opacity:.65">${t.cnt}</span>
+    </button>`).join('');
+
+  const sortBar=`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap">
+    ${s.activeTag?`<div style="display:flex;align-items:center;gap:.3rem;padding:3px 10px;border-radius:14px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.75rem">
+      🏷 ${esc(s.activeTag)}
+      <button onclick="setExploreTag('')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.8rem;padding:0;line-height:1;margin-left:2px">✕</button>
+    </div>`:''}
+    <div style="margin-left:auto;display:flex;gap:.3rem">
+      <button onclick="setExploreSort('popular')" style="padding:3px 9px;border-radius:3px;border:1px solid ${s.sort==='popular'?'rgba(200,137,58,.4)':'var(--border)'};background:${s.sort==='popular'?'rgba(200,137,58,.1)':'none'};color:${s.sort==='popular'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">인기순</button>
+      <button onclick="setExploreSort('recent')" style="padding:3px 9px;border-radius:3px;border:1px solid ${s.sort==='recent'?'rgba(200,137,58,.4)':'var(--border)'};background:${s.sort==='recent'?'rgba(200,137,58,.1)':'none'};color:${s.sort==='recent'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">최신순</button>
+    </div>
+  </div>`;
+
+  return`<div class="page">${vtabs}
+    <!-- 검색창 -->
+    <div style="display:flex;gap:.4rem;margin-bottom:.65rem">
+      <input class="inp" id="explore-search" placeholder="🔍 제목 또는 태그 검색..."
+        value="${esc(s.query)}"
+        oninput="debounceExploreSearch(this.value)"
+        style="flex:1">
+      ${s.query?`<button onclick="clearExploreSearch()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:0 .7rem;border-radius:3px;cursor:pointer;font-size:.8rem">✕</button>`:''}
+    </div>
+    <!-- 인기 태그 -->
+    ${s.tags.length?`<div style="overflow-x:auto;padding-bottom:.4rem;margin-bottom:.65rem;scrollbar-width:none">
+      <div style="display:flex;gap:.35rem;width:max-content">${activePills}</div>
+    </div>`:'<div style="height:32px"></div>'}
+    <!-- 정렬 -->
+    ${sortBar}
+    <!-- 노트 목록 -->
+    <div id="explore-cards">
+      ${s.loading?`<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.82rem">불러오는 중...</div>`
+        :s.notes.length?s.notes.map(n=>exploreNoteCard(n)).join('')
+        :`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🔍</div>${s.activeTag||s.query?'검색 결과가 없습니다':'공개된 학습노트가 없습니다'}</div>`}
+    </div>
+    ${s.notes.length>=20&&!s.loading?`<button onclick="loadMoreExplore()" class="btn btn-s btn-sm" style="width:100%;margin-top:.5rem">더 보기</button>`:''}
+  </div>`;
+}
+
+function exploreNoteCard(n){
+  const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
+  const nick=n._nick||'';
+  const isOwnNote=user&&user.id===n.user_id;
+  return`<div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem">
+    <!-- 작성자 -->
+    ${nick?`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem">
+      <div style="width:20px;height:20px;border-radius:50%;background:rgba(200,137,58,.15);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--wing2);font-weight:700;flex-shrink:0">${nick[0].toUpperCase()}</div>
+      <span onclick="renderPublicProfile('${ea(nick)}')" style="font-size:.72rem;color:var(--wing2);cursor:pointer">@${esc(nick)}</span>
+      ${n.like_count?`<span style="font-size:.7rem;color:var(--muted);margin-left:auto">❤️ ${n.like_count}</span>`:''}
+    </div>`:''}
+    <!-- 썸네일 + 제목 -->
+    <div onclick="showPublicNoteDetail('${n.id}','${ea(nick)}')" style="display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.4rem;cursor:pointer">
+      ${tid?`<img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:64px;height:44px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:`<div style="width:64px;height:44px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🎬</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(n.title)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:2px">${(n.keywords||[]).slice(0,4).map(k=>`<span onclick="event.stopPropagation();setExploreTag('${ea(k)}')" style="font-size:.68rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 5px;cursor:pointer">${esc(k)}</span>`).join('')}</div>
+      </div>
+    </div>
+    <!-- 메모 미리보기 -->
+    ${n.memo?`<div style="font-size:.73rem;color:var(--dim);line-height:1.5;margin-bottom:.4rem;padding:.3rem .45rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.18);border-radius:0 2px 2px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap">${esc(n.memo)}</div>`:''}
+    <!-- 액션 버튼 -->
+    <div style="display:flex;gap:.3rem;align-items:center" onclick="event.stopPropagation()">
+      ${!isOwnNote?`
+        <button onclick="toggleNoteLike('${n.id}','${ea(n.title)}','${n.user_id}')"
+          style="background:rgba(193,123,106,.08);border:1px solid rgba(193,123,106,.2);color:var(--red);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">❤️ 좋아요</button>
+        <button onclick="copyNoteToLibrary('${n.id}','${ea(n.title)}','${ea(n.url)}','${n.user_id}','${ea(nick)}')"
+          style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📋 복사</button>
+        <button onclick="sendNoteShare('${n.id}','${ea(n.title)}','${ea(n.url)}')"
+          style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">📤 전달</button>
+      `:'<span style="font-size:.7rem;color:var(--muted)">내 노트</span>'}
+      <span style="font-size:.68rem;color:var(--muted);margin-left:auto">${n.added_at||''}</span>
+    </div>
+  </div>`;
+}
+
+async function loadExplore(reset=true){
+  if(reset){
+    _exploreState.loading=true;
+    _exploreState.page=0;
+    const el=$('explore-cards');
+    if(el) el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.82rem">불러오는 중...</div>';
+  }
+
+  try{
+    // 인기 태그 (최초 1회만)
+    if(reset&&!_exploreState.tags.length){
+      const{data:tags}=await sb.rpc('get_popular_tags',{limit_n:25});
+      if(tags) _exploreState.tags=(tags||[]).filter(t=>t.tag&&!t.tag.startsWith('@')&&!t.tag.startsWith('💾')&&!t.tag.startsWith('📤'));
+    }
+
+    // 노트 쿼리
+    const {activeTag,query,sort,page}=_exploreState;
+    const from=page*20, to=from+19;
+    let q=sb.from('videos').select('id,url,title,keywords,memo,like_count,added_at,user_id')
+      .eq('is_public',true).neq('user_id',user?.id||'00000000-0000-0000-0000-000000000000')
+      .range(from,to);
+    if(sort==='popular') q=q.order('like_count',{ascending:false});
+    else q=q.order('added_at',{ascending:false});
+    if(activeTag) q=q.contains('keywords',[activeTag]);
+    if(query) q=q.or(`title.ilike.%${query}%,keywords.cs.{${query}}`);
+    const{data:notes}=await q;
+
+    // 닉네임 조회
+    const uids=[...new Set((notes||[]).map(n=>n.user_id))];
+    let nickMap={};
+    if(uids.length){
+      const{data:profs}=await sb.from('user_profiles').select('user_id,nickname').in('user_id',uids);
+      nickMap=Object.fromEntries((profs||[]).map(p=>[p.user_id,p.nickname||'']));
+    }
+    const notesWithNick=(notes||[]).map(n=>({...n,_nick:nickMap[n.user_id]||''}));
+
+    if(reset) _exploreState.notes=notesWithNick;
+    else _exploreState.notes=[..._exploreState.notes,...notesWithNick];
+
+  }catch(e){console.error('탐색 로드 오류:',e);}
+  finally{_exploreState.loading=false;}
+
+  // 탐색 탭이 활성화된 경우만 리렌더
+  if(tab==='videos'&&view==='list'&&vSub==='explore') render();
+}
+
+window.setExploreTag=tag=>{
+  _exploreState.activeTag=_exploreState.activeTag===tag?'':tag;
+  loadExplore();
+};
+window.setExploreSort=s=>{_exploreState.sort=s;loadExplore();};
+window.clearExploreSearch=()=>{_exploreState.query='';loadExplore();};
+window.loadMoreExplore=()=>{_exploreState.page++;loadExplore(false);};
+
+let _exploreSearchTimer=null;
+window.debounceExploreSearch=q=>{
+  clearTimeout(_exploreSearchTimer);
+  _exploreSearchTimer=setTimeout(()=>{_exploreState.query=q;loadExplore();},400);
+};
 window.filterV=(q,cat)=>{
   const f=D.videos.filter(v=>(!q||v.title.includes(q)||v.kw.some(k=>k.includes(q)))&&(!cat||v.kw.includes(cat)));
   const c=$('vcards');if(!c)return;
@@ -3451,15 +3730,17 @@ function _visitPList(sessions, nickname){
 }
 
 window.gotoTab=t=>{
-  // 방문 모드 해제하고 내 탭으로
   if(_viewingProfile) _setVisitingProfile(null);
   tab=t;view='list';selId=null;dictKw='';dictView='list';dictSelId=null;dictCat='';pClubFilter='';
   window._eActiveTag=''; window._eActiveTagKind='';
   if(t!=='home') homeTermIdx=-1;
+  // 탐색 탭 상태 초기화 (다른 탭으로 이동 시 페이지 리셋)
+  if(t==='videos'&&vSub==='explore'){_exploreState.page=0;}
   Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   if($('tab-'+t))$('tab-'+t).classList.add('on');
   render();
+  if(t==='videos'&&vSub==='explore') setTimeout(loadExplore,50);
 };
 function vDetail(){
   const v=D.videos.find(x=>x.id===selId);if(!v)return'<div class="empty">노트를 찾을 수 없습니다.</div>';
@@ -3509,13 +3790,22 @@ function vDetail(){
         ❤️ ${likeCount}명이 좋아합니다
       </button>`:''}
     </div>
-    <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
+    <!-- 공간 확보 — 삭제 버튼은 아래 별도 영역 -->
   </div>
-  ${isOwnNote?`<div style="display:flex;justify-content:flex-end;margin-top:.3rem">
-    <button onclick="sendNoteShare('${v.id}','${ea(v.title)}','${ea(v.url)}')"
+  ${isOwnNote?`
+  <!-- 버디에게 전달 + 공개 토글 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.5rem">
+    <button onclick="sendNoteShareWithPublicCheck('${v.id}','${ea(v.title)}','${ea(v.url)}',${v.isPublic})"
       style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">📤 버디에게 전달</button>
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none">
+      <input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)">
+      <span>공개</span>
+    </label>
+  </div>
+  <!-- 삭제 버튼: 구분선으로 분리해 실수 클릭 방지 -->
+  <div style="margin-top:.75rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.15);display:flex;justify-content:flex-end">
+    <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
   </div>`:''}
-  ${isOwnNote?`<div class="public-toggle"><label><input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label></div>`:''}
   </div>`;
 }
 window.playFrom=(time,vid)=>{const v=D.videos.find(x=>x.id===vid);if(!v)return;const vId=vidId(v.url);if(!vId){toast('유효한 URL이 없습니다');return}const f=$('yt-frame');if(!f)return;f.src=`https://www.youtube-nocookie.com/embed/${vId}?rel=0&modestbranding=1&start=${t2s(time)}&autoplay=1`;f.scrollIntoView({behavior:'smooth',block:'center'})};
@@ -3579,7 +3869,22 @@ window.delVideo=async id=>{
   if(!confirm('영상을 삭제하시겠습니까?'))return;
   sync('busy');const{error}=await sb.from('videos').delete().eq('id',id).eq('user_id',user.id);if(error){toast('삭제 실패');sync('err');return}D.videos=D.videos.filter(v=>v.id!==id);sync('ok');toast('삭제됨');goList();
 };
-function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div><div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div><div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div><div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div>
+<div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb();onVUrlInput()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div>
+<!-- AI 자동 분석 버튼 (YouTube일 때만 표시) -->
+<div id="yt-analyze-wrap" style="display:none;margin-bottom:.85rem">
+  <button class="btn-analyze" id="yt-analyze-btn" onclick="analyzeYouTube()" style="width:100%;padding:.55rem;font-size:.82rem;justify-content:center;display:flex;align-items:center;gap:.4rem">
+    ✦ AI로 자동 분석 <span style="font-size:.72rem;opacity:.7">(메모·타임스탬프·태그 자동 생성)</span>
+  </button>
+  <div id="yt-analyze-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;text-align:center"></div>
+</div>
+<div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div>
+<!-- 타임스탬프 미리보기 (AI 분석 후 자동 채워짐) -->
+<div id="vts-preview" style="display:none;margin-bottom:.75rem">
+  <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프 <span style="font-size:.68rem;font-weight:400">(AI 분석 결과)</span></div>
+  <div id="vts-list"></div>
+</div>
+<div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
 window.prevThumb=()=>{
   const url=$('vu').value.trim();
   const t=thumb(url),img=$('vthumb');
@@ -3608,21 +3913,117 @@ window.prevThumb=()=>{
   }
 };
 window.addKw=c=>{const e=$('vk');e.value=e.value.trim()?(e.value.trim()+', '+c):c};
+
+// YouTube URL 입력 시 AI 분석 버튼 표시
+window.onVUrlInput=()=>{
+  const url=$('vu')?.value.trim()||'';
+  const wrap=$('yt-analyze-wrap');
+  if(wrap) wrap.style.display=vidId(url)?'block':'none';
+};
+
+// AI 자동 분석
+window._ytAnalyzedTs=[];
+
+window.analyzeYouTube=async()=>{
+  const url=$('vu')?.value.trim()||'';
+  if(!vidId(url)){toast('YouTube URL을 먼저 입력하세요');return;}
+  const btn=$('yt-analyze-btn'),status=$('yt-analyze-status');
+  btn.disabled=true;btn.textContent='✦ 분석 중... (10~30초 소요)';
+  if(status){status.textContent='영상 내용을 읽고 있습니다...';status.style.color='var(--muted)';}
+  try{
+    const prompt=`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.
+
+{
+  "title": "영상 제목 (한국어로)",
+  "keywords": ["태그1", "태그2", "태그3"],
+  "memo": "메모 내용",
+  "timestamps": [
+    {"time": "0:30", "note": "해당 구간 핵심 내용"},
+    {"time": "1:45", "note": "해당 구간 핵심 내용"}
+  ]
+}
+
+메모 작성 규칙:
+- 글머리표(•)와 소제목을 사용해 섹션별로 구조화
+- 각 항목은 간결하게 (한 줄에 하나의 포인트)
+- 아래 섹션 중 영상에 해당하는 것만 포함:
+
+  ❌ 문제점/실수
+  • [흔한 실수나 잘못된 동작 나열]
+
+  ✅ 올바른 방법
+  • [정상적인 자세나 동작 나열]
+
+  🏋️ 연습 방법
+  • [드릴이나 연습 방법 나열]
+
+  💡 핵심 포인트
+  • [기억할 핵심 감각이나 체크포인트]
+
+- 섹션당 항목은 2~5개, 너무 짧거나 너무 길지 않게
+- 전문 용어는 괄호로 설명: 예) 코킹(손목 꺾기)
+
+기타 규칙:
+- keywords: 골프 핵심 태그 3~6개
+- timestamps: 핵심 구간 4~8개, 각 note는 15자 이내
+- 모든 응답은 한국어`;
+
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({type:'youtube',youtubeUrl:url,model:'gemini-2.5-flash',maxOutputTokens:3000,prompt})
+    });
+    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    const data=await resp.json();
+    const raw=data.result||data.text||'';
+    const jsonMatch=raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('AI 응답을 파싱할 수 없습니다');
+    const parsed=JSON.parse(jsonMatch[0]);
+
+    // 폼 자동 입력
+    if(parsed.title){const vt=$('vt');if(vt&&!vt.value) vt.value=parsed.title;}
+    if(parsed.keywords?.length){const vk=$('vk');if(vk) vk.value=parsed.keywords.join(', ');}
+    if(parsed.memo){const vm=$('vm');if(vm) vm.value=parsed.memo;}
+
+    // 타임스탬프 미리보기
+    window._ytAnalyzedTs=parsed.timestamps||[];
+    const tsList=$('vts-list'),tsWrap=$('vts-preview');
+    if(tsList&&tsWrap&&window._ytAnalyzedTs.length){
+      tsWrap.style.display='block';
+      tsList.innerHTML=window._ytAnalyzedTs.map(t=>`
+        <div style="display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
+          <span style="background:rgba(200,137,58,.12);color:var(--wing2);border-radius:2px;padding:1px 7px;font-size:.72rem;white-space:nowrap;flex-shrink:0">▶ ${esc(t.time)}</span>
+          <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
+        </div>`).join('');
+    }
+    btn.textContent='✓ 분석 완료';
+    btn.style.borderColor='rgba(61,158,116,.4)';
+    btn.style.color='#3D9E74';
+    if(status) status.textContent=`태그 ${(parsed.keywords||[]).length}개 · 타임스탬프 ${window._ytAnalyzedTs.length}개 생성됨`;
+  }catch(e){
+    console.error('YouTube 분석 오류:',e);
+    btn.disabled=false;btn.textContent='✦ AI로 자동 분석';
+    if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
+    toast('분석 실패: '+e.message);
+  }
+};
+
 window.saveVideo=async()=>{
   const url=$('vu').value.trim();if(!url){toast('URL을 입력하세요');return}
   if(!vidId(url)&&!isInsta(url)){toast('YouTube 또는 Instagram URL을 입력하세요');return}
   if(overLimit('videos')){toast(limitMsg('videos'));return}
-  // 중복 최종 확인
   const vid=vidId(url);
   const dup=D.videos.find(v=>vid?vidId(v.url)===vid:v.url.trim()===url);
   if(dup){
     if(!confirm(`"${dup.title}" 이 영상이 이미 저장돼 있습니다.\n그래도 새로 추가하시겠습니까?`))return;
   }
   const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim();
+  const timestamps=window._ytAnalyzedTs||[];
   const btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
-  const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps:[],added_at:today()});
+  const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps,added_at:today()});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
+  window._ytAnalyzedTs=[];
   await loadAll();toast('노트 추가됨');goList();
 };
 function eList(){
@@ -5753,7 +6154,7 @@ function pvBindCanvas(){
     if(e.touches.length===0)pvDragging=false;
     // 핀치 종료 후 scale 1 미만이면 리셋
     if(!pvPinching){const _im=$("pv-img"),_ca=$("pv-canvas");const _fitS=Math.min(_ca.clientWidth/(_im.naturalWidth||1),_ca.clientHeight/(_im.naturalHeight||1));if(pvScale<_fitS*1.05){pvFitImage();pvApplyTransform();}}
-  });
+  },{passive:true});
 
   // 더블 탭/클릭으로 2× 토글
   let pvLastTap=0;
@@ -5784,7 +6185,7 @@ function pvBindCanvas(){
       pvApplyTransform();
     }
     pvLastTap=now;
-  });
+  },{passive:true});
 }
 
 // 키보드 지원
