@@ -1238,15 +1238,21 @@ async function loadPopularNotes(){
     list.innerHTML=notes.map(n=>{
       const tid=n.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/)?.[1];
       const nick=nickById[n.user_id]||'';
-      return`<div style="display:flex;gap:.6rem;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid rgba(240,237,230,.06)">
-        ${tid?`<img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:52px;height:36px;object-fit:cover;border-radius:2px;flex-shrink:0;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')" onerror="this.style.display='none'">`:`<div style="width:52px;height:36px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center">🎬</div>`}
+      const isOwnNote=user&&user.id===n.user_id;
+      return`<div onclick="showPublicNoteDetail('${n.id}','${ea(nick)}')"
+        style="display:flex;gap:.6rem;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid rgba(240,237,230,.06);cursor:pointer">
+        ${tid?`<img src="https://img.youtube.com/vi/${tid}/mqdefault.jpg" style="width:52px;height:36px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:`<div style="width:52px;height:36px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center">🎬</div>`}
         <div style="flex:1;min-width:0">
-          <div style="font-size:.78rem;color:var(--chalk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="window.open('${ea(n.url)}','_blank')">${esc(n.title)}</div>
-          <div style="display:flex;align-items:center;gap:.4rem;margin-top:2px">
+          <div style="font-size:.78rem;color:var(--chalk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.title)}</div>
+          <div style="display:flex;align-items:center;gap:.4rem;margin-top:2px" onclick="event.stopPropagation()">
             ${nick?`<span style="font-size:.72rem;color:var(--wing2);cursor:pointer" onclick="renderPublicProfile('${ea(nick)}')">@${esc(nick)}</span>`:''}
             ${n.like_count?`<span style="font-size:.72rem;color:var(--muted)">❤️ ${n.like_count}</span>`:''}
-            <button onclick="copyNoteToLibrary('${n.id}','${ea(n.title)}','${ea(n.url)}','${n.user_id}','${ea(nick)}')"
-              style="background:none;border:none;color:var(--muted);font-size:.72rem;cursor:pointer;font-family:var(--sans);padding:0;margin-left:auto">📋 복사</button>
+            ${!isOwnNote?`
+              <button onclick="toggleNoteLike('${n.id}','${ea(n.title)}','${n.user_id}')"
+                style="background:none;border:none;color:var(--muted);font-size:.72rem;cursor:pointer;font-family:var(--sans);padding:0;margin-left:auto">❤️ 좋아요</button>
+              <button onclick="copyNoteToLibrary('${n.id}','${ea(n.title)}','${ea(n.url)}','${n.user_id}','${ea(nick)}')"
+                style="background:none;border:none;color:var(--muted);font-size:.72rem;cursor:pointer;font-family:var(--sans);padding:0">📋 복사</button>
+            `:`<span style="font-size:.7rem;color:var(--muted);margin-left:auto">내 노트</span>`}
           </div>
         </div>
       </div>`;
