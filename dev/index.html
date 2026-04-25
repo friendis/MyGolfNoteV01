@@ -4073,6 +4073,7 @@ window.saveVideo=async()=>{
   await loadAll();toast('노트 추가됨');goList();
 };
 // ── 세트 구성 뷰 ──────────────────────────────────────
+window._rerender=()=>render();
 function eSetsView(subTabs){
   const setCards = D.sets.length ? D.sets.map(s=>`
     <div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem">
@@ -4194,8 +4195,8 @@ function eList(){
   // 서브탭
   const eSub = window._eSub || 'equip';
   const subTabs=`<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);margin-bottom:.9rem">
-    <button onclick="window._eSub='equip';render()" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${eSub==='equip'?'var(--wing2)':'transparent'};background:none;color:${eSub==='equip'?'var(--wing2)':'var(--muted)'}">장비 목록</button>
-    <button onclick="window._eSub='sets';render()" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${eSub==='sets'?'var(--wing2)':'transparent'};background:none;color:${eSub==='sets'?'var(--wing2)':'var(--muted)'}">🎒 세트 구성</button>
+    <button onclick="window._eSub='equip';window._rerender()" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${eSub==='equip'?'var(--wing2)':'transparent'};background:none;color:${eSub==='equip'?'var(--wing2)':'var(--muted)'}">장비 목록</button>
+    <button onclick="window._eSub='sets';window._rerender()" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${eSub==='sets'?'var(--wing2)':'transparent'};background:none;color:${eSub==='sets'?'var(--wing2)':'var(--muted)'}">🎒 세트 구성</button>
     <button class="btn btn-p btn-sm" style="flex-shrink:0;margin-bottom:2px" onclick="${eSub==='sets'?'openSetModal()':'goAdd()'}">+ ${eSub==='sets'?'세트 추가':'장비 추가'}</button>
   </div>`;
 
