@@ -5049,14 +5049,14 @@ window.analyzeScorecardPhoto = async (input) => {
     const url=URL.createObjectURL(file);
     img.onload=()=>{
       URL.revokeObjectURL(url);
-      const MAX=1200;
+      const MAX=1600;
       let w=img.naturalWidth,h=img.naturalHeight;
       if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
       else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
       const cv=document.createElement('canvas');
       cv.width=w;cv.height=h;
       cv.getContext('2d').drawImage(img,0,0,w,h);
-      const dataUrl=cv.toDataURL('image/jpeg',0.65);
+      const dataUrl=cv.toDataURL('image/jpeg',0.82);
       res({b64:dataUrl.split(',')[1],mime:'image/jpeg',w,h});
     };
     img.onerror=()=>{
@@ -5113,7 +5113,7 @@ function showScorecardCropPreview(imgUrl, b64, mime){
       </div>
     </div>
     <div id="sc-action-bar" style="padding:.65rem 1rem;border-top:1px solid var(--border);background:var(--dusk2);display:none;gap:.4rem">
-      <button onclick="applyScorecardToForm(_scSelectedPlayer)"
+      <button onclick="applyScorecardToForm(window._scSelectedPlayer)"
         style="flex:1;background:rgba(61,158,116,.15);border:1px solid rgba(61,158,116,.3);color:#3D9E74;padding:.5rem;border-radius:4px;font-size:.85rem;cursor:pointer;font-family:var(--sans);font-weight:600">
         ✓ 이 성적 적용하기
       </button>
@@ -5126,7 +5126,8 @@ function showScorecardCropPreview(imgUrl, b64, mime){
   setTimeout(()=>runScorecardAnalysis(null,false),200);
 }
 
-let _scSelectedPlayer=0, _scScrolling=false;
+let _scScrolling=false;
+window._scSelectedPlayer=0;
 let _scorecardOrigFile=null, _scorecardOrigB64='', _scorecardMime='image/jpeg', _scorecardAnalyzed=null;
 
 window.syncScoreScroll=(el,src)=>{
@@ -5206,7 +5207,7 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
     const errs=validateScorecard(parsed);
     updateStatus(errs.length?`⚠ 분석 완료 · ${errs.length}개 확인 필요 (${totalSec}초)`:`✓ 분석 완료 · ${parsed.holes||18}홀 (${totalSec}초)`, errs.length?'var(--amber)':'var(--turf)');
     if((parsed.players||[]).length>1)renderPlayerSelect(parsed,errs);
-    else{_scSelectedPlayer=0;renderHorizontalTable(0,errs);}
+    else{window._scSelectedPlayer=0;renderHorizontalTable(0,errs);}
   }catch(e){
     clearInterval(timer);clearTimeout(tOut);
     const msg=e.name==='AbortError'?'타임아웃 (30초). 인터넷 연결 또는 이미지 크기를 확인해주세요.':e.message;
@@ -5269,8 +5270,8 @@ async function _drawCropCanvas(crop, corners){
         // 간단한 bilinear 방식: 각 출력 행에 대해 src 좌표 계산
         const tempC=document.createElement('canvas');
         tempC.width=iw; tempC.height=ih;
-        tempC.getContext('2d').drawImage(img,0,0);
-        const srcCtx=tempC.getContext('2d');
+        tempC.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0);
+        const srcCtx=tempC.getContext('2d',{willReadFrequently:true});
 
         for(let oy=0;oy<OUT_H;oy++){
           const t=oy/OUT_H;
@@ -5313,7 +5314,7 @@ async function _drawCropCanvas(crop, corners){
 function renderPlayerSelect(parsed,errs){
   const ra=$('sc-result-area'),ab=$('sc-action-bar');
   if(!ra)return;
-  ra.innerHTML=`<div style="padding:.75rem"><div style="font-size:.82rem;font-weight:600;color:var(--chalk);margin-bottom:.5rem">내 점수를 선택하세요</div><div style="display:flex;gap:.35rem;flex-wrap:wrap">${(parsed.players||[]).map((p,i)=>`<button onclick="_scSelectedPlayer=${i};renderHorizontalTable(${i},[])" style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.4rem .85rem;border-radius:4px;font-size:.8rem;cursor:pointer;font-family:var(--sans)">${esc(p)}<span style="font-size:.72rem;opacity:.7;margin-left:4px">${parsed.scores?.[i]?.total||'?'}타</span></button>`).join('')}</div>${errs.length?`<div style="font-size:.72rem;color:var(--amber);margin-top:.4rem">⚠ ${errs.slice(0,2).map(esc).join(' / ')}</div>`:''}</div>`;
+  ra.innerHTML=`<div style="padding:.75rem"><div style="font-size:.82rem;font-weight:600;color:var(--chalk);margin-bottom:.5rem">내 점수를 선택하세요</div><div style="display:flex;gap:.35rem;flex-wrap:wrap">${(parsed.players||[]).map((p,i)=>`<button onclick="window._scSelectedPlayer=${i};renderHorizontalTable(${i},[])" style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.4rem .85rem;border-radius:4px;font-size:.8rem;cursor:pointer;font-family:var(--sans)">${esc(p)}<span style="font-size:.72rem;opacity:.7;margin-left:4px">${parsed.scores?.[i]?.total||'?'}타</span></button>`).join('')}</div>${errs.length?`<div style="font-size:.72rem;color:var(--amber);margin-top:.4rem">⚠ ${errs.slice(0,2).map(esc).join(' / ')}</div>`:''}</div>`;
   if(ab)ab.style.display='none';
 }
 
