@@ -2884,19 +2884,6 @@ function render(){
     else if(view==='detail'){
       m.innerHTML=pDetail();
       requestAnimationFrame(()=>{
-        const sel=$('se-club');
-        if(sel) sel.addEventListener('change', e=>{
-          const s=D.sessions.find(x=>x.id===selId);
-          if(!s)return;
-          const newClub=e.target.value;
-          if(newClub===(s.club||''))return;
-          s.club=newClub;
-          sb.from('practice_sessions').update({club:newClub||null}).eq('id',selId).eq('user_id',user.id)
-            .then(({error})=>{
-              if(error){toast('저장 실패');sync('err');return;}
-              sync('ok');toast('클럽 저장됨');
-            });
-        });
       });
     }
     else m.innerHTML=pAdd();
@@ -6291,9 +6278,10 @@ function pDetail(){
         <input class="inp" type="date" id="se-date" value="${ea(s.date||'')}" onblur="saveSessionField('${s.id}','date',this.value)">
       </div>
       <div class="fg">
-        <label class="fl-label">클럽</label>
-        <select class="sel" id="se-club">
+        <label class="fl-label">클럽 세트 / 클럽</label>
+        <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)">
           <option value="">선택...</option>
+          ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(st=>`<option value="🎒 ${esc(st.name)}"${s.club===`🎒 ${st.name}`?' selected':''}>🎒 ${esc(st.name)}</option>`).join('')}</optgroup>`:''}
           ${ownedClubOptions(s.club||'')}
           <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${c}"${s.club===c?' selected':''}>${c}</option>`).join('')}</optgroup>
         </select>
@@ -6902,7 +6890,14 @@ window.saveSessionField = async (id, field, val) => {
   if(field === 'club')     s.club  = trimmed;
   if(field === 'location') s.loc   = trimmed;
   if(field === 'memo')     s.memo  = trimmed;
-  sync('ok'); toast('저장됐습니다');
+  sync('ok');
+  if(field==='club'){
+    const isSet=trimmed.startsWith('🎒');
+    const setObj=isSet?D.sets.find(s=>s.name===trimmed.slice(2).trim()):null;
+    toast(isSet&&setObj?`🎒 ${setObj.name} (${setObj.clubs.join(', ')}) 저장됨`:'저장됐습니다');
+  } else {
+    toast('저장됐습니다');
+  }
 };
 
 // ── AI 스윙 분석 ─────────────────────────────────────
@@ -7998,15 +7993,16 @@ function pAdd() {
 
     <div class="frow">
       <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
-      <div class="fg" id="club-wrap"><label class="fl-label">클럽 세트</label>
-        <select class="sel" id="pc">
-          <option value="">세트 선택...</option>
-          ${D.sets.map(s=>`<optgroup label="🎒 ${esc(s.name)}">${s.clubs.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>`).join('')}
-          ${D.sets.length?'<optgroup label="─────────────"></optgroup>':''}
+      <div class="fg" id="club-wrap">
+        <label class="fl-label">클럽 세트 / 클럽</label>
+        <select class="sel" id="pc" onchange="showSetInfo(this.value)">
+          <option value="">선택...</option>
+          ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(s=>`<option value="🎒 ${esc(s.name)}" data-type="set">🎒 ${esc(s.name)}</option>`).join('')}</optgroup>`:'' }
           ${ownedClubOptions()}
-          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option>${c}</option>`).join('')}</optgroup>
+          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
         </select>
-        ${D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem">세트 선택 시 해당 세트의 클럽을 선택할 수 있습니다</div>`:`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`}
+        ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`:''}
+        <div id="pc-set-info" style="font-size:.72rem;color:var(--wing2);margin-top:.3rem;display:none"></div>
       </div>
     </div>
 
@@ -8159,7 +8155,19 @@ function pAdd() {
   </div></div>`;
 }
 
-window.saveSession = async () => {
+window.showSetInfo = (val) => {
+  const infoEl = $('pc-set-info');
+  if(!infoEl) return;
+  if(val.startsWith('🎒')){
+    const setObj = D.sets.find(s => `🎒 ${s.name}` === val);
+    if(setObj){
+      infoEl.textContent = `포함 클럽: ${setObj.clubs.join(', ')}`;
+      infoEl.style.display = 'block';
+      return;
+    }
+  }
+  infoEl.style.display = 'none';
+};
   const date = $('pd').value; if(!date){ toast('날짜를 선택하세요'); return; }
   if(overLimit('sessions')){ toast(limitMsg('sessions')); return; }
   const recType=(document.querySelector('input[name="rec-type"]:checked')||{}).value||'gdr';
