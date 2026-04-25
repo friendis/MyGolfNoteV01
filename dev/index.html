@@ -4126,7 +4126,15 @@ window.openSetModal = async (setId) => {
         </div>
         ${ownedEquip.length?`<div style="font-size:.72rem;color:var(--muted);margin-bottom:.3rem">보유 장비에서 빠르게 선택:</div>
         <div style="display:flex;flex-wrap:wrap;gap:.3rem">
-          ${ownedEquip.map(e=>`<button onclick="quickSelectEquip('${ea(e.name)}')" style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:2px 8px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">${esc(e.name)}</button>`).join('')}
+          ${ownedEquip.map(e=>{
+            const catClubs = CAT_TO_CLUBS[e.cat]||[];
+            const hint = catClubs.length ? ` (${catClubs.join(', ')})` : '';
+            return`<button onclick="quickSelectEquip('${ea(e.name)}','${ea(e.cat)}')"
+              style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:3px 9px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans);display:flex;flex-direction:column;align-items:flex-start;gap:1px">
+              <span>${esc(e.name)}</span>
+              ${hint?`<span style="font-size:.67rem;opacity:.6">${esc(hint)}</span>`:''}
+            </button>`;
+          }).join('')}
         </div>`:''}
       </div>
       <div class="fg">
@@ -4153,25 +4161,34 @@ window.updateSetClubStyle = (cb) => {
   label.style.color = cb.checked ? 'var(--wing2)' : 'var(--muted)';
 };
 
-window.quickSelectEquip = (name) => {
+window.quickSelectEquip = (name, cat) => {
+  // 카테고리 기반 클럽 매칭 (가장 정확)
+  const catClubs = CAT_TO_CLUBS[cat] || [];
+
+  if(catClubs.length) {
+    // 해당 카테고리의 클럽들을 모두 체크
+    let selected = 0;
+    catClubs.forEach(c => {
+      const el = document.getElementById(`set-club-${c.replace(/\//g,'-')}`);
+      if(el && !el.checked){ el.checked=true; updateSetClubStyle(el); selected++; }
+    });
+    if(selected > 0) toast(`✓ ${name} → ${catClubs.join(', ')} 선택됨`);
+    return;
+  }
+
+  // 카테고리 없으면 이름으로 fallback 매칭
   const upper = name.toUpperCase();
-  // 클럽명 직접 매칭 (대소문자 무관) 또는 포함 여부
   const matched = CLUBS.find(c => {
-    const cu = c.toUpperCase();
-    return upper.includes(cu) || cu.includes(upper) ||
-      // 별칭 매핑
-      (cu==='드라이버' && upper.includes('DRIVER')) ||
-      (cu==='퍼터' && upper.includes('PUTTER')) ||
-      (cu==='AW/GW' && (upper.includes('AW') || upper.includes('GW') || upper.includes('갭'))) ||
-      (cu==='SW' && upper.includes('SAND')) ||
-      (cu==='LW' && upper.includes('LOB')) ||
-      (cu==='PW' && upper.includes('PITCH'));
+    const cu = c.toUpperCase().replace('/','');
+    const nu = upper.replace('/','');
+    return nu.includes(cu) || cu.includes(nu.split(' ')[0]);
   });
   if(matched){
     const el = document.getElementById(`set-club-${matched.replace(/\//g,'-')}`);
     if(el && !el.checked){ el.checked=true; updateSetClubStyle(el); }
+    toast(`✓ ${name} → ${matched} 선택됨`);
   } else {
-    toast(`"${name}" 에 맞는 클럽을 찾지 못했습니다`);
+    toast(`"${name}" 의 분류를 장비 정보에서 먼저 설정해주세요`);
   }
 };
 
