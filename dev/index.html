@@ -8168,6 +8168,7 @@ window.showSetInfo = (val) => {
   }
   infoEl.style.display = 'none';
 };
+window.saveSession = async () => {
   const date = $('pd').value; if(!date){ toast('날짜를 선택하세요'); return; }
   if(overLimit('sessions')){ toast(limitMsg('sessions')); return; }
   const recType=(document.querySelector('input[name="rec-type"]:checked')||{}).value||'gdr';
