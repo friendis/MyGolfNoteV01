@@ -1293,7 +1293,9 @@ async function checkChangelog() {
       return;
     }
 
-    const content = contentLines.join('\n').trim();
+    const content = contentLines
+      .filter(l => !l.startsWith('> 커밋:') && !l.startsWith('> commit:')) // 커밋 줄 제거
+      .join('\n').trim();
     const seenKey = 'birdyard_seen_changelog';
     const lastSeen = localStorage.getItem(seenKey);
     if(lastSeen === version) return;
@@ -1312,6 +1314,7 @@ function showChangelogModal(version, content, storageKey) {
   const rendered = content
     .split('\n')
     .map(line => {
+      if(line.startsWith('#')) return ''; // 본문 내 마크다운 헤더 제거
       if(/^(✨|🐛|⚡|🎨|🔧|💡|📤|📋)/.test(line) && line.trim())
         return `<div style="font-size:.82rem;font-weight:600;color:var(--wing2);margin:.7rem 0 .2rem">${line}</div>`;
       if(line.startsWith('• '))
