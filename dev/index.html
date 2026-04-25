@@ -5034,125 +5034,319 @@ function _updateScoreSum(){
 }
 
 // 스코어카드 AI 분석
-let _scorecardAnalyzed = null; // 분석 결과 보관
 
 window.analyzeScorecardPhoto = async (input) => {
   const file = input.files[0]; if(!file) return;
   const status = $('scorecard-analysis-status');
   const playerSel = $('scorecard-player-select');
-  if(status) status.textContent = '📡 스코어카드 분석 중...';
+  if(status){ status.textContent='📡 이미지 처리 중...'; status.style.color='var(--muted)'; }
   if(playerSel) playerSel.style.display='none';
 
   const toBase64 = f => new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(f);});
   const b64 = await toBase64(file);
   const mime = file.type || 'image/jpeg';
 
-  try {
-    const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`, {
+  // 1. 원본 이미지 미리보기 생성 (Canvas로 표시)
+  const imgUrl = URL.createObjectURL(file);
+  _scorecardOrigFile = file;
+  _scorecardOrigB64 = b64;
+  _scorecardMime = mime;
+
+  showScorecardCropPreview(imgUrl, b64, mime);
+};
+
+// 스코어카드 원본 미리보기 + 크롭 + 분석 오버레이
+function showScorecardCropPreview(imgUrl, b64, mime){
+  const existing = document.getElementById('scorecard-overlay');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'scorecard-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:1rem';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:min(540px,100%);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;border-bottom:1px solid var(--border)">
+        <div style="font-size:.85rem;font-weight:600;color:var(--chalk)">📸 스코어카드 분석</div>
+        <button onclick="document.getElementById('scorecard-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+      </div>
+      <!-- 이미지 미리보기 -->
+      <div style="padding:.75rem;background:#000;position:relative">
+        <img id="sc-preview-img" src="${imgUrl}" style="width:100%;max-height:280px;object-fit:contain;display:block;border-radius:4px">
+      </div>
+      <div id="sc-status" style="padding:.5rem 1rem;font-size:.75rem;color:var(--muted);border-bottom:1px solid var(--border)">이미지를 확인하고 분석을 시작하세요</div>
+      <!-- 액션 버튼 -->
+      <div style="padding:.75rem 1rem;display:flex;gap:.4rem">
+        <button id="sc-analyze-btn" onclick="runScorecardAnalysis('${btoa(b64.slice(0,10))}',false)"
+          style="flex:1;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.5rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+          ✦ AI 분석 시작
+        </button>
+      </div>
+      <!-- 분석 결과 영역 -->
+      <div id="sc-result-area" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // 실제 분석 시작
+  setTimeout(()=>runScorecardAnalysis(null, false), 300);
+}
+
+let _scorecardOrigFile=null, _scorecardOrigB64='', _scorecardMime='image/jpeg', _scorecardAnalyzed=null;
+
+window.runScorecardAnalysis = async (dummy, isRetry) => {
+  const btn = $('sc-analyze-btn');
+  const scStatus = $('sc-status');
+  const resultArea = $('sc-result-area');
+  if(btn){ btn.disabled=true; btn.textContent='분석 중...'; }
+  if(scStatus) scStatus.textContent='🤖 Gemini AI가 스코어카드를 읽고 있습니다...';
+
+  try{
+    const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body: JSON.stringify({
-        type: 'scorecard',           // 명시적 타입
-        model:'gemini-2.5-flash',
-        maxOutputTokens: 8000,       // 18홀 × 여러 플레이어 → 충분한 토큰
+      body:JSON.stringify({
+        type:'scorecard', model:'gemini-2.5-flash', maxOutputTokens:8000,
         prompt:`이 골프 스코어카드 사진을 분석해서 JSON으로만 응답해주세요. 다른 텍스트 없이 JSON만 출력하세요.
 
 응답 형식:
 {
-  "players": ["플레이어1이름", "플레이어2이름"],
+  "players": ["이름1","이름2"],
   "holes": 18,
   "scores": [
     {
-      "player": "플레이어1이름",
+      "player": "이름1",
       "hole_scores": [
-        {"hole": 1, "par": 4, "score": 5},
-        {"hole": 2, "par": 3, "score": 4}
+        {"hole":1,"par":4,"score":5},
+        {"hole":2,"par":3,"score":3}
       ],
-      "total": 95
+      "total": 90
     }
   ]
 }
 
-플레이어가 1명이면 players 배열에 1명만. 홀별 파가 안 보이면 par는 4로 기본값.`,
-        imageBase64: b64,
-        imageMime: mime,
+규칙: 홀별 파 불명확하면 par:4 기본값. 이름 없으면 "Player 1" 형식. JSON만 출력.`,
+        imageBase64: _scorecardOrigB64,
+        imageMime: _scorecardMime,
       })
     });
-
-    if(!resp.ok) {
-      const errText = await resp.text().catch(()=>'');
-      throw new Error(`서버 오류 (${resp.status})${errText?': '+errText.slice(0,80):''}`);
-    }
-
+    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
     const raw = await resp.json();
     if(raw.error) throw new Error(raw.error);
 
-    // content 배열 또는 result/text 필드 모두 처리
-    let text = '';
-    if(raw.content?.[0]?.text) text = raw.content[0].text;
-    else if(raw.result) text = raw.result;
-    else if(raw.text) text = raw.text;
-    else throw new Error('응답이 비어있습니다');
-
-    // JSON 추출 (마크다운 코드블록 제거)
+    let text = raw.result||raw.text||(raw.content?.[0]?.text)||'';
     text = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('JSON을 찾을 수 없습니다. 스코어카드가 잘 보이는 사진을 사용해주세요');
-
+    if(!jsonMatch) throw new Error('스코어카드를 인식하지 못했습니다. 더 선명한 사진을 사용해주세요.');
     const parsed = JSON.parse(jsonMatch[0]);
+
+    // 검증
+    const errs = validateScorecard(parsed);
     _scorecardAnalyzed = parsed;
 
-    const players = parsed.players||[];
-    if(players.length <= 1){
-      // 플레이어 1명 → 바로 적용
-      applyPlayerScores(0);
-      if(status) status.textContent = `✓ 분석 완료 · ${parsed.holes||18}홀 · 총 ${parsed.scores?.[0]?.total||'?'}타`;
-    } else {
-      // 멀티 플레이어 → 선택 UI 표시
-      if(status) status.textContent = `✓ ${players.length}명의 성적이 감지됐습니다`;
-      const list = $('scorecard-player-list');
-      if(list){
-        list.innerHTML = players.map((p,i)=>`
-          <button onclick="applyPlayerScores(${i})"
-            style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
-            ${esc(p)} (${parsed.scores?.[i]?.total||'?'}타)
-          </button>`).join('');
-      }
-      if(playerSel) playerSel.style.display='block';
+    if(scStatus) scStatus.textContent = errs.length ? `⚠ 분석 완료 — ${errs.length}개 항목을 확인해주세요` : `✓ 분석 완료 · ${parsed.holes||18}홀`;
+    if(scStatus) scStatus.style.color = errs.length ? 'var(--amber)' : 'var(--turf)';
+    renderScorecardResult(parsed, errs);
+
+  }catch(e){
+    if(scStatus){ scStatus.textContent=`분석 실패: ${e.message}`; scStatus.style.color='var(--red)'; }
+    if(resultArea){
+      resultArea.style.display='block';
+      resultArea.innerHTML=`<div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">${esc(e.message)}</div>
+        <button onclick="runScorecardAnalysis(null,true)" style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">🔄 다시 분석</button>`;
     }
-  } catch(e) {
-    if(status) status.textContent = `분석 실패: ${e.message} — 직접 입력해주세요`;
-    console.error('scorecard analysis error', e);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🔄 다시 분석'; }
   }
 };
 
-window.applyPlayerScores = (playerIdx) => {
-  if(!_scorecardAnalyzed) return;
-  const playerData = _scorecardAnalyzed.scores?.[playerIdx];
+function validateScorecard(parsed){
+  const errs=[];
+  (parsed.scores||[]).forEach(player=>{
+    const hs=player.hole_scores||[];
+    const calcTotal=hs.reduce((a,h)=>a+(h.score||0),0);
+    if(player.total && Math.abs(calcTotal-player.total)>2)
+      errs.push(`${player.player}: 합계 불일치 (홀별 합계 ${calcTotal}, 기재 ${player.total})`);
+    hs.forEach(h=>{
+      if(h.score && (h.score<1||h.score>15)) errs.push(`${player.player} ${h.hole}번홀: 타수 이상 (${h.score})`);
+      if(h.par && (h.par<3||h.par>6)) errs.push(`${h.hole}번홀: 파 이상 (${h.par})`);
+    });
+  });
+  return errs;
+}
+
+function renderScorecardResult(parsed, errs){
+  const resultArea=$('sc-result-area');
+  if(!resultArea) return;
+  resultArea.style.display='block';
+
+  const players=parsed.players||[];
+  const scores=parsed.scores||[];
+
+  // 플레이어가 여러 명이면 선택 먼저
+  if(players.length>1){
+    resultArea.innerHTML=`
+      <div style="font-size:.78rem;font-weight:600;color:var(--chalk);margin-bottom:.5rem">플레이어를 선택하세요</div>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.75rem">
+        ${players.map((p,i)=>`
+          <button onclick="selectAndShowScorecard(${i})"
+            style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.4rem .85rem;border-radius:4px;font-size:.8rem;cursor:pointer;font-family:var(--sans)">
+            ${esc(p)}<span style="font-size:.7rem;opacity:.7;margin-left:4px">${scores[i]?.total||'?'}타</span>
+          </button>`).join('')}
+      </div>
+      ${errs.length?`<div style="font-size:.72rem;color:var(--amber);margin-bottom:.5rem">⚠ ${errs.map(esc).join(' / ')}</div>`:''}`;
+  } else {
+    // 단독 플레이어 → 바로 테이블 편집 UI 표시
+    showScorecardTable(0, errs);
+  }
+}
+
+window.selectAndShowScorecard = (idx) => showScorecardTable(idx, validateScorecard(_scorecardAnalyzed));
+
+function showScorecardTable(playerIdx, errs){
+  const resultArea=$('sc-result-area'); if(!resultArea) return;
+  const parsed=_scorecardAnalyzed;
+  const playerData=parsed.scores?.[playerIdx];
+  const playerName=parsed.players?.[playerIdx]||'Player';
   if(!playerData) return;
 
-  const holeScores = playerData.hole_scores||[];
-  const n = holeScores.length || parseInt($('p-holes')?.value||18);
-  // 홀 수 select 업데이트
-  const holesEl = $('p-holes');
-  if(holesEl) holesEl.value = n <= 9 ? '9' : '18';
+  const hs=playerData.hole_scores||[];
+  const calcTotal=hs.reduce((a,h)=>a+(h.score||0),0);
 
-  _holeScoresData = holeScores.map(h=>({
-    hole: h.hole,
-    par: h.par||4,
-    score: h.score||null,
-    putts: h.putts||null,
+  // 편집 가능한 홀별 테이블
+  const rows=hs.map((h,i)=>{
+    const diff=(h.score||0)-(h.par||4);
+    const diffColor=diff<=-2?'#3D9E74':diff===-1?'#4A8FA8':diff===0?'var(--chalk)':diff===1?'var(--amber)':'var(--red)';
+    const diffStr=diff<=-2?'이글':diff===-1?'버디':diff===0?'파':diff===1?'보기':diff>=2?`+${diff}`:'';
+    return`<tr style="border-bottom:1px solid rgba(240,237,230,.06)">
+      <td style="padding:4px 6px;font-size:.72rem;color:var(--muted);text-align:center">${h.hole}</td>
+      <td style="padding:4px 4px;text-align:center">
+        <input type="number" value="${h.par||4}" min="3" max="6"
+          id="sc-par-${i}" onchange="scUpdate(${playerIdx})"
+          style="width:36px;background:var(--dusk2);border:1px solid var(--border);color:var(--dim);padding:2px;border-radius:3px;text-align:center;font-size:.75rem;font-family:var(--sans)">
+      </td>
+      <td style="padding:4px 4px;text-align:center">
+        <input type="number" value="${h.score||''}" min="1" max="15"
+          id="sc-score-${i}" onchange="scUpdate(${playerIdx})"
+          style="width:40px;background:var(--dusk2);border:1px solid ${h.score?diffColor+'80':'var(--border)'};color:${h.score?diffColor:'var(--chalk)'};padding:2px;border-radius:3px;text-align:center;font-size:.78rem;font-weight:600;font-family:var(--sans)">
+      </td>
+      <td style="padding:4px 6px;font-size:.7rem;color:${diffColor};text-align:center">${h.score?diffStr:''}</td>
+    </tr>`;
+  }).join('');
+
+  resultArea.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+      <div style="font-size:.82rem;font-weight:600;color:var(--chalk)">${esc(playerName)}</div>
+      ${parsed.players?.length>1?`<button onclick="renderScorecardResult(_scorecardAnalyzed,[])" style="background:none;border:none;color:var(--muted);font-size:.72rem;cursor:pointer;font-family:var(--sans)">← 다시 선택</button>`:''}
+    </div>
+    ${errs.length?`<div style="font-size:.72rem;color:var(--amber);background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);border-radius:3px;padding:.35rem .6rem;margin-bottom:.5rem">⚠ ${errs.slice(0,2).map(esc).join('<br>')}</div>`:''}
+    <div style="overflow-x:auto;margin-bottom:.6rem">
+      <table style="width:100%;border-collapse:collapse;min-width:220px">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(240,237,230,.15)">
+            <th style="padding:4px 6px;font-size:.68rem;color:var(--muted);font-weight:500;text-align:center">홀</th>
+            <th style="padding:4px 4px;font-size:.68rem;color:var(--muted);font-weight:500;text-align:center">파</th>
+            <th style="padding:4px 4px;font-size:.68rem;color:var(--muted);font-weight:500;text-align:center">타수</th>
+            <th style="padding:4px 6px;font-size:.68rem;color:var(--muted);font-weight:500;text-align:center">결과</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="border-top:1px solid rgba(240,237,230,.15)">
+            <td colspan="2" style="padding:5px 6px;font-size:.75rem;color:var(--muted)">합계</td>
+            <td style="padding:5px 4px;text-align:center"><span id="sc-total-display" style="font-size:.85rem;font-weight:700;color:var(--wing2)">${calcTotal}</span>타</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="display:flex;gap:.4rem">
+      <button onclick="applyScorecardToForm(${playerIdx})"
+        style="flex:1;background:rgba(61,158,116,.15);border:1px solid rgba(61,158,116,.3);color:#3D9E74;padding:.45rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans);font-weight:600">
+        ✓ 이 성적 적용하기
+      </button>
+      <button onclick="runScorecardAnalysis(null,true)"
+        style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:.45rem .75rem;border-radius:4px;font-size:.82rem;cursor:pointer;font-family:var(--sans)">
+        🔄 재분석
+      </button>
+    </div>`;
+}
+
+window.scUpdate = (playerIdx) => {
+  // 편집 시 실시간 합계 업데이트
+  const hs=_scorecardAnalyzed?.scores?.[playerIdx]?.hole_scores||[];
+  let total=0;
+  hs.forEach((_,i)=>{
+    const scoreEl=$(`sc-score-${i}`);
+    const parEl=$(`sc-par-${i}`);
+    const score=parseInt(scoreEl?.value||'0')||0;
+    const par=parseInt(parEl?.value||'4')||4;
+    total+=score;
+    // 색상 업데이트
+    if(scoreEl&&score){
+      const diff=score-par;
+      const c=diff<=-2?'#3D9E74':diff===-1?'#4A8FA8':diff===0?'var(--chalk)':diff===1?'var(--amber)':'var(--red)';
+      scoreEl.style.color=c; scoreEl.style.borderColor=c+'80';
+    }
+  });
+  const totalEl=$('sc-total-display');
+  if(totalEl) totalEl.textContent=total||'';
+};
+
+window.applyScorecardToForm = (playerIdx) => {
+  if(!_scorecardAnalyzed) return;
+  const hs=_scorecardAnalyzed.scores?.[playerIdx]?.hole_scores||[];
+  const playerData=_scorecardAnalyzed.scores?.[playerIdx];
+
+  // 편집된 값 읽기
+  const finalHoles=hs.map((h,i)=>({
+    hole:h.hole,
+    par:parseInt($(`sc-par-${i}`)?.value||h.par||4),
+    score:parseInt($(`sc-score-${i}`)?.value||h.score||0)||null,
+    putts:h.putts||null,
   }));
-  if(playerData.total) { const s=$('p-score'); if(s) s.value=playerData.total; }
+  const total=finalHoles.reduce((a,h)=>a+(h.score||0),0);
+
+  _holeScoresData=finalHoles;
+  const holesEl=$('p-holes');
+  if(holesEl) holesEl.value=finalHoles.length<=9?'9':'18';
+  const scoreEl=$('p-score');
+  if(scoreEl) scoreEl.value=total;
 
   renderHoleInputs();
+  document.getElementById('scorecard-overlay')?.remove();
 
-  const status = $('scorecard-analysis-status');
-  const playerSel = $('scorecard-player-select');
-  const name = _scorecardAnalyzed.players?.[playerIdx]||'선택됨';
-  if(status) status.textContent = `✓ ${name} · ${n}홀 · 총 ${playerData.total||'?'}타 적용됨`;
-  if(playerSel) playerSel.style.display='none';
-  toast(`${name}의 성적이 적용됐습니다`);
+  // 원본 사진을 게임 사진으로 저장
+  if(_scorecardOrigFile){
+    if(!window.gameFiles) window.gameFiles=[];
+    // 중복 방지
+    if(!window.gameFiles.find(f=>f.name===_scorecardOrigFile.name&&f.size===_scorecardOrigFile.size)){
+      window.gameFiles.push(_scorecardOrigFile);
+      _refreshGamePhotoPreview();
+    }
+  }
+
+  const status=$('scorecard-analysis-status');
+  if(status){ status.textContent=`✓ ${finalHoles.length}홀 · 총 ${total}타 적용됨`; status.style.color='var(--turf)'; }
+  toast(`✓ 스코어카드 적용 완료 · ${total}타`);
+};
+
+function _refreshGamePhotoPreview(){
+  const preview=$('game-photo-preview');
+  const statusEl=$('game-photo-status');
+  if(!preview) return;
+  preview.innerHTML='';
+  (window.gameFiles||[]).forEach((f,i)=>{
+    const url=URL.createObjectURL(f);
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:relative;flex:0 0 auto';
+    wrap.innerHTML=`<img src="${url}" style="width:72px;height:54px;object-fit:cover;border-radius:3px;border:1px solid var(--border);display:block">
+      <button type="button" onclick="removeGameFile(${i})" style="position:absolute;top:-5px;right:-5px;background:rgba(13,17,23,.9);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:.7rem;padding:0 4px;border-radius:50%;line-height:16px;width:16px;height:16px;display:flex;align-items:center;justify-content:center">✕</button>`;
+    preview.appendChild(wrap);
+  });
+  if(statusEl) statusEl.textContent=window.gameFiles?.length?`✓ ${window.gameFiles.length}장 첨부됨`:'';
+}
+
+window.applyPlayerScores = (playerIdx) => {
+  applyScorecardToForm(playerIdx);
 };
 window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
 const ss=s=>{
