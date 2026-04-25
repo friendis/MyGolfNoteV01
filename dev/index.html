@@ -666,7 +666,7 @@ const GEMINI_MODEL = 'gemini-3-flash-preview';
 // ── 환경 분기: /dev/ 경로면 dev 스키마 사용 ──────────
 const IS_DEV = location.pathname.includes('/dev/') || location.pathname.includes('/dev');
 const sb=createClient(SB_URL,SB_KEY,{db:{schema:IS_DEV?'dev':'public'}});
-let user=null,D={videos:[],equip:[],sessions:[],profile:null},tab='home',view='list',selId=null,pSub='stats',vSub='mine',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
+let user=null,D={videos:[],equip:[],sessions:[],sets:[],profile:null},tab='home',view='list',selId=null,pSub='stats',vSub='mine',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
 let isGuest=false;
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
@@ -1111,18 +1111,20 @@ window.doDeleteAccount=async()=>{
 async function loadAll(){
   sync('busy');
   try{
-    const[vR,eR,sR,tR,tnR,pR]=await Promise.all([
+    const[vR,eR,sR,tR,tnR,pR,csR]=await Promise.all([
       sb.from('videos').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
       sb.from('equipment').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
       sb.from('practice_sessions').select('*').eq('user_id',user.id).order('session_date',{ascending:false}),
       sb.from('golf_terms').select('*').order('term',{ascending:true}),
       sb.from('golf_term_notes').select('*').eq('user_id',user.id),
       sb.from('user_profiles').select('*').eq('user_id',user.id).maybeSingle(),
+      sb.from('club_sets').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at,userId:r.user_id,isPublic:r.is_public||false,likeCount:r.like_count||0}));
     D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||'',isPublic:r.is_public||false}));
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
+    D.sets=(csR.data||[]).map(r=>({id:r.id,name:r.name,clubs:r.clubs||[],memo:r.memo||'',createdAt:r.created_at}));
     D.profile=pR.data||null;
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
     if(D.profile && !D.profile.ai_cache){
@@ -4070,7 +4072,135 @@ window.saveVideo=async()=>{
   window._ytAnalyzedTs=[];
   await loadAll();toast('노트 추가됨');goList();
 };
+// ── 세트 구성 뷰 ──────────────────────────────────────
+function eSetsView(subTabs){
+  const setCards = D.sets.length ? D.sets.map(s=>`
+    <div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:600;color:var(--chalk);margin-bottom:.3rem">🎒 ${esc(s.name)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:.3rem">
+            ${s.clubs.map(c=>`<span style="font-size:.72rem;background:rgba(200,137,58,.1);color:var(--wing2);border-radius:2px;padding:1px 6px">${esc(c)}</span>`).join('')}
+          </div>
+          ${s.memo?`<div style="font-size:.73rem;color:var(--muted)">${esc(s.memo)}</div>`:''}
+        </div>
+        <div style="display:flex;gap:.3rem;margin-left:.5rem">
+          <button onclick="openSetModal('${s.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">편집</button>
+          <button onclick="deleteSet('${s.id}')" style="background:none;border:1px solid rgba(193,123,106,.3);color:var(--red);padding:3px 8px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">삭제</button>
+        </div>
+      </div>
+    </div>`).join('') : `<div class="empty"><div class="empty-icon">🎒</div>등록된 세트 구성이 없습니다.<br><span style="font-size:.78rem;color:var(--muted)">라운드에서 사용할 클럽 세트를 미리 구성해두세요.</span></div>`;
+
+  return`<div class="page">${subTabs}${setCards}</div>`;
+}
+
+window.openSetModal = async (setId) => {
+  const existing = setId ? D.sets.find(s=>s.id===setId) : null;
+  const overlay = document.createElement('div');
+  overlay.id='set-modal-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:3000;display:flex;align-items:flex-end;justify-content:center';
+
+  // 보유 장비 목록
+  const ownedEquip = D.equip.filter(e=>e.status==='owned');
+
+  overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;width:min(540px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:.9rem;font-weight:600;color:var(--chalk)">${existing?'세트 편집':'새 세트 추가'}</div>
+      <button onclick="document.getElementById('set-modal-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:1rem;flex:1">
+      <div class="fg">
+        <label class="fl-label">세트 이름</label>
+        <input class="inp" id="set-name" placeholder="예: 주말 라운드 세트" value="${esc(existing?.name||'')}">
+      </div>
+      <div class="fg">
+        <label class="fl-label">클럽 구성 선택</label>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem">
+          ${CLUBS.map(c=>{
+            const checked = existing?.clubs.includes(c);
+            return`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:${checked?'rgba(200,137,58,.12)':'rgba(240,237,230,.04)'};border:1px solid ${checked?'rgba(200,137,58,.35)':'rgba(240,237,230,.12)'};border-radius:3px;padding:3px 8px;font-size:.75rem;color:${checked?'var(--wing2)':'var(--muted)'}">
+              <input type="checkbox" id="set-club-${c}" value="${c}" ${checked?'checked':''} onchange="updateSetClubStyle(this)" style="width:auto;accent-color:var(--wing2)">${esc(c)}
+            </label>`;
+          }).join('')}
+        </div>
+        ${ownedEquip.length?`<div style="font-size:.72rem;color:var(--muted);margin-bottom:.3rem">보유 장비에서 빠르게 선택:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          ${ownedEquip.map(e=>`<button onclick="quickSelectEquip('${ea(e.name)}')" style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:2px 8px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">${esc(e.name)}</button>`).join('')}
+        </div>`:''}
+      </div>
+      <div class="fg">
+        <label class="fl-label">메모 (선택)</label>
+        <input class="inp" id="set-memo" placeholder="예: 어프로치 연습용" value="${esc(existing?.memo||'')}">
+      </div>
+    </div>
+    <div style="padding:.75rem 1rem;border-top:1px solid var(--border);display:flex;gap:.4rem;flex-shrink:0">
+      <button onclick="saveSet('${setId||''}')" style="flex:1;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.5rem;border-radius:4px;font-size:.85rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+        ${existing?'저장':'추가'}
+      </button>
+      <button onclick="document.getElementById('set-modal-overlay').remove()" style="flex:1;background:none;border:1px solid var(--border);color:var(--muted);padding:.5rem;border-radius:4px;font-size:.85rem;cursor:pointer;font-family:var(--sans)">취소</button>
+    </div>
+  </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+};
+
+window.updateSetClubStyle = (cb) => {
+  const label = cb.closest('label');
+  if(!label) return;
+  label.style.background = cb.checked ? 'rgba(200,137,58,.12)' : 'rgba(240,237,230,.04)';
+  label.style.borderColor = cb.checked ? 'rgba(200,137,58,.35)' : 'rgba(240,237,230,.12)';
+  label.style.color = cb.checked ? 'var(--wing2)' : 'var(--muted)';
+};
+
+window.quickSelectEquip = (name) => {
+  // 보유 장비 이름으로 가장 가까운 클럽 체크박스 찾기
+  const cb = CLUBS.find(c => name.includes(c) || c.includes(name.split(' ')[0]));
+  if(cb){
+    const el = document.getElementById(`set-club-${cb}`);
+    if(el && !el.checked){ el.checked=true; updateSetClubStyle(el); }
+  }
+};
+
+window.saveSet = async (setId) => {
+  const name = document.getElementById('set-name')?.value.trim();
+  if(!name){ toast('세트 이름을 입력하세요'); return; }
+  const clubs = CLUBS.filter(c => document.getElementById(`set-club-${c}`)?.checked);
+  if(!clubs.length){ toast('클럽을 하나 이상 선택하세요'); return; }
+  const memo = document.getElementById('set-memo')?.value.trim()||'';
+  const btn = document.querySelector('#set-modal-overlay button[onclick*="saveSet"]');
+  if(btn){ btn.disabled=true; btn.textContent='저장 중...'; }
+  let error;
+  if(setId){
+    ({error} = await sb.from('club_sets').update({name,clubs,memo}).eq('id',setId).eq('user_id',user.id));
+  } else {
+    ({error} = await sb.from('club_sets').insert({user_id:user.id,name,clubs,memo}));
+  }
+  if(error){ toast('저장 실패: '+error.message); if(btn){btn.disabled=false;btn.textContent='저장';} return; }
+  document.getElementById('set-modal-overlay')?.remove();
+  await loadAll();
+  toast(`🎒 세트 "${name}" ${setId?'수정':'추가'}됨`);
+  render();
+};
+
+window.deleteSet = async (setId) => {
+  const s = D.sets.find(x=>x.id===setId);
+  if(!confirm(`"${s?.name}" 세트를 삭제할까요?`)) return;
+  const {error} = await sb.from('club_sets').delete().eq('id',setId).eq('user_id',user.id);
+  if(error){ toast('삭제 실패: '+error.message); return; }
+  await loadAll(); toast('세트 삭제됨'); render();
+};
+
 function eList(){
+  // 서브탭
+  const eSub = window._eSub || 'equip';
+  const subTabs=`<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);margin-bottom:.9rem">
+    <button onclick="window._eSub='equip';render()" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${eSub==='equip'?'var(--wing2)':'transparent'};background:none;color:${eSub==='equip'?'var(--wing2)':'var(--muted)'}">장비 목록</button>
+    <button onclick="window._eSub='sets';render()" style="flex:1;padding:.5rem;font-size:.78rem;font-family:var(--sans);border:none;cursor:pointer;border-bottom:2px solid ${eSub==='sets'?'var(--wing2)':'transparent'};background:none;color:${eSub==='sets'?'var(--wing2)':'var(--muted)'}">🎒 세트 구성</button>
+    <button class="btn btn-p btn-sm" style="flex-shrink:0;margin-bottom:2px" onclick="${eSub==='sets'?'openSetModal()':'goAdd()'}">+ ${eSub==='sets'?'세트 추가':'장비 추가'}</button>
+  </div>`;
+
+  if(eSub === 'sets') return eSetsView(subTabs);
+
   const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
@@ -4086,7 +4216,7 @@ function eList(){
     ${allCustomTags.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" data-kind="tag" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}','tag')">${esc(t)}</button>`).join('')}
   </div>`:'';
 
-  return`<div class="page"><div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div>
+  return`<div class="page">${subTabs}<div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div>
   <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
   ${tagChips}
   <div id="ecards">${cards}</div>
@@ -6172,9 +6302,8 @@ function pDetail(){
     </div>`;
   })()}
 
-  <!-- AI 스윙 분석 (샷 데이터 위) -->
+  <!-- 홀별 성적 (게임 기록만) -->
   ${(()=>{
-    // 게임 기록 (스크린/필드) 홀별 성적 표시
     if((s.gameType==='screen'||s.gameType==='field') && s.holeScores?.holes?.length){
       const hd = s.holeScores.holes;
       const totalScore = hd.reduce((a,h)=>a+(h.score||0),0);
@@ -6182,7 +6311,6 @@ function pDetail(){
       const diff = totalScore - totalPar;
       const diffLabel = diff>0?`+${diff}`:diff===0?'E':`${diff}`;
       const diffClr = diff<0?'#3D9E74':diff===0?'var(--chalk)':'var(--amber)';
-
       const holeNums = hd.map(h=>`<td style="text-align:center;font-size:.72rem;color:var(--muted);padding:2px 4px;min-width:28px">${h.hole}</td>`).join('');
       const parRow   = hd.map(h=>`<td style="text-align:center;font-size:.72rem;color:var(--muted);padding:2px 4px">${h.par||4}</td>`).join('');
       const scoreRow = hd.map(h=>{
@@ -6191,8 +6319,6 @@ function pDetail(){
         const clr=d<=-2?'#7AB0E8':d===-1?'#3D9E74':d===0?'var(--chalk)':d===1?'var(--amber)':'var(--red)';
         return`<td style="text-align:center;font-size:.75rem;font-weight:600;padding:2px 4px;color:${clr};background:${bg};border-radius:2px">${h.score||'-'}</td>`;
       }).join('');
-
-      // 9홀/18홀 합계
       const n = hd.length;
       let sumRow = '';
       if(n===18){
@@ -6205,7 +6331,6 @@ function pDetail(){
           <td style="text-align:center;font-size:.72rem;font-weight:600;color:var(--wing2);padding:2px 4px">${b}</td>
         </tr>`;
       }
-
       return`<div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:.9rem">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
           <div class="sec-label" style="margin-bottom:0">홀별 성적</div>
@@ -6223,41 +6348,40 @@ function pDetail(){
             ${sumRow}
           </table>
         </div>
-        <!-- 범례 -->
         <div style="display:flex;gap:.6rem;margin-top:.5rem;flex-wrap:wrap">
           ${[['이글-','rgba(122,176,232,.2)','#7AB0E8'],['버디','rgba(61,158,116,.2)','#3D9E74'],['파','transparent','var(--chalk)'],['보기','rgba(186,117,23,.15)','var(--amber)'],['더블+','rgba(193,123,106,.2)','var(--red)']].map(([l,bg,c])=>`
             <span style="font-size:.70rem;color:${c};background:${bg};padding:1px 6px;border-radius:2px">${l}</span>`).join('')}
         </div>
       </div>`;
     }
+    // GDR 기록은 AI 스윙 분석 + 샷 데이터 표시
+    if(s.gameType==='gdr'||!s.gameType){
+      return`<div style="margin-bottom:.8rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+          <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
+            ${s.aiAnalysis ? '✦ 다시 분석' : '✦ AI 스윙 분석'}
+          </button>
+        </div>
+        <div id="analysis-result-${s.id}">${s.aiAnalysis ? `
+          <div class="analysis-box">
+            <div class="analysis-box-title">✦ AI 스윙 분석</div>
+            <div class="analysis-content">${s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+          </div>` : ''}</div>
+      </div>
+      <div class="sec-label">샷 데이터
+        ${(()=>{
+          const imgs=s.imageUrls?.length||0;
+          if(imgs>0 && s.shots.length < imgs){
+            return `<button id="btn-reanalyze-${s.id}" onclick="reAnalyzeSession('${s.id}')" style="margin-left:.6rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans);vertical-align:middle">📡 GDR 재분석 (${s.shots.length}/${imgs})</button>`;
+          }
+          return '';
+        })()}
+      </div>
+      <div style="max-width:560px">${renderShotChart(s.shots)}</div>
+      ${shotsH}`;
+    }
     return '';
   })()}
-  <div style="margin-bottom:.8rem">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-      <button class="btn-analyze" id="btn-analyze-${s.id}" onclick="analyzeSwing('${s.id}')" ${s.shots.length===0?'disabled':''}>
-        ${s.aiAnalysis ? '✦ 다시 분석' : '✦ AI 스윙 분석'}
-      </button>
-    </div>
-    <div id="analysis-result-${s.id}">${s.aiAnalysis ? `
-      <div class="analysis-box">
-        <div class="analysis-box-title">✦ AI 스윙 분석</div>
-        <div class="analysis-content">${s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
-        <div style="margin-top:.75rem;font-size:.7rem;color:var(--muted);letter-spacing:.04em">Powered by Gemini 2.5 Flash · 저장된 분석</div>
-      </div>` : ''}</div>
-  </div>
-
-  <!-- 샷 데이터 -->
-  <div class="sec-label">샷 데이터
-    ${(()=>{
-      const imgs=s.imageUrls?.length||0;
-      if(imgs>0 && s.shots.length < imgs){
-        return `<button id="btn-reanalyze-${s.id}" onclick="reAnalyzeSession('${s.id}')" style="margin-left:.6rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans);vertical-align:middle">📡 GDR 재분석 (${s.shots.length}/${imgs})</button>`;
-      }
-      return '';
-    })()}
-  </div>
-  <div style="max-width:560px">${renderShotChart(s.shots)}</div>
-  ${shotsH}
 
   <!-- GDR/게임 사진 -->
   ${(()=>{
@@ -7843,12 +7967,15 @@ function pAdd() {
 
     <div class="frow">
       <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
-      <div class="fg" id="club-wrap"><label class="fl-label">클럽</label>
+      <div class="fg" id="club-wrap"><label class="fl-label">클럽 세트</label>
         <select class="sel" id="pc">
-          <option value="">선택...</option>
+          <option value="">세트 선택...</option>
+          ${D.sets.map(s=>`<optgroup label="🎒 ${esc(s.name)}">${s.clubs.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>`).join('')}
+          ${D.sets.length?'<optgroup label="─────────────"></optgroup>':''}
           ${ownedClubOptions()}
           <optgroup label="전체 클럽">${CLUBS.map(c=>`<option>${c}</option>`).join('')}</optgroup>
         </select>
+        ${D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem">세트 선택 시 해당 세트의 클럽을 선택할 수 있습니다</div>`:`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`}
       </div>
     </div>
 
