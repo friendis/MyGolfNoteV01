@@ -839,15 +839,15 @@ const CLUB_BENCH={
   '8I':{carry:[{l:'프로',min:135,max:160,c:'rgba(228,168,85,.07)'},{l:'상급',min:112,max:135,c:'rgba(122,176,232,.06)'},{l:'중급',min:85,max:112,c:'rgba(167,139,250,.05)'},{l:'초급',min:58,max:85,c:'rgba(138,155,170,.04)'}]},
   '9I':{carry:[{l:'프로',min:122,max:148,c:'rgba(228,168,85,.07)'},{l:'상급',min:100,max:122,c:'rgba(122,176,232,.06)'},{l:'중급',min:75,max:100,c:'rgba(167,139,250,.05)'},{l:'초급',min:50,max:75,c:'rgba(138,155,170,.04)'}]},
   'PW':{carry:[{l:'프로',min:110,max:138,c:'rgba(228,168,85,.07)'},{l:'상급',min:90,max:110,c:'rgba(122,176,232,.06)'},{l:'중급',min:68,max:90,c:'rgba(167,139,250,.05)'},{l:'초급',min:45,max:68,c:'rgba(138,155,170,.04)'}]},
-  'GW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
+  'AW/GW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
   'SW':{carry:[{l:'프로',min:80,max:105,c:'rgba(228,168,85,.07)'},{l:'상급',min:64,max:80,c:'rgba(122,176,232,.06)'},{l:'중급',min:48,max:64,c:'rgba(167,139,250,.05)'},{l:'초급',min:32,max:48,c:'rgba(138,155,170,.04)'}]},
   'LW':{carry:[{l:'프로',min:65,max:88,c:'rgba(228,168,85,.07)'},{l:'상급',min:50,max:65,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:50,c:'rgba(167,139,250,.05)'},{l:'초급',min:22,max:36,c:'rgba(138,155,170,.04)'}]},
 };
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
-const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','GW','SW','LW','퍼터'];
+const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
-const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','GW','SW','LW'],'퍼터':['퍼터']};
+const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
 // 클럽값에서 통계용 정규 클럽 번호 추출 ("JP921 아이언 — 7I" → "7I")
 function normalizeClub(club){
@@ -4120,7 +4120,7 @@ window.openSetModal = async (setId) => {
           ${CLUBS.map(c=>{
             const checked = existing?.clubs.includes(c);
             return`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:${checked?'rgba(200,137,58,.12)':'rgba(240,237,230,.04)'};border:1px solid ${checked?'rgba(200,137,58,.35)':'rgba(240,237,230,.12)'};border-radius:3px;padding:3px 8px;font-size:.75rem;color:${checked?'var(--wing2)':'var(--muted)'}">
-              <input type="checkbox" id="set-club-${c}" value="${c}" ${checked?'checked':''} onchange="updateSetClubStyle(this)" style="width:auto;accent-color:var(--wing2)">${esc(c)}
+              <input type="checkbox" id="set-club-${c.replace(/\//g,'-')}" value="${c}" ${checked?'checked':''} onchange="updateSetClubStyle(this)" style="width:auto;accent-color:var(--wing2)">${esc(c)}
             </label>`;
           }).join('')}
         </div>
@@ -4154,18 +4154,31 @@ window.updateSetClubStyle = (cb) => {
 };
 
 window.quickSelectEquip = (name) => {
-  // 보유 장비 이름으로 가장 가까운 클럽 체크박스 찾기
-  const cb = CLUBS.find(c => name.includes(c) || c.includes(name.split(' ')[0]));
-  if(cb){
-    const el = document.getElementById(`set-club-${cb}`);
+  const upper = name.toUpperCase();
+  // 클럽명 직접 매칭 (대소문자 무관) 또는 포함 여부
+  const matched = CLUBS.find(c => {
+    const cu = c.toUpperCase();
+    return upper.includes(cu) || cu.includes(upper) ||
+      // 별칭 매핑
+      (cu==='드라이버' && upper.includes('DRIVER')) ||
+      (cu==='퍼터' && upper.includes('PUTTER')) ||
+      (cu==='AW/GW' && (upper.includes('AW') || upper.includes('GW') || upper.includes('갭'))) ||
+      (cu==='SW' && upper.includes('SAND')) ||
+      (cu==='LW' && upper.includes('LOB')) ||
+      (cu==='PW' && upper.includes('PITCH'));
+  });
+  if(matched){
+    const el = document.getElementById(`set-club-${matched.replace(/\//g,'-')}`);
     if(el && !el.checked){ el.checked=true; updateSetClubStyle(el); }
+  } else {
+    toast(`"${name}" 에 맞는 클럽을 찾지 못했습니다`);
   }
 };
 
 window.saveSet = async (setId) => {
   const name = document.getElementById('set-name')?.value.trim();
   if(!name){ toast('세트 이름을 입력하세요'); return; }
-  const clubs = CLUBS.filter(c => document.getElementById(`set-club-${c}`)?.checked);
+  const clubs = CLUBS.filter(c => document.getElementById(`set-club-${c.replace(/\//g,'-')}`)?.checked);
   if(!clubs.length){ toast('클럽을 하나 이상 선택하세요'); return; }
   const memo = document.getElementById('set-memo')?.value.trim()||'';
   const btn = document.querySelector('#set-modal-overlay button[onclick*="saveSet"]');
@@ -5854,7 +5867,7 @@ const CLUB_COLORS = {
   '8I':        {line:'#88A8E0', bg:'rgba(136,168,224,.15)'},
   '9I':        {line:'#A090D8', bg:'rgba(160,144,216,.15)'},
   'PW':        {line:'#A78BFA', bg:'rgba(167,139,250,.15)'},
-  'GW':        {line:'#C085E8', bg:'rgba(192,133,232,.15)'},
+  'AW/GW':        {line:'#C085E8', bg:'rgba(192,133,232,.15)'},
   'SW':        {line:'#D880D0', bg:'rgba(216,128,208,.15)'},
   'LW':        {line:'#E870C0', bg:'rgba(232,112,192,.15)'},
   '퍼터':      {line:'#8888A8', bg:'rgba(136,136,168,.15)'},
