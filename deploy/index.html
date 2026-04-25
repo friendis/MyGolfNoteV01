@@ -102,12 +102,33 @@ textarea:focus{border-color:rgba(200,137,58,.4)}
     <div class="warn">⚠ DEV에서 충분히 검증한 후에만 진행하세요.</div>
     <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:6px;padding:.55rem .75rem;margin:.75rem 0">
       <div class="status-row"><span class="status-label">경로</span><code style="font-size:.73rem;color:#C8893A">index.html</code></div>
+      <div class="status-row"><span class="status-label">현재 버전</span><span id="current-ver-display" style="font-size:.73rem;color:#7a9ab8">불러오는 중...</span></div>
       <div class="status-row"><span class="status-label">URL</span><span id="prod-url-display" style="font-size:.71rem;color:#7a9ab8">—</span></div>
     </div>
 
-    <!-- 릴리즈 노트 -->
+    <!-- 버전 선택 -->
     <div class="fg">
-      <label>릴리즈 노트 <span style="font-weight:400;color:#4a5568">(앱에서 사용자에게 표시)</span></label>
+      <label>다음 버전</label>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap" id="ver-btns">
+        <button type="button" id="ver-major" onclick="selectVer('major')"
+          class="tag-chip" style="font-size:.78rem;padding:5px 12px">
+          📦 Major <span id="ver-major-val" style="color:#A78BFA"></span>
+        </button>
+        <button type="button" id="ver-minor" onclick="selectVer('minor')"
+          class="tag-chip" style="font-size:.78rem;padding:5px 12px">
+          ✨ Minor <span id="ver-minor-val" style="color:#C8893A"></span>
+        </button>
+        <button type="button" id="ver-patch" onclick="selectVer('patch')"
+          class="tag-chip" style="font-size:.78rem;padding:5px 12px">
+          🔧 Patch <span id="ver-patch-val" style="color:#4a6a8a"></span>
+        </button>
+      </div>
+      <div id="ver-hint" style="font-size:.7rem;color:#4a5568;margin-top:.35rem"></div>
+    </div>
+
+    <!-- 릴리즈 노트 (patch면 선택) -->
+    <div class="fg" id="release-notes-section">
+      <label>릴리즈 노트 <span id="rn-optional" style="font-weight:400;color:#4a5568"></span></label>
       <div style="display:flex;gap:.35rem;margin-bottom:.4rem;flex-wrap:wrap">
         <button type="button" onclick="insertTag('✨ 새 기능')" class="tag-chip">✨ 새 기능</button>
         <button type="button" onclick="insertTag('🐛 버그 수정')" class="tag-chip">🐛 버그 수정</button>
@@ -141,6 +162,8 @@ textarea:focus{border-color:rgba(200,137,58,.4)}
 <script>
 let devContent = null;
 const deployHistory = [];
+let _currentVer = [1,0,0]; // [major, minor, patch]
+let _selectedVerType = 'minor'; // 기본값
 
 // 초기화
 document.getElementById('username').addEventListener('input', updateUrls);
@@ -149,6 +172,63 @@ document.getElementById('prod-confirm').addEventListener('change', function(){
   document.getElementById('prod-btn').disabled = !this.checked;
 });
 updateUrls();
+
+// CHANGELOG에서 현재 버전 로드
+async function loadCurrentVersion(){
+  const {username,repo,token}=getInputs();
+  if(!username||!repo||!token) return;
+  try{
+    const headers={'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github.v3+json','X-GitHub-Api-Version':'2022-11-28'};
+    const res=await fetch(`https://api.github.com/repos/${username}/${repo}/contents/CHANGELOG.md`,{headers});
+    if(!res.ok){setVersionDisplay([1,0,0]);return;}
+    const data=await res.json();
+    const bin=atob(data.content.replace(/\n/g,''));
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const text=new TextDecoder('utf-8').decode(bytes);
+    // 첫 번째 ## vX.Y.Z 파싱
+    const m=text.match(/##\s+v(\d+)\.(\d+)\.(\d+)/);
+    if(m) _currentVer=[parseInt(m[1]),parseInt(m[2]),parseInt(m[3])];
+    else _currentVer=[1,0,0];
+    setVersionDisplay(_currentVer);
+  }catch(e){setVersionDisplay([1,0,0]);}
+}
+
+function setVersionDisplay(cur){
+  const [ma,mi,pa]=cur;
+  document.getElementById('current-ver-display').textContent=`v${ma}.${mi}.${pa}`;
+  document.getElementById('ver-major-val').textContent=`→ v${ma+1}.0.0`;
+  document.getElementById('ver-minor-val').textContent=`→ v${ma}.${mi+1}.0`;
+  document.getElementById('ver-patch-val').textContent=`→ v${ma}.${mi}.${pa+1}`;
+  selectVer('minor'); // 기본 선택
+}
+
+function selectVer(type){
+  _selectedVerType=type;
+  const hints={
+    major:'큰 기능 추가 또는 대규모 개편 — 사용자 알림 표시',
+    minor:'새 기능 추가 — 사용자 알림 표시',
+    patch:'버그 수정·사소한 개선 — 조용히 배포, 릴리즈 노트 선택사항'
+  };
+  const colors={major:'rgba(167,139,250,.3)',minor:'rgba(200,137,58,.4)',patch:'rgba(74,101,128,.3)'};
+  ['major','minor','patch'].forEach(t=>{
+    const btn=document.getElementById(`ver-${t}`);
+    btn.style.borderColor=t===type?colors[t]:'rgba(240,237,230,.15)';
+    btn.style.background=t===type?(t==='patch'?'rgba(74,101,128,.12)':t==='minor'?'rgba(200,137,58,.1)':'rgba(167,139,250,.1)'):'rgba(240,237,230,.05)';
+    btn.style.color=t===type?(t==='patch'?'#7a9ab8':t==='minor'?'#C8893A':'#A78BFA'):'#7a9ab8';
+  });
+  document.getElementById('ver-hint').textContent=hints[type];
+  // patch는 릴리즈 노트 선택사항
+  const rnOptional=document.getElementById('rn-optional');
+  if(rnOptional) rnOptional.textContent=type==='patch'?'(선택 — patch는 생략 가능)':'(앱에서 사용자에게 표시)';
+}
+
+function getNextVersion(){
+  const [ma,mi,pa]=_currentVer;
+  if(_selectedVerType==='major') return `v${ma+1}.0.0`;
+  if(_selectedVerType==='minor') return `v${ma}.${mi+1}.0`;
+  return `v${ma}.${mi}.${pa+1}`;
+}
 
 function updateUrls(){
   const u = document.getElementById('username').value.trim();
@@ -227,6 +307,7 @@ async function deployDev(){
     logTo('dev-log','※ 반영까지 1~2분 소요','info');
     badge.className='badge badge-ok'; badge.textContent='✓ 완료';
     addHistory('DEV',fileInput.files[0].name,result.commit?.sha?.slice(0,7),`https://${username}.github.io/${repo}/dev/`);
+    loadCurrentVersion(); // 버전 정보 로드
   }catch(e){
     logTo('dev-log',`오류: ${e.message}`,'err');
     badge.className='badge badge-idle'; badge.textContent='실패';
@@ -356,21 +437,22 @@ ${diffSummary}
 }
 
 // ── PROD 배포 ─────────────────────────────────────────
-function buildChangelog(notes,version,commitSha){
-  const now=new Date();
-  const d=now.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\.\s*/g,'-').replace(/-$/,'');
-  const t=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  return `## ${version} — ${d} ${t}\n\n${notes}\n`; // 커밋 줄 제거
-}
 
 async function deployProd(){
   const {username,repo,token}=getInputs();
   const btn=document.getElementById('prod-btn');
   const badge=document.getElementById('prod-badge');
   const releaseNotes=document.getElementById('release-notes').value.trim();
+  const nextVer=getNextVersion();
+
   if(!devContent){logTo('prod-log','DEV 배포를 먼저 진행하세요','err');return;}
-  if(!releaseNotes){logTo('prod-log','릴리즈 노트를 작성해주세요','err');document.getElementById('release-notes').focus();return;}
-  if(!confirm('PROD에 배포하면 실제 사용자에게 즉시 반영됩니다.\n계속할까요?')) return;
+  // patch는 릴리즈 노트 없어도 배포 가능
+  if(_selectedVerType!=='patch'&&!releaseNotes){
+    logTo('prod-log','Major/Minor 배포는 릴리즈 노트를 작성해주세요','err');
+    document.getElementById('release-notes').focus();return;
+  }
+  if(!confirm(`${nextVer}으로 PROD 배포합니다.\n실제 사용자에게 즉시 반영됩니다. 계속할까요?`)) return;
+
   btn.disabled=true; btn.textContent='배포 중...';
   badge.className='badge badge-prod'; badge.textContent='배포 중...';
   clearLog('prod-log');
@@ -378,14 +460,14 @@ async function deployProd(){
   const apiBase=`https://api.github.com/repos/${username}/${repo}`;
   try{
     // index.html 업로드
-    logTo('prod-log','index.html SHA 확인 중...','gold');
+    logTo('prod-log',`${nextVer} 배포 중...`,'gold');
     const sha=await getSHA(apiBase,'index.html',headers);
     const now=new Date().toLocaleString('ko-KR');
-    const result=await putFile(apiBase,'index.html',devContent,`🚀 PROD 배포 ${now}`,sha,headers);
+    const result=await putFile(apiBase,'index.html',devContent,`🚀 ${nextVer} PROD 배포 ${now}`,sha,headers);
     const commitSha=result.commit?.sha?.slice(0,7);
     logTo('prod-log',`index.html 완료! 커밋: ${commitSha}`,'ok');
 
-    // CHANGELOG.md 업로드
+    // CHANGELOG.md 업로드 (patch+노트 없으면 조용히 기록, major/minor는 사용자 노출)
     logTo('prod-log','CHANGELOG.md 업데이트 중...','gold');
     const clSha=await getSHA(apiBase,'CHANGELOG.md',headers);
     let existing='';
@@ -393,24 +475,31 @@ async function deployProd(){
       const r2=await fetch(`${apiBase}/contents/CHANGELOG.md`,{headers});
       if(r2.ok){const d=await r2.json();const bin=atob(d.content.replace(/\n/g,''));const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);existing=new TextDecoder('utf-8').decode(bytes);}
     }
-    const vNum=(existing.match(/^## /gm)||[]).length+1;
-    const vStr=`v1.${vNum}`;
-    const newEntry=buildChangelog(releaseNotes,vStr,commitSha);
+    const d2=new Date();
+    const ds=d2.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\.\s*/g,'-').replace(/-$/,'');
+    const ts=d2.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    // patch에 노트 없으면 최소 항목만 기록
+    const noteBody = releaseNotes || (_selectedVerType==='patch'?'🔧 사소한 개선 및 버그 수정':'');
+    const newEntry=`## ${nextVer} — ${ds} ${ts}\n\n${noteBody}\n`;
     const header=existing.startsWith('# CHANGELOG')?'':'# CHANGELOG — Birdyard\n\n';
     const fullLog=header+newEntry+'\n'+(existing.replace(/^# CHANGELOG.*\n\n?/,'')||'');
-    await putFile(apiBase,'CHANGELOG.md',fullLog,`📝 릴리즈 노트 ${vStr}`,clSha,headers);
-    logTo('prod-log',`CHANGELOG.md 완료! (${vStr})`,'ok');
+    await putFile(apiBase,'CHANGELOG.md',fullLog,`📝 ${nextVer} 릴리즈 노트`,clSha,headers);
+    logTo('prod-log',`CHANGELOG.md 완료! (${nextVer})`,'ok');
 
     const prodUrl=`https://${username}.github.io/${repo}/`;
     logTo('prod-log',`PROD URL: ${prodUrl}`,'gold');
-    logTo('prod-log',`릴리즈: ${vStr}`,'purple');
-    logTo('prod-log','※ 반영까지 1~2분 소요','info');
+    logTo('prod-log',`버전: ${nextVer} (${_selectedVerType})`,'purple');
+    logTo('prod-log',_selectedVerType==='patch'&&!releaseNotes?'※ 사용자에게 알림 없이 조용히 배포됨':'※ 앱에서 업데이트 알림 표시','info');
+    logTo('prod-log','※ GitHub Pages 반영까지 1~2분 소요','info');
     badge.className='badge badge-ok'; badge.textContent='✓ 완료';
     document.getElementById('prod-confirm').checked=false;
     btn.disabled=true;
     document.getElementById('release-notes').value='';
     updateCharCount();
-    addHistory('PROD',vStr,commitSha,prodUrl);
+    // 현재 버전 갱신
+    const parts=nextVer.slice(1).split('.').map(Number);
+    _currentVer=parts; setVersionDisplay(parts);
+    addHistory('PROD',nextVer,commitSha,prodUrl);
   }catch(e){
     logTo('prod-log',`오류: ${e.message}`,'err');
     badge.className='badge badge-idle'; badge.textContent='실패';
