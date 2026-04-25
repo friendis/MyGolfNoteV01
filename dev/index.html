@@ -5125,6 +5125,7 @@ function showScorecardCropPreview(imgUrl, b64, mime){
 }
 
 let _scSelectedPlayer=0, _scScrolling=false;
+let _scorecardOrigFile=null, _scorecardOrigB64='', _scorecardMime='image/jpeg', _scorecardAnalyzed=null;
 
 window.syncScoreScroll=(el,src)=>{
   if(_scScrolling)return;
