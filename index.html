@@ -1258,7 +1258,7 @@ async function loadPopularNotes(){
 }
 
 // ── 릴리즈 노트 (CHANGELOG) ─────────────────────────
-let _changelogChecked = false; // 세션당 1회만
+let _changelogChecked = false;
 
 async function checkChangelog() {
   if(_changelogChecked || isGuest) return;
@@ -1267,25 +1267,40 @@ async function checkChangelog() {
   try {
     const CHANGELOG_URL = 'https://raw.githubusercontent.com/friendis/MyGolfNoteV01/main/CHANGELOG.md';
     const res = await fetch(CHANGELOG_URL + '?t=' + Date.now());
-    if(!res.ok) return;
+    if(!res.ok){ console.warn('CHANGELOG fetch 실패:', res.status); return; }
     const text = await res.text();
 
-    // 첫 번째 버전 항목 파싱
-    const firstEntry = text.match(/^## (v[\d.]+.*?)$([\s\S]*?)(?=^## |\Z)/m);
-    if(!firstEntry) return;
+    // ## v1.x — ... 형태의 첫 번째 섹션 파싱
+    // 섹션 경계: 다음 ## 이 나오거나 텍스트 끝까지
+    const lines = text.split('\n');
+    let version = '', contentLines = [], inSection = false;
 
-    const version = firstEntry[1].trim();
-    const content = firstEntry[2].trim();
+    for(let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if(line.startsWith('## ')) {
+        if(inSection) break; // 두 번째 섹션 시작 → 종료
+        // 버전 파싱: "## v1.1 — 2026-04-25 14:30" 에서 버전 추출
+        const vMatch = line.match(/##\s+(v[\d.]+)/);
+        if(vMatch) { version = vMatch[1]; inSection = true; }
+        else { inSection = false; } // # CHANGELOG 헤더 등 skip
+      } else if(inSection) {
+        contentLines.push(line);
+      }
+    }
 
-    // 마지막으로 본 버전 확인
+    if(!version || !contentLines.length) {
+      console.warn('CHANGELOG 파싱 실패. 내용:', text.slice(0, 200));
+      return;
+    }
+
+    const content = contentLines.join('\n').trim();
     const seenKey = 'birdyard_seen_changelog';
     const lastSeen = localStorage.getItem(seenKey);
-    if(lastSeen === version) return; // 이미 본 버전
+    if(lastSeen === version) return;
 
-    // 모달 표시
     showChangelogModal(version, content, seenKey);
   } catch(e) {
-    // 네트워크 오류 등은 조용히 무시
+    console.warn('CHANGELOG 오류:', e.message);
   }
 }
 
@@ -1293,28 +1308,36 @@ function showChangelogModal(version, content, storageKey) {
   const existing = document.getElementById('changelog-modal');
   if(existing) existing.remove();
 
-  // 마크다운 간단 렌더링
+  // 마크다운 렌더링
   const rendered = content
-    .replace(/^(✨|🐛|⚡|🎨|🔧|💡|📤|📋)[^\n]+$/gm, s=>`<div style="font-size:.8rem;font-weight:600;color:var(--wing2);margin:.65rem 0 .25rem">${s}</div>`)
-    .replace(/^• (.+)$/gm, s=>`<div style="font-size:.78rem;color:var(--dim);padding:.1rem 0;display:flex;gap:.4rem"><span style="color:var(--muted);flex-shrink:0">•</span><span>${s.slice(2)}</span></div>`)
-    .replace(/^> (.+)$/gm, s=>`<div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">${s.slice(2)}</div>`)
-    .replace(/\n\n+/g, '\n');
+    .split('\n')
+    .map(line => {
+      if(/^(✨|🐛|⚡|🎨|🔧|💡|📤|📋)/.test(line) && line.trim())
+        return `<div style="font-size:.82rem;font-weight:600;color:var(--wing2);margin:.7rem 0 .2rem">${line}</div>`;
+      if(line.startsWith('• '))
+        return `<div style="font-size:.78rem;color:var(--dim);padding:.15rem 0;display:flex;gap:.4rem"><span style="color:var(--muted);flex-shrink:0">•</span><span>${line.slice(2)}</span></div>`;
+      if(line.startsWith('> '))
+        return `<div style="font-size:.7rem;color:var(--muted);margin-bottom:.2rem">${line.slice(2)}</div>`;
+      if(line.trim() === '') return '<div style="height:.3rem"></div>';
+      return `<div style="font-size:.78rem;color:var(--dim)">${line}</div>`;
+    })
+    .join('');
 
   const overlay = document.createElement('div');
   overlay.id = 'changelog-modal';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:4000;display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = `<div style="background:var(--surface);border:1px solid rgba(200,137,58,.25);border-radius:10px 10px 0 0;width:min(520px,100%);max-height:75vh;display:flex;flex-direction:column;overflow:hidden">
     <div style="padding:.9rem 1.1rem .6rem;border-bottom:1px solid var(--border);flex-shrink:0">
-      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+      <div style="display:flex;align-items:center;gap:.5rem">
         <span style="font-size:1rem">🎉</span>
         <span style="font-family:var(--serif);font-size:.95rem;font-weight:700;color:var(--wing2)">Birdyard 업데이트</span>
-        <span style="font-size:.7rem;color:var(--muted);margin-left:.2rem">${esc(version)}</span>
+        <span style="font-size:.72rem;color:var(--muted);margin-left:.2rem">${esc(version)}</span>
       </div>
     </div>
     <div style="overflow-y:auto;padding:.85rem 1.1rem;flex:1">${rendered}</div>
-    <div style="padding:.75rem 1.1rem;border-top:1px solid var(--border);display:flex;gap:.4rem;flex-shrink:0">
+    <div style="padding:.75rem 1.1rem;border-top:1px solid var(--border);flex-shrink:0">
       <button onclick="document.getElementById('changelog-modal').remove();localStorage.setItem('${storageKey}','${esc(version)}')"
-        style="flex:1;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.45rem;border-radius:4px;font-size:.85rem;cursor:pointer;font-family:var(--sans);font-weight:500">
+        style="width:100%;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.5rem;border-radius:4px;font-size:.85rem;cursor:pointer;font-family:var(--sans);font-weight:500">
         확인했어요
       </button>
     </div>
@@ -1327,6 +1350,13 @@ function showChangelogModal(version, content, storageKey) {
   });
   document.body.appendChild(overlay);
 }
+
+// 개발용: 릴리즈 노트 다시 보기 (콘솔에서 호출)
+window._resetChangelog = () => {
+  localStorage.removeItem('birdyard_seen_changelog');
+  _changelogChecked = false;
+  checkChangelog();
+};
 
 async function loadHomeSocial() {
   const wrap = $('home-social-wrap'); if(!wrap||!user||isGuest) return;
