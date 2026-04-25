@@ -5161,7 +5161,7 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
     const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',signal:ctrl.signal,
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'scorecard',model:'gemini-2.5-flash',maxOutputTokens:2000,
+      body:JSON.stringify({type:'scorecard',model:'gemini-2.5-flash',maxOutputTokens:4000,
         prompt:`이 골프 스코어카드 사진을 분석해서 아래 형식의 JSON으로만 응답하세요. 마크다운, 설명, 주석 없이 순수 JSON만 출력하세요.
 
 응답 형식:
@@ -5209,7 +5209,9 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
     // 주석 제거 (// ...)
     jsonStr=jsonStr.replace(/\/\/[^\n]*/g,'');
     console.log('[scorecard] JSON 파싱 시도 (앞 200자):', jsonStr.slice(0,200));
-    const parsed=JSON.parse(jsonStr);
+    console.log('[scorecard] JSON 파싱 시도 (앞 200자):', jsonStr.slice(0,200));
+    const opens=(jsonStr.match(/\{/g)||[]).length, closes=(jsonStr.match(/\}/g)||[]).length;
+    if(opens!==closes) throw new Error(`응답이 잘렸습니다 (토큰 부족 — ${opens}개 열림, ${closes}개 닫힘). 재분석 눌러주세요.`);
     _scorecardAnalyzed=parsed;
     clearInterval(timer);
     const totalSec=Math.round((Date.now()-startTime)/1000);
