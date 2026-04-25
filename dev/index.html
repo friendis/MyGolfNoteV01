@@ -4011,8 +4011,12 @@ window.analyzeYouTube=async()=>{
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
       body:JSON.stringify({type:'youtube',youtubeUrl:url,model:'gemini-2.5-flash',maxOutputTokens:3000,prompt})
     });
-    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    if(!resp.ok){
+      const errText=await resp.text().catch(()=>'');
+      throw new Error(`서버 오류 (${resp.status})${errText?': '+errText.slice(0,80):''}`);
+    }
     const data=await resp.json();
+    if(data.error) throw new Error(`AI 오류: ${data.error}`);
     const raw=data.result||data.text||'';
     const jsonMatch=raw.match(/\{[\s\S]*\}/);
     if(!jsonMatch) throw new Error('AI 응답을 파싱할 수 없습니다');
