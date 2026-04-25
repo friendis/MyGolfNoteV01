@@ -5191,12 +5191,11 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
     jsonStr=jsonStr.replace(/,\s*([}\]])/g,'$1');
     // 줄임표 제거
     jsonStr=jsonStr.replace(/\.\.\./g,'');
-    // 주석 제거 (// ...)
     jsonStr=jsonStr.replace(/\/\/[^\n]*/g,'');
-    console.log('[scorecard] JSON 파싱 시도 (앞 200자):', jsonStr.slice(0,200));
     console.log('[scorecard] JSON 파싱 시도 (앞 200자):', jsonStr.slice(0,200));
     const opens=(jsonStr.match(/\{/g)||[]).length, closes=(jsonStr.match(/\}/g)||[]).length;
     if(opens!==closes) throw new Error(`응답이 잘렸습니다 (토큰 부족 — ${opens}개 열림, ${closes}개 닫힘). 재분석 눌러주세요.`);
+    const parsed=JSON.parse(jsonStr);
     _scorecardAnalyzed=parsed;
     clearInterval(timer);
     const totalSec=Math.round((Date.now()-startTime)/1000);
