@@ -661,6 +661,8 @@ import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm
 Chart.register(...registerables);
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
+// ── AI 모델 설정 ── 문제 발생 시 'gemini-2.5-flash' 로 변경 ──
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 // ── 환경 분기: /dev/ 경로면 dev 스키마 사용 ──────────
 const IS_DEV = location.pathname.includes('/dev/') || location.pathname.includes('/dev');
 const sb=createClient(SB_URL,SB_KEY,{db:{schema:IS_DEV?'dev':'public'}});
@@ -4009,7 +4011,7 @@ window.analyzeYouTube=async()=>{
     const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'youtube',youtubeUrl:url,model:'gemini-2.5-flash',maxOutputTokens:3000,prompt})
+      body:JSON.stringify({type:'youtube',youtubeUrl:url,model:GEMINI_MODEL,maxOutputTokens:3000,prompt})
     });
     if(!resp.ok){
       const errText=await resp.text().catch(()=>'');
@@ -5161,7 +5163,7 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
     const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',signal:ctrl.signal,
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'scorecard',model:'gemini-2.5-flash',maxOutputTokens:8000,
+      body:JSON.stringify({type:'scorecard',model:GEMINI_MODEL,maxOutputTokens:8000,
         prompt:`이 골프 스코어카드 사진을 분석해서 한 줄 minified JSON으로만 응답하세요. 공백/개행 없이 순수 JSON만 출력하세요.
 
 형식:
