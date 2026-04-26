@@ -401,6 +401,34 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
       BIRDYARD
     </div>
     <div class="auth-sub">새들의 마당 · 함께 날아오르다</div>
+
+    <!-- 환영 문구 + 얼리액세스 배지 -->
+    <div style="text-align:center;margin:.9rem 0 1rem">
+      <div style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.25);border-radius:12px;padding:3px 12px;margin-bottom:.65rem">
+        <span style="font-size:.65rem;font-weight:700;color:var(--wing2);letter-spacing:.12em;text-transform:uppercase">Early Access</span>
+        <span style="width:5px;height:5px;border-radius:50%;background:var(--wing2);display:inline-block;animation:devpulse 1.4s ease-in-out infinite"></span>
+        <span style="font-size:.65rem;color:var(--wing2)">현재 무료</span>
+      </div>
+      <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--chalk);line-height:1.5;margin-bottom:.35rem">
+        골프 실력, 이제 체계적으로 기록하세요
+      </div>
+      <div style="font-size:.75rem;color:var(--dim);line-height:1.65">
+        학습 노트 · 비행 기록 · 스코어카드 분석 · 버디 커뮤니티<br>
+        얼리액세스 기간 동안 모든 기능을 <strong style="color:var(--chalk)">무료</strong>로 이용하세요
+      </div>
+    </div>
+
+    <!-- 개발자 계정 구경 링크 -->
+    <a href="https://birdyard.app/?u=friendis" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:.5rem;background:rgba(74,143,168,.07);border:1px solid rgba(74,143,168,.2);border-radius:4px;padding:.5rem .75rem;margin-bottom:.9rem;text-decoration:none;transition:background .15s"
+      onmouseover="this.style.background='rgba(74,143,168,.13)'" onmouseout="this.style.background='rgba(74,143,168,.07)'">
+      <span style="font-size:1.1rem">🏌️</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.75rem;font-weight:600;color:var(--sky2)">개발자 계정 구경하기</div>
+        <div style="font-size:.68rem;color:var(--muted)">실제 사용 예시를 미리 살펴보세요</div>
+      </div>
+      <span style="font-size:.75rem;color:var(--muted)">→</span>
+    </a>
     <div class="auth-tabs">
       <button class="auth-tab on" id="atab-login" onclick="setAuthMode('login')">로그인</button>
       <button class="auth-tab" id="atab-signup" onclick="setAuthMode('signup')">회원가입</button>
