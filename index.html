@@ -401,6 +401,34 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
       BIRDYARD
     </div>
     <div class="auth-sub">새들의 마당 · 함께 날아오르다</div>
+
+    <!-- 환영 문구 + 얼리액세스 배지 -->
+    <div style="text-align:center;margin:.9rem 0 1rem">
+      <div style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.25);border-radius:12px;padding:3px 12px;margin-bottom:.65rem">
+        <span style="font-size:.65rem;font-weight:700;color:var(--wing2);letter-spacing:.12em;text-transform:uppercase">Early Access</span>
+        <span style="width:5px;height:5px;border-radius:50%;background:var(--wing2);display:inline-block;animation:devpulse 1.4s ease-in-out infinite"></span>
+        <span style="font-size:.65rem;color:var(--wing2)">현재 무료</span>
+      </div>
+      <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;color:var(--chalk);line-height:1.5;margin-bottom:.35rem">
+        골프 실력, 이제 체계적으로 기록하세요
+      </div>
+      <div style="font-size:.75rem;color:var(--dim);line-height:1.65">
+        학습 노트 · 비행 기록 · 스코어카드 분석 · 버디 커뮤니티<br>
+        얼리액세스 기간 동안 모든 기능을 <strong style="color:var(--chalk)">무료</strong>로 이용하세요
+      </div>
+    </div>
+
+    <!-- 개발자 계정 구경 링크 -->
+    <a href="https://birdyard.app/?u=friendis" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:.5rem;background:rgba(74,143,168,.07);border:1px solid rgba(74,143,168,.2);border-radius:4px;padding:.5rem .75rem;margin-bottom:.9rem;text-decoration:none;transition:background .15s"
+      onmouseover="this.style.background='rgba(74,143,168,.13)'" onmouseout="this.style.background='rgba(74,143,168,.07)'">
+      <span style="font-size:1.1rem">🏌️</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.75rem;font-weight:600;color:var(--sky2)">개발자 계정 구경하기</div>
+        <div style="font-size:.68rem;color:var(--muted)">실제 사용 예시를 미리 살펴보세요</div>
+      </div>
+      <span style="font-size:.75rem;color:var(--muted)">→</span>
+    </a>
     <div class="auth-tabs">
       <button class="auth-tab on" id="atab-login" onclick="setAuthMode('login')">로그인</button>
       <button class="auth-tab" id="atab-signup" onclick="setAuthMode('signup')">회원가입</button>
@@ -931,31 +959,20 @@ window.doGuestLogin = async () => {
     if(!resp.ok || data.error) throw new Error(data.error || '로그인 실패');
     if(!data.access_token || !data.user) throw new Error('토큰 응답 오류');
 
-    // setSession으로 Supabase 클라이언트에 세션 설정
-    // lock 오류가 나도 세션 자체는 설정되므로 무시
-    try {
-      await sb.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-    } catch(e) { /* lock 경쟁 무시 */ }
+    // isGuest 먼저 설정 (onAuthStateChange 발화 전)
+    isGuest = !!(data.user.email?.includes('guest'));
 
-    // 세션 확인 후 enterApp 직접 호출
-    const { data: { session } } = await sb.auth.getSession();
-    const u = session?.user || data.user;
-    if(!u) throw new Error('세션 복원 실패');
+    // setSession은 조용히 — onAuthStateChange에 의존하지 않음
+    try { await sb.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token }); } catch(e) {}
 
-    // isGuest는 이메일로 판단 (enterApp 전에 설정)
-    isGuest = (u.email === data.user.email && data.user.email?.includes('guest'));
-    await enterApp(u);
+    // 직접 enterApp 호출 (가장 안정적)
+    await enterApp(data.user);
 
   } catch(e) {
     isGuest = false;
     console.error('doGuestLogin 오류:', e);
     let msg = e.message || '알 수 없는 오류';
-    if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
-      msg = '네트워크 연결을 확인해주세요.';
-    }
+    if(msg.includes('Failed to fetch') || msg.includes('NetworkError')) msg = '네트워크 연결을 확인해주세요.';
     toast(`테스트 계정 접속 실패: ${msg}`);
     if(btn){ btn.disabled=false; btn.textContent='🐦 테스트 계정으로 체험하기'; }
   }
@@ -1090,11 +1107,16 @@ window.changePassword = async () => {
 };
 
 window.doSignOut=async()=>{
-  if(!confirm('로그아웃 하시겠습니까?'))return;
-  if(rtCh)sb.removeChannel(rtCh);
-  await sb.auth.signOut();
-  user=null; isGuest=false; D={videos:[],equip:[],sessions:[]};
-  $('app').style.display='none';$('auth').style.display='flex';document.body.style.overflow='';
+  if(!isGuest && !confirm('로그아웃 하시겠습니까?')) return;
+  if(rtCh){ try{sb.removeChannel(rtCh)}catch(e){} rtCh=null; }
+  try{ await sb.auth.signOut(); }catch(e){}
+  user=null; isGuest=false; D={videos:[],equip:[],sessions:[],sets:[],profile:null};
+  $('app').style.display='none';
+  $('auth').style.display='flex';
+  document.body.style.overflow='';
+  // 버튼 복원
+  const btn=document.querySelector('.btn-ghost');
+  if(btn){ btn.disabled=false; btn.textContent='🐦 테스트 계정으로 체험하기'; }
 };
 window.doDeleteAccount=async()=>{
   if(!confirm(`정말 탈퇴하시겠습니까?\n영상 ${D.videos.length}개, 장비 ${D.equip.length}개, 연습 ${D.sessions.length}개\n모든 데이터가 즉시 영구 삭제됩니다.`))return;
@@ -1185,6 +1207,10 @@ async function enterApp(u){
     $('apanel-acct').style.display='block';
     $('apanel-signup').style.display='none';
   }
+  // API 키 설정은 개발자 계정 또는 DEV 환경에서만 표시
+  const isDev = IS_DEV || u.email === 'friendis@gmail.com';
+  const apiBtn = $('apanel-settings');
+  if(apiBtn) apiBtn.style.display = isDev ? 'block' : 'none';
   $('main').innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:1rem"><div class="spinner"></div><span style="color:var(--muted);font-size:.9rem">데이터 불러오는 중...</span></div>';
   await loadAll();setupRealtime();
   tab='home';view='list';
@@ -8412,13 +8438,14 @@ window.delSession=async id=>{
         if(msg){msg.textContent='🔑 새 비밀번호를 입력해주세요';msg.style.color='var(--wing2)';}
       }, 600);
     } else if(event==='SIGNED_IN'&&session?.user&&!user){
-      // 게스트 로그인은 doGuestLogin에서 직접 enterApp 호출하므로 여기선 건너뜀
-      if(!isGuest) await enterApp(session.user);
-      // 버튼 복원
-      const btn=document.querySelector('.btn-ghost');
-      if(btn){btn.disabled=false;btn.textContent='🐦 테스트 계정으로 체험하기';}
+      // doGuestLogin은 직접 enterApp을 호출하므로 여기선 일반 로그인만 처리
+      if(!isGuest){
+        await enterApp(session.user);
+      }
     } else if(event==='SIGNED_OUT'){
-      user=null;
+      user=null; isGuest=false;
+      $('app').style.display='none';
+      $('auth').style.display='flex';
     }
   });
 // ── 장비 사진 모달 ──────────────────────────────────
