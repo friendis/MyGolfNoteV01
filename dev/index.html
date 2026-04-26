@@ -516,6 +516,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
           <div class="acct-email" id="panel-email"></div>
           <button class="acct-btn" id="apanel-settings" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
           <button class="acct-btn" onclick="openFeedback();closeAcctPanel()">📣 피드백 / 버그 신고</button>
+          <button class="acct-btn" onclick="renderPublicProfile('friendis');closeAcctPanel()" style="color:var(--wing2)">🏌️ 개발자 계정 구경하기</button>
           <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
           <button class="acct-btn" id="apanel-acct" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정</button>
           <button class="acct-btn" id="apanel-signup" style="display:none;color:var(--sky2)" onclick="doSignOut();setAuthMode('signup')">✨ 회원가입하고 저장하기</button>
