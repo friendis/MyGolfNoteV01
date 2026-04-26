@@ -485,6 +485,13 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 </div>
 
 <div id="app">
+  <!-- 얼리액세스 배너 -->
+  <div id="early-access-banner" style="background:linear-gradient(90deg,rgba(200,137,58,.18),rgba(200,137,58,.1),rgba(200,137,58,.18));border-bottom:1px solid rgba(200,137,58,.2);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap">
+    <span style="font-size:.65rem;font-weight:700;letter-spacing:.12em;color:var(--wing2);text-transform:uppercase">Early Access</span>
+    <span style="font-size:.68rem;color:var(--dim)">— 모든 기능 무료 이용 중 🎉</span>
+    <button onclick="renderPublicProfile('friendis')" style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.68rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);flex-shrink:0">🏌️ 개발자 계정 구경가기</button>
+    <button onclick="document.getElementById('early-access-banner').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;line-height:1;padding:0;flex-shrink:0">✕</button>
+  </div>
   <header>
     <div class="hdr">
       <div class="logo" id="hdr-logo" onclick="handleLogoClick()" style="cursor:pointer">
@@ -510,6 +517,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
           <div class="acct-email" id="panel-email"></div>
           <button class="acct-btn" id="apanel-settings" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
           <button class="acct-btn" onclick="openFeedback();closeAcctPanel()">📣 피드백 / 버그 신고</button>
+          <button class="acct-btn" onclick="renderPublicProfile('friendis');closeAcctPanel()" style="color:var(--wing2)">🏌️ 개발자 계정 구경하기</button>
           <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
           <button class="acct-btn" id="apanel-acct" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정</button>
           <button class="acct-btn" id="apanel-signup" style="display:none;color:var(--sky2)" onclick="doSignOut();setAuthMode('signup')">✨ 회원가입하고 저장하기</button>
@@ -991,6 +999,8 @@ function guestBanner() {
     <button class="btn btn-p btn-sm" onclick="doSignOut();setAuthMode('signup')">회원가입</button>
   </div>`;
 }
+window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow=''};
+
 window.openFeedback = () => {
   const existing = document.getElementById('feedback-overlay');
   if(existing) existing.remove();
@@ -1885,6 +1895,7 @@ async function renderPublicProfile(nickname){
   }
 }
 
+window.renderPublicProfile=renderPublicProfile;
 function notFoundPage(nickname){
   return`<div style="text-align:center;padding:4rem 1rem">
     <div style="font-size:2rem;margin-bottom:.75rem">🕊️</div>
@@ -8821,32 +8832,34 @@ window.selectEquipPhoto = (url, useUploadFile=false, meta=null) => {
 };
 
 window.confirmEquipPhoto = async () => {
-  if(!_ePhotoSelected) return;
+  if(!_ePhotoSelected) { toast('사진을 먼저 선택해주세요'); return; }
   const btn = document.querySelector('#ephoto-selected-wrap .btn-p');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
 
   try {
-    let finalUrl = _ePhotoSelected.url;
-    const meta = _ePhotoSelected.meta; // {title, mall, price, link}
-
-    // 파일 업로드가 있으면 Supabase Storage에 저장
-    if(_ePhotoSelected.file){
-      const file = _ePhotoSelected.file;
-      const ext = file.name?.split('.').pop()||'jpg';
+    let finalUrl = null;
+    // _ePhotoSelected: {type:'file'|'url', value: File|string, preview?, meta?}
+    if(_ePhotoSelected.type === 'file'){
+      const file = _ePhotoSelected.value;
+      if(!file) throw new Error('파일을 찾을 수 없습니다');
+      const ext = (file.name?.split('.').pop()||'jpg').toLowerCase();
       const path = `${user.id}/equip_${Date.now()}.${ext}`;
-      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file);
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType: file.type||'image/jpeg'});
       if(ue) throw ue;
-      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365*5);
-      finalUrl = sd?.signedUrl;
+      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
+      finalUrl = sd?.publicUrl;
+    } else {
+      // URL 타입
+      finalUrl = _ePhotoSelected.value || _ePhotoSelected.url;
     }
 
     if(!finalUrl) throw new Error('이미지 URL을 가져올 수 없습니다');
 
+    const meta = _ePhotoSelected.meta;
+
     if(_ePhotoTarget?.type==='equip'){
       const eid = _ePhotoTarget.id;
       const e = D.equip.find(x=>x.id===eid);
-
-      // meta(쇼핑몰·가격·링크)가 있고 아직 같은 URL 링크가 없으면 자동 추가
       let newLinks = e?.links ? [...e.links] : [];
       if(meta?.link && !newLinks.find(l=>l.url===meta.link)){
         const priceNum = meta.price ? Number(meta.price.replace(/[^0-9]/g,'')) : null;
@@ -8855,10 +8868,8 @@ window.confirmEquipPhoto = async () => {
       const newH = (e?.priceH||[]).concat(
         meta?.price && meta?.link ? [{date:today(), price:Number(meta.price.replace(/[^0-9]/g,''))||0}] : []
       );
-
       const updateData = {photo_url:finalUrl};
       if(meta?.link) { updateData.links=newLinks; updateData.price_history=newH; }
-
       const{error}=await sb.from('equipment').update(updateData).eq('id',eid).eq('user_id',user.id);
       if(error) throw error;
       if(e){ e.photoUrl=finalUrl; if(meta?.link){e.links=newLinks;e.priceH=newH;} }
@@ -8867,13 +8878,11 @@ window.confirmEquipPhoto = async () => {
       render();
 
     } else if(_ePhotoTarget?.type==='add'){
-      // 새 장비 추가 폼 — 사진 URL 세팅
       $('eadd-photo-url').value = finalUrl;
       const prev=$('eadd-photo-preview');
-      prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:64px;height:64px;object-fit:contain;border-radius:2px">`;
-      $('eadd-photo-status').textContent='선택됨';
-
-      // meta가 있으면 링크 행 자동 추가 (중복 제외)
+      if(prev) prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:64px;height:64px;object-fit:contain;border-radius:2px">`;
+      const stat=$('eadd-photo-status');
+      if(stat) stat.textContent='선택됨';
       if(meta?.link){
         const alreadyExists = _eAddLinks.find(l=>l.url===meta.link);
         if(!alreadyExists){
@@ -8881,15 +8890,12 @@ window.confirmEquipPhoto = async () => {
           _eAddLinks.push({url:meta.link, label:meta.mall||'네이버쇼핑', price:priceNum});
           _renderEAddLinks();
           toast('사진과 쇼핑 링크가 추가됐습니다');
-        } else {
-          toast('사진이 선택됐습니다');
-        }
-      } else {
-        toast('사진이 선택됐습니다');
-      }
+        } else { toast('사진이 선택됐습니다'); }
+      } else { toast('사진이 선택됐습니다'); }
       closeModal('equip-photo-modal');
     }
   } catch(e) {
+    console.error('confirmEquipPhoto 오류:', e);
     toast('저장 실패: '+e.message);
   } finally {
     if(btn){btn.disabled=false;btn.textContent='이 사진으로 저장';}
