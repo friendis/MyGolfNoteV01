@@ -931,23 +931,23 @@ window.doGuestLogin = async () => {
     if(!resp.ok || data.error) throw new Error(data.error || '로그인 실패');
     if(!data.access_token || !data.user) throw new Error('토큰 응답 오류');
 
-    // setSession으로 Supabase 클라이언트에 세션 설정
-    // lock 오류가 나도 세션 자체는 설정되므로 무시
-    try {
-      await sb.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-    } catch(e) { /* lock 경쟁 무시 */ }
+    // onAuthStateChange가 발화하기 전에 isGuest 플래그 먼저 설정
+    isGuest = !!(data.user.email?.includes('guest'));
 
-    // 세션 확인 후 enterApp 직접 호출
-    const { data: { session } } = await sb.auth.getSession();
-    const u = session?.user || data.user;
-    if(!u) throw new Error('세션 복원 실패');
+    // setSession → onAuthStateChange(SIGNED_IN) → enterApp 순서로 자동 처리
+    await sb.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
 
-    // isGuest는 이메일로 판단 (enterApp 전에 설정)
-    isGuest = (u.email === data.user.email && data.user.email?.includes('guest'));
-    await enterApp(u);
+    // setSession이 onAuthStateChange를 트리거하지 않는 환경 대비 fallback
+    // (이미 enterApp이 호출됐으면 user가 설정됨)
+    await new Promise(r => setTimeout(r, 300));
+    if(!user){
+      const { data: { session } } = await sb.auth.getSession();
+      const u = session?.user || data.user;
+      if(u) await enterApp(u);
+    }
 
   } catch(e) {
     isGuest = false;
@@ -8412,8 +8412,9 @@ window.delSession=async id=>{
         if(msg){msg.textContent='🔑 새 비밀번호를 입력해주세요';msg.style.color='var(--wing2)';}
       }, 600);
     } else if(event==='SIGNED_IN'&&session?.user&&!user){
-      // 게스트 로그인은 doGuestLogin에서 직접 enterApp 호출하므로 여기선 건너뜀
-      if(!isGuest) await enterApp(session.user);
+      // isGuest는 doGuestLogin에서 미리 설정됨 (또는 이메일로 판단)
+      if(!isGuest) isGuest = !!(session.user.email?.includes('guest'));
+      await enterApp(session.user);
       // 버튼 복원
       const btn=document.querySelector('.btn-ghost');
       if(btn){btn.disabled=false;btn.textContent='🐦 테스트 계정으로 체험하기';}
