@@ -999,6 +999,8 @@ function guestBanner() {
     <button class="btn btn-p btn-sm" onclick="doSignOut();setAuthMode('signup')">회원가입</button>
   </div>`;
 }
+window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow=''};
+
 window.openFeedback = () => {
   const existing = document.getElementById('feedback-overlay');
   if(existing) existing.remove();
