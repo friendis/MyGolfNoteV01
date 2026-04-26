@@ -1207,6 +1207,10 @@ async function enterApp(u){
     $('apanel-acct').style.display='block';
     $('apanel-signup').style.display='none';
   }
+  // API 키 설정은 개발자 계정 또는 DEV 환경에서만 표시
+  const isDev = IS_DEV || u.email === 'friendis@gmail.com';
+  const apiBtn = $('apanel-settings');
+  if(apiBtn) apiBtn.style.display = isDev ? 'block' : 'none';
   $('main').innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:1rem"><div class="spinner"></div><span style="color:var(--muted);font-size:.9rem">데이터 불러오는 중...</span></div>';
   await loadAll();setupRealtime();
   tab='home';view='list';
