@@ -1753,7 +1753,13 @@ async function renderPublicProfile(nickname){
       loadNotifications();
       initWebPush();
     }
-    subscribeNotifications(); // 내부에 _notifSubscribed 플래그로 중복 방지
+    subscribeNotifications();
+    // API 키 버튼: 개발자/DEV 환경만 표시
+    const apiBtn=$('apanel-settings');
+    if(apiBtn){
+      const isDev=IS_DEV||(user?.email==='friendis@gmail.com');
+      apiBtn.style.display=isDev?'block':'none';
+    }
     // 탭 활성화 해제
     document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   } else {
@@ -1761,6 +1767,9 @@ async function renderPublicProfile(nickname){
     $('app').style.display='flex';
     document.querySelector('header')?.style.removeProperty('display');
     document.querySelector('.tab-bar')?.style.setProperty('display','none');
+    // API 키 버튼 숨김 (비로그인)
+    const apiBtn=$('apanel-settings');
+    if(apiBtn) apiBtn.style.display='none';
   }
 
   const m=$('main');
