@@ -509,6 +509,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
         <div class="acct-panel" id="acct-panel">
           <div class="acct-email" id="panel-email"></div>
           <button class="acct-btn" id="apanel-settings" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
+          <button class="acct-btn" onclick="openFeedback();closeAcctPanel()">📣 피드백 / 버그 신고</button>
           <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
           <button class="acct-btn" id="apanel-acct" onclick="openAcctSettings();closeAcctPanel()">⚙️ 계정 설정</button>
           <button class="acct-btn" id="apanel-signup" style="display:none;color:var(--sky2)" onclick="doSignOut();setAuthMode('signup')">✨ 회원가입하고 저장하기</button>
@@ -990,7 +991,56 @@ function guestBanner() {
     <button class="btn btn-p btn-sm" onclick="doSignOut();setAuthMode('signup')">회원가입</button>
   </div>`;
 }
-window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow=''};
+window.openFeedback = () => {
+  const existing = document.getElementById('feedback-overlay');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'feedback-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:4000;display:flex;align-items:flex-end;justify-content:center';
+  overlay.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px 10px 0 0;width:min(520px,100%);overflow:hidden">
+    <div style="padding:.85rem 1.1rem .6rem;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-family:var(--serif);font-size:.95rem;font-weight:700;color:var(--chalk)">📣 피드백 / 버그 신고</div>
+        <button onclick="document.getElementById('feedback-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1">✕</button>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">버드야드 인스타그램 DM으로 전달됩니다</div>
+    </div>
+    <div style="padding:1rem 1.1rem">
+      <!-- 템플릿 영역 -->
+      <div style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:4px;padding:.7rem .85rem;margin-bottom:.75rem;font-size:.78rem;color:var(--dim);line-height:1.8;font-family:monospace;white-space:pre-wrap" id="feedback-template">📱 버전: ${typeof CURRENT_VERSION!=='undefined'?CURRENT_VERSION:'최신'}
+🐛 유형: (버그 신고 / 기능 제안 / 기타)
+📝 내용:
+
+📸 재현 방법 (버그의 경우):
+</div>
+      <button onclick="copyFeedbackTemplate()" style="width:100%;background:rgba(240,237,230,.05);border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.4rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans);margin-bottom:.75rem">
+        📋 위 양식 클립보드에 복사
+      </button>
+      <!-- 인스타 연결 버튼 -->
+      <a href="instagram://user?username=birdyard_golf"
+        onclick="setTimeout(()=>{window.open('https://www.instagram.com/birdyard_golf/','_blank')},800)"
+        style="display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;background:linear-gradient(135deg,rgba(131,58,180,.2),rgba(253,29,29,.15),rgba(252,176,69,.15));border:1px solid rgba(253,29,29,.25);color:var(--chalk);padding:.55rem;border-radius:4px;font-size:.88rem;font-weight:600;text-decoration:none;font-family:var(--sans);box-sizing:border-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+        @birdyard_golf 에 DM 보내기
+      </a>
+      <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.5rem">인스타 앱 → DM에 양식을 붙여넣어 보내주세요</div>
+    </div>
+  </div>`;
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+};
+
+window.copyFeedbackTemplate = async () => {
+  const el = document.getElementById('feedback-template');
+  if(!el) return;
+  try {
+    await navigator.clipboard.writeText(el.textContent);
+    toast('📋 양식이 복사됐습니다. DM에 붙여넣어 보내주세요!');
+  } catch(e) {
+    toast('복사 실패 — 직접 선택해서 복사해주세요');
+  }
+};
 window.toggleAcctPanel=()=>$('acct-panel').classList.toggle('on');
 window.closeAcctPanel=()=>$('acct-panel').classList.remove('on');
 document.addEventListener('click',e=>{const p=$('acct-panel'),b=$('acct-toggle');if(p&&!p.contains(e.target)&&e.target!==b)p.classList.remove('on')});
