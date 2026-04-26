@@ -8821,32 +8821,34 @@ window.selectEquipPhoto = (url, useUploadFile=false, meta=null) => {
 };
 
 window.confirmEquipPhoto = async () => {
-  if(!_ePhotoSelected) return;
+  if(!_ePhotoSelected) { toast('사진을 먼저 선택해주세요'); return; }
   const btn = document.querySelector('#ephoto-selected-wrap .btn-p');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
 
   try {
-    let finalUrl = _ePhotoSelected.url;
-    const meta = _ePhotoSelected.meta; // {title, mall, price, link}
-
-    // 파일 업로드가 있으면 Supabase Storage에 저장
-    if(_ePhotoSelected.file){
-      const file = _ePhotoSelected.file;
-      const ext = file.name?.split('.').pop()||'jpg';
+    let finalUrl = null;
+    // _ePhotoSelected: {type:'file'|'url', value: File|string, preview?, meta?}
+    if(_ePhotoSelected.type === 'file'){
+      const file = _ePhotoSelected.value;
+      if(!file) throw new Error('파일을 찾을 수 없습니다');
+      const ext = (file.name?.split('.').pop()||'jpg').toLowerCase();
       const path = `${user.id}/equip_${Date.now()}.${ext}`;
-      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file);
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType: file.type||'image/jpeg'});
       if(ue) throw ue;
-      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365*5);
-      finalUrl = sd?.signedUrl;
+      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
+      finalUrl = sd?.publicUrl;
+    } else {
+      // URL 타입
+      finalUrl = _ePhotoSelected.value || _ePhotoSelected.url;
     }
 
     if(!finalUrl) throw new Error('이미지 URL을 가져올 수 없습니다');
 
+    const meta = _ePhotoSelected.meta;
+
     if(_ePhotoTarget?.type==='equip'){
       const eid = _ePhotoTarget.id;
       const e = D.equip.find(x=>x.id===eid);
-
-      // meta(쇼핑몰·가격·링크)가 있고 아직 같은 URL 링크가 없으면 자동 추가
       let newLinks = e?.links ? [...e.links] : [];
       if(meta?.link && !newLinks.find(l=>l.url===meta.link)){
         const priceNum = meta.price ? Number(meta.price.replace(/[^0-9]/g,'')) : null;
@@ -8855,10 +8857,8 @@ window.confirmEquipPhoto = async () => {
       const newH = (e?.priceH||[]).concat(
         meta?.price && meta?.link ? [{date:today(), price:Number(meta.price.replace(/[^0-9]/g,''))||0}] : []
       );
-
       const updateData = {photo_url:finalUrl};
       if(meta?.link) { updateData.links=newLinks; updateData.price_history=newH; }
-
       const{error}=await sb.from('equipment').update(updateData).eq('id',eid).eq('user_id',user.id);
       if(error) throw error;
       if(e){ e.photoUrl=finalUrl; if(meta?.link){e.links=newLinks;e.priceH=newH;} }
@@ -8867,13 +8867,11 @@ window.confirmEquipPhoto = async () => {
       render();
 
     } else if(_ePhotoTarget?.type==='add'){
-      // 새 장비 추가 폼 — 사진 URL 세팅
       $('eadd-photo-url').value = finalUrl;
       const prev=$('eadd-photo-preview');
-      prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:64px;height:64px;object-fit:contain;border-radius:2px">`;
-      $('eadd-photo-status').textContent='선택됨';
-
-      // meta가 있으면 링크 행 자동 추가 (중복 제외)
+      if(prev) prev.innerHTML=`<img src="${ea(finalUrl)}" style="width:64px;height:64px;object-fit:contain;border-radius:2px">`;
+      const stat=$('eadd-photo-status');
+      if(stat) stat.textContent='선택됨';
       if(meta?.link){
         const alreadyExists = _eAddLinks.find(l=>l.url===meta.link);
         if(!alreadyExists){
@@ -8881,15 +8879,12 @@ window.confirmEquipPhoto = async () => {
           _eAddLinks.push({url:meta.link, label:meta.mall||'네이버쇼핑', price:priceNum});
           _renderEAddLinks();
           toast('사진과 쇼핑 링크가 추가됐습니다');
-        } else {
-          toast('사진이 선택됐습니다');
-        }
-      } else {
-        toast('사진이 선택됐습니다');
-      }
+        } else { toast('사진이 선택됐습니다'); }
+      } else { toast('사진이 선택됐습니다'); }
       closeModal('equip-photo-modal');
     }
   } catch(e) {
+    console.error('confirmEquipPhoto 오류:', e);
     toast('저장 실패: '+e.message);
   } finally {
     if(btn){btn.disabled=false;btn.textContent='이 사진으로 저장';}
