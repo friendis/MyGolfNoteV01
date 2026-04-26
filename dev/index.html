@@ -486,10 +486,11 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 
 <div id="app">
   <!-- 얼리액세스 배너 -->
-  <div id="early-access-banner" style="background:linear-gradient(90deg,rgba(200,137,58,.18),rgba(200,137,58,.1),rgba(200,137,58,.18));border-bottom:1px solid rgba(200,137,58,.2);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0">
+  <div id="early-access-banner" style="background:linear-gradient(90deg,rgba(200,137,58,.18),rgba(200,137,58,.1),rgba(200,137,58,.18));border-bottom:1px solid rgba(200,137,58,.2);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap">
     <span style="font-size:.65rem;font-weight:700;letter-spacing:.12em;color:var(--wing2);text-transform:uppercase">Early Access</span>
-    <span style="font-size:.68rem;color:var(--dim)">— 지금은 모든 기능을 무료로 사용할 수 있습니다 🎉</span>
-    <button onclick="document.getElementById('early-access-banner').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;line-height:1;margin-left:.25rem;padding:0;flex-shrink:0">✕</button>
+    <span style="font-size:.68rem;color:var(--dim)">— 모든 기능 무료 이용 중 🎉</span>
+    <button onclick="renderPublicProfile('friendis')" style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.68rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);flex-shrink:0">🏌️ 개발자 계정 구경가기</button>
+    <button onclick="document.getElementById('early-access-banner').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;line-height:1;padding:0;flex-shrink:0">✕</button>
   </div>
   <header>
     <div class="hdr">
