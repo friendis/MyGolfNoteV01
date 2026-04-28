@@ -2490,7 +2490,8 @@ window.sendNoteShare=async(noteId, noteTitle, noteUrl)=>{
             <span style="font-size:.82rem;color:var(--chalk)">@${esc(b.nickname)}</span>
           </div>
           ${sent
-            ?`<span style="font-size:.72rem;color:var(--muted)">✓ 이미 전달함</span>`
+            ?`<button onclick="confirmSendNote('${b.user_id}','${ea(b.nickname)}','${ea(noteId)}','${ea(noteTitle)}','${ea(noteUrl)}')"
+              style="background:rgba(74,101,128,.1);border:1px solid rgba(74,101,128,.25);color:var(--muted);padding:4px 12px;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">🔄 다시 보내기</button>`
             :`<button onclick="confirmSendNote('${b.user_id}','${ea(b.nickname)}','${ea(noteId)}','${ea(noteTitle)}','${ea(noteUrl)}')"
               style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:4px 12px;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">전달</button>`}
         </div>`;
@@ -2505,27 +2506,28 @@ window.confirmSendNote=async(toUserId, toNick, noteId, noteTitle, noteUrl)=>{
   const msg=$('share-msg-input')?.value?.trim()||'';
   const myNick=D.profile?.nickname||'';
 
-  // note_shares 테이블에 기록
-  const{error:shareErr}=await sb.from('note_shares').insert({
+  // note_shares 테이블에 기록 (이미 있으면 upsert)
+  const{error:shareErr}=await sb.from('note_shares').upsert({
     note_id:noteId, from_user_id:user.id, to_user_id:toUserId,
     message:msg||null, status:'pending'
-  });
-  if(shareErr && !shareErr.message?.includes('duplicate')){
-    toast('전달 실패: '+shareErr.message); return;
-  }
+  },{onConflict:'note_id,from_user_id,to_user_id',ignoreDuplicates:false});
+  if(shareErr){toast('전달 실패: '+shareErr.message); return;}
 
-  // 수신자에게 알림 발송
-  await sb.from('notifications').insert({
-    user_id:toUserId, type:'note_share', from_user_id:user.id,
-    data:{from_nickname:myNick, note_id:noteId, note_title:noteTitle, note_url:noteUrl, message:msg}
+  // 알림은 SECURITY DEFINER 함수로 발송 (RLS 우회)
+  const{error:notifErr}=await sb.rpc('create_notification',{
+    p_user_id: toUserId,
+    p_type: 'note_share',
+    p_from_user_id: user.id,
+    p_data: {from_nickname:myNick, note_id:noteId, note_title:noteTitle, note_url:noteUrl, message:msg}
   });
+  if(notifErr) console.warn('알림 발송 실패:', notifErr.message);
 
   toast(`@${toNick}님에게 전달했습니다 📤`);
   document.getElementById('note-share-overlay')?.remove();
 };
 
 // ── 노트 전체 데이터 복사 (공통 함수) ───────────────
-async function _copyNoteWithFullData(sourceNoteId, senderNick, labelTag){
+async function _copyNoteWithFullData(sourceNoteId, senderNick, labelTag, senderMsg=''){
   // 원본 노트 전체 조회
   const{data:orig}=await sb.from('videos').select('*').eq('id',sourceNoteId).maybeSingle();
   if(!orig) return {error:'노트를 찾을 수 없습니다'};
@@ -2538,12 +2540,18 @@ async function _copyNoteWithFullData(sourceNoteId, senderNick, labelTag){
   const srcKw = Array.isArray(orig.keywords) ? orig.keywords.filter(k=>k&&typeof k==='string') : [];
   const mergedKw = [labelTag, `@${senderNick}`, ...srcKw.filter(k=>k!==labelTag&&!k.startsWith('@'))];
 
+  // 발신자 메시지를 메모 앞에 추가
+  const origMemo = orig.memo||'';
+  const finalMemo = senderMsg
+    ? `💬 @${senderNick}: ${senderMsg}${origMemo ? '\n\n'+origMemo : ''}`
+    : origMemo;
+
   const{error}=await sb.from('videos').insert({
     user_id: user.id,
     url: orig.url,
     title: orig.title,
     keywords: mergedKw,
-    memo: orig.memo||'',
+    memo: finalMemo,
     timestamps: orig.timestamps||[],
     added_at: today()
   });
@@ -2579,6 +2587,7 @@ window.previewNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
       <div>
         <div style="font-size:.72rem;color:var(--muted)">📤 @${esc(senderNick)}님이 전달한 노트</div>
+        ${(()=>{const notif=_notifications?.find(x=>x.id===notifId);const msg=notif?.data?.message||'';return msg?`<div style="font-size:.78rem;color:var(--chalk);margin-top:3px">💬 "${esc(msg)}"</div>`:''})()}
       </div>
       <button onclick="document.getElementById('note-preview-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1">✕</button>
     </div>
@@ -2627,7 +2636,12 @@ window.previewNoteShare=async(notifId, noteId, noteTitle, noteUrl, senderNick)=>
 window.doAcceptNoteShare=async(notifId, noteId, senderNick)=>{
   const btn=$('note-preview-save-btn');
   if(btn){btn.disabled=true;btn.textContent='저장 중...';}
-  const result=await _copyNoteWithFullData(noteId, senderNick, '📤 전달받음');
+
+  // 알림에서 메시지 추출
+  const notif=_notifications?.find(x=>x.id===notifId);
+  const senderMsg=notif?.data?.message||'';
+
+  const result=await _copyNoteWithFullData(noteId, senderNick, '📤 전달받음', senderMsg);
   if(result.error){
     toast(result.error);
     if(btn){btn.disabled=false;btn.textContent='📋 내 학습노트에 저장';}
