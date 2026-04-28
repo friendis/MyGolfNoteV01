@@ -1390,7 +1390,12 @@ async function checkChangelog() {
     }
 
     const content = contentLines
-      .filter(l => !l.startsWith('> 커밋:') && !l.startsWith('> commit:')) // 커밋 줄 제거
+      .filter(l => {
+        if(l.startsWith('> 커밋:') || l.startsWith('> commit:')) return false;
+        // 깨진 문자(latin1 오인된 한글) 라인 필터링
+        const garbled = (l.match(/[ÃÂâêÄÅÆÇÈÉÊËÌÍÎÏðñòóôõ÷øùúûü]/g)||[]).length;
+        return garbled <= 2;
+      }) // 커밋 줄 · 깨진 줄 제거
       .join('\n').trim();
     const seenKey = 'birdyard_seen_changelog';
     const lastSeen = localStorage.getItem(seenKey);
@@ -7618,8 +7623,10 @@ async function checkNewVersion() {
     const el = $('release-content');
     if(el) {
       el.innerHTML = sections.map((sec, i) => {
+        const isGarbled = l => (l.match(/[ÃÂâêÄÅÆÇÈÉÊËÌÍÎÏðñòóôõ÷øùúûü]/g)||[]).length > 2;
         const content = sec.lines.join('\n')
           .split('\n')
+          .filter(line => !isGarbled(line))
           .map(line => {
             if(!line.trim()) return '<div style="height:.25rem"></div>';
             if(line.startsWith('#')) return '';
