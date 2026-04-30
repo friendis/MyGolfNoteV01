@@ -4612,11 +4612,8 @@ function eDetail(){
     ${e.photoUrl?`<button class="btn btn-s btn-sm" style="color:var(--red);border-color:rgba(193,123,106,.3)" onclick="removeEquipPhoto('${e.id}')">사진 삭제</button>`:''}
   </div>
   <div class="divider"></div>
-  <div class="public-toggle">
-    <label><input type="checkbox" ${e.isPublic?'checked':''} onchange="toggleEquipPublic('${e.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label>
-  </div>
   <!-- 하단 액션 바: 삭제(좌) + 공개(우) -->
-  <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
+  <div style="margin-top:.5rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">장비 삭제</button>
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none">
       <input type="checkbox" ${e.isPublic?'checked':''} onchange="toggleEquipPublic('${e.id}',this.checked)" style="accent-color:var(--turf)">
@@ -6716,11 +6713,8 @@ function pDetail(){
   })()}
 
   <div class="divider"></div>
-  <div class="public-toggle">
-    <label><input type="checkbox" id="se-public-${s.id}" ${s.isPublic?'checked':''} onchange="toggleSessionPublic('${s.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label>
-  </div>
   <!-- 하단 액션 바: 삭제(좌) + 공개(우) -->
-  <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
+  <div style="margin-top:.5rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">기록 삭제</button>
     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none">
       <input type="checkbox" ${s.isPublic?'checked':''} onchange="toggleSessionPublic('${s.id}',this.checked)" style="accent-color:var(--turf)">
