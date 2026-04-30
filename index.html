@@ -3950,18 +3950,17 @@ function vDetail(){
     <!-- 공간 확보 — 삭제 버튼은 아래 별도 영역 -->
   </div>
   ${isOwnNote?`
-  <!-- 버디에게 전달 + 공개 토글 -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.5rem">
-    <button onclick="sendNoteShareWithPublicCheck('${v.id}','${ea(v.title)}','${ea(v.url)}',${v.isPublic})"
-      style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">📤 버디에게 전달</button>
-    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none">
-      <input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)">
-      <span>공개</span>
-    </label>
-  </div>
-  <!-- 삭제 버튼: 구분선으로 분리해 실수 클릭 방지 -->
-  <div style="margin-top:.75rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.15);display:flex;justify-content:flex-end">
+  <!-- 하단 액션 바: 삭제(좌) + 전달·공개(우) -->
+  <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
+    <div style="display:flex;align-items:center;gap:.4rem">
+      <button onclick="sendNoteShareWithPublicCheck('${v.id}','${ea(v.title)}','${ea(v.url)}',${v.isPublic})"
+        style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:.35rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">📤 전달</button>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap">
+        <input type="checkbox" ${v.isPublic?'checked':''} onchange="toggleNotePublic('${v.id}',this.checked)" style="accent-color:var(--turf)">
+        <span>공개</span>
+      </label>
+    </div>
   </div>`:''}
   </div>`;
 }
@@ -4134,7 +4133,7 @@ function vAdd(){return`<div class="page"><button class="back-btn" onclick="goLis
   <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프 <span style="font-size:.68rem;font-weight:400">(AI 분석 결과)</span></div>
   <div id="vts-list"></div>
 </div>
-<div class="brow"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button></div></div></div>`}
+<div class="brow" style="display:flex;align-items:center;gap:.5rem"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button><label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label></div></div></div>`}
 window.prevThumb=()=>{
   const url=$('vu').value.trim();
   const t=thumb(url),img=$('vthumb');
@@ -4273,9 +4272,10 @@ window.saveVideo=async()=>{
   }
   const title=$('vt').value.trim()||'제목 없음',kw=$('vk').value.split(',').map(k=>k.trim()).filter(Boolean),memo=$('vm').value.trim();
   const timestamps=window._ytAnalyzedTs||[];
+  const isPublic=$('v-is-public')?.checked||false;
   const btn=$('vsavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
-  const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps,added_at:today()});
+  const{error}=await sb.from('videos').insert({user_id:user.id,url,title,keywords:kw,memo,timestamps,added_at:today(),is_public:isPublic});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
   window._ytAnalyzedTs=[];
   await loadAll();toast('노트 추가됨');goList();
@@ -4612,12 +4612,13 @@ function eDetail(){
     ${e.photoUrl?`<button class="btn btn-s btn-sm" style="color:var(--red);border-color:rgba(193,123,106,.3)" onclick="removeEquipPhoto('${e.id}')">사진 삭제</button>`:''}
   </div>
   <div class="divider"></div>
-  <div class="public-toggle">
-    <label><input type="checkbox" ${e.isPublic?'checked':''} onchange="toggleEquipPublic('${e.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label>
-  </div>
-  <!-- 삭제: 맨 하단 구분선으로 완전 분리 -->
-  <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;justify-content:flex-end">
+  <!-- 하단 액션 바: 삭제(좌) + 공개(우) -->
+  <div style="margin-top:.5rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delEquip('${e.id}')">장비 삭제</button>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none">
+      <input type="checkbox" ${e.isPublic?'checked':''} onchange="toggleEquipPublic('${e.id}',this.checked)" style="accent-color:var(--turf)">
+      <span>공개</span>
+    </label>
   </div></div>`;
 }
 window.addLink=async id=>{const url=$('nl-url').value.trim();if(!url){toast('URL을 입력하세요');return}const label=$('nl-label').value.trim(),price=$('nl-price').value,e=D.equip.find(x=>x.id===id);if(!e)return;const pn=price?Number(price):null,newLinks=[...e.links,{url,label:label||'링크',price:pn,checkedAt:today()}],newH=pn?[...e.priceH,{date:today(),price:pn}]:e.priceH;sync('busy');const{error}=await sb.from('equipment').update({links:newLinks,price_history:newH}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.links=newLinks;e.priceH=newH;sync('ok');toast('링크 추가됨');goDetail(id)};
@@ -5147,6 +5148,32 @@ window.eAddAutoSearch = () => {
   if(inp && name) inp.value = name;
 };
 
+window.genEquipMemo = async () => {
+  const name = $('en')?.value.trim();
+  const cat = $('ec')?.value;
+  if(!name){ toast('장비명을 먼저 입력하세요'); return; }
+  const btn = $('equip-ai-memo-btn'), status = $('equip-ai-memo-status');
+  if(btn){ btn.disabled=true; btn.textContent='✦ 생성 중...'; }
+  if(status) status.textContent='';
+  try{
+    const gameType = D.profile?.game_type||'';
+    const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:1000,
+        prompt:`골프 장비 전문가로서 아래 골프 장비에 대해 간결하게 정리해주세요.\n장비명: ${name}${cat?'\n분류: '+cat:''}${gameType?'\n사용자 게임 타입: '+gameType:''}\n\n아래 형식으로 3~5줄:\n• 주요 사양/특징\n• 난이도: (입문자용/중급자용/상급자용)\n• 추천 대상: 한 줄 설명\n한국어로 간결하게`})
+    });
+    const data = await resp.json();
+    const text = data.result||data.text||'';
+    if(!text) throw new Error('응답 없음');
+    const em=$('em'); if(em){ em.value=text.trim(); }
+    if(status){ status.textContent='✓ 완료'; status.style.color='var(--turf)'; }
+  }catch(e){
+    if(status){ status.textContent='실패: '+e.message; status.style.color='var(--red)'; }
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='✦ AI 메모 자동 생성'; }
+  }
+};
 window.saveEquip=async()=>{
   const name=$('en').value.trim();if(!name){toast('장비명을 입력하세요');return}
   if(overLimit('equip')){toast(limitMsg('equip'));return}
@@ -5169,7 +5196,8 @@ window.saveEquip=async()=>{
   const photoUrl=$('eadd-photo-url')?.value||'';
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
-  const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData,photo_url:photoUrl||null});
+  const isPublic=$('e-is-public')?.checked||false;
+  const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData,photo_url:photoUrl||null,is_public:isPublic});
   if(error){toast('저장 실패: '+error.message);btn.disabled=false;btn.textContent='저장';sync('err');return}
   _eAddLinks=[];
   await loadAll();toast('장비 추가됨');goList();
@@ -5198,7 +5226,13 @@ function eAdd(){
       </div>
     </div>
 
-    <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="em" placeholder="스펙, 특징..."></textarea></div>
+    <div class="fg"><label class="fl-label">메모 <span style="font-weight:400;font-size:.68rem;color:var(--muted)">(장비명·분류 입력 후 AI 자동 생성 가능)</span></label>
+      <div style="display:flex;gap:.35rem;margin-bottom:.3rem">
+        <button type="button" id="equip-ai-memo-btn" onclick="genEquipMemo()" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:#A78BFA;padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">✦ AI 메모 자동 생성</button>
+        <span id="equip-ai-memo-status" style="font-size:.72rem;color:var(--muted);align-self:center"></span>
+      </div>
+      <textarea class="ta" id="em" placeholder="스펙, 특징, AI가 자동으로 채워드립니다..."></textarea>
+    </div>
 
     <!-- 사진 + 링크 통합 섹션 -->
     <div class="sec-label" style="margin-top:.5rem">🔗 사이트 링크 & 사진</div>
@@ -5218,9 +5252,12 @@ function eAdd(){
       <input type="hidden" id="eadd-photo-url" value="">
     </div>
 
-    <div class="brow" style="margin-top:.9rem">
+    <div class="brow" style="margin-top:.9rem;display:flex;align-items:center;gap:.5rem">
       <button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button>
       <button class="btn btn-s" onclick="goList()">취소</button>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap">
+        <input type="checkbox" id="e-is-public" style="accent-color:var(--turf)"><span>공개</span>
+      </label>
     </div>
   </div></div>`;
 }
@@ -5965,7 +6002,31 @@ function pList(){
     ${sessionClubs.map(c=>{const col=clubColor(c);const on=pClubFilter===c;return`<button onclick="setPClubFilter('${c}')" style="padding:2px 9px;border-radius:2px;border:1px solid ${on?col.line:'var(--border)'};background:${on?col.bg:'none'};color:${on?col.line:'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${c}</button>`;}).join('')}
   </div>` : '';
   const filteredSessions = pClubFilter ? gdrSessions.filter(s=>normalizeClub(s.club)===pClubFilter) : gdrSessions;
-  const cards=filteredSessions.length?filteredSessions.map(s=>{const st=ss(s);const con=st.consistency;const nc=normalizeClub(s.club);return`<div class="card" onclick="goDetail('${s.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px"><div class="card-title">${s.date||''}</div>${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}</div>${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center"><span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span></span>${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}</div></div>${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}</div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 훈련 기록이 없습니다.'}</div>`;
+  const cards=filteredSessions.length?filteredSessions.map(s=>{
+    const st=ss(s); const con=st.consistency; const nc=normalizeClub(s.club);
+    const imgs=s.imageUrls?.length||0;
+    const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
+    return`<div class="card" onclick="goDetail('${s.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px">
+            <div class="card-title">${s.date||''}</div>
+            ${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}
+            ${needsReanalyze?`<span style="font-size:.65rem;background:rgba(200,137,58,.15);color:var(--wing2);border:1px solid rgba(200,137,58,.3);border-radius:2px;padding:1px 5px;white-space:nowrap">📡 재분석 필요</span>`:''}
+          </div>
+          ${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}
+          <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
+            <span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span>${needsReanalyze?`<span style="font-size:.68rem;color:var(--muted)">/${imgs}</span>`:''}</span>
+            ${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}
+            ${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}
+            ${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}
+            ${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}
+          </div>
+        </div>
+        ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 훈련 기록이 없습니다.'}</div>`;
   return`<div class="page">${srow}${ptabs}${filterBar}${cards}</div>`;
 }
 window.toggleChart=key=>{
@@ -6652,12 +6713,13 @@ function pDetail(){
   })()}
 
   <div class="divider"></div>
-  <div class="public-toggle">
-    <label><input type="checkbox" id="se-public-${s.id}" ${s.isPublic?'checked':''} onchange="toggleSessionPublic('${s.id}',this.checked)"><span>공개 (내 프로필에 표시)</span></label>
-  </div>
-  <!-- 삭제: 맨 하단 구분선으로 완전 분리 -->
-  <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;justify-content:flex-end">
+  <!-- 하단 액션 바: 삭제(좌) + 공개(우) -->
+  <div style="margin-top:.5rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delSession('${s.id}')">기록 삭제</button>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none">
+      <input type="checkbox" ${s.isPublic?'checked':''} onchange="toggleSessionPublic('${s.id}',this.checked)" style="accent-color:var(--turf)">
+      <span>공개</span>
+    </label>
   </div>
   </div>`;
 }
@@ -8370,9 +8432,12 @@ function pAdd() {
     </div>
 
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
-    <div class="brow">
+    <div class="brow" style="display:flex;align-items:center;gap:.5rem">
       <button class="btn btn-p" id="psavebtn" onclick="saveSession()">저장</button>
       <button class="btn btn-s" onclick="goList()">취소</button>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap">
+        <input type="checkbox" id="p-is-public" style="accent-color:var(--turf)"><span>공개</span>
+      </label>
     </div>
   </div></div>`;
 }
@@ -8447,6 +8512,7 @@ window.saveSession = async () => {
     }
   }
 
+  const isPublic=$('p-is-public')?.checked||false;
   const { error, data: inserted } = await sb.from('practice_sessions').insert({
     user_id: user.id, session_date: date, club, location: loc, memo,
     shots,
@@ -8457,6 +8523,7 @@ window.saveSession = async () => {
     course_name: courseName,
     holes: holes,
     hole_scores: (recType!=='gdr'&&_holeScoresData.some(h=>h.score)) ? {holes:_holeScoresData} : null,
+    is_public: isPublic,
   }).select().single();
 
   if(error){
@@ -8514,30 +8581,43 @@ window.reAnalyzeSession = async (sessionId) => {
   const s = D.sessions.find(x=>x.id===sessionId);
   if(!s || !s.imageUrls?.length){ toast('저장된 이미지가 없습니다'); return; }
   const btn = $(`btn-reanalyze-${sessionId}`);
-  if(btn){ btn.disabled=true; btn.textContent=`분석 중... (0/${s.imageUrls.length})`; }
+
+  // 실패한 이미지만 재분석 (shots 수 < imageUrls 수인 경우)
+  const existingShots = s.shots||[];
+  const totalImgs = s.imageUrls.length;
+  const failedIndexes = [];
+  for(let i=0; i<totalImgs; i++){
+    if(!existingShots[i] || Object.keys(existingShots[i]).length===0) failedIndexes.push(i);
+  }
+  const toAnalyze = failedIndexes.length > 0 ? failedIndexes : Array.from({length:totalImgs},(_,i)=>i);
+  if(btn){ btn.disabled=true; btn.textContent=`분석 중... (0/${toAnalyze.length})`; }
   try {
-    const newShots = [];
-    for(let i=0; i<s.imageUrls.length; i++){
-      if(btn) btn.textContent=`분석 중... (${i+1}/${s.imageUrls.length})`;
-      const res = await fetch(s.imageUrls[i]);
-      const blob = await res.blob();
-      const file = new File([blob], `shot_${i+1}.jpg`, {type: blob.type||'image/jpeg'});
-      const gdrData = await analyzeGDRImage(file, ()=>{});
-      if(gdrData){
-        const shot = {};
-        ['carry','total','headSpeed','ballSpeed','smashFactor','launchAngle','spin','direction'].forEach(k=>{
-          if(gdrData[k]!=null) shot[k]=gdrData[k];
-        });
-        newShots.push(shot);
-      }
+    const shots = [...existingShots];
+    let done = 0;
+    for(const i of toAnalyze){
+      if(btn) btn.textContent=`분석 중... (${++done}/${toAnalyze.length})`;
+      try{
+        const res = await fetch(s.imageUrls[i]);
+        const blob = await res.blob();
+        const file = new File([blob], `shot_${i+1}.jpg`, {type: blob.type||'image/jpeg'});
+        const gdrData = await analyzeGDRImage(file, ()=>{});
+        if(gdrData){
+          const shot = {};
+          ['carry','total','headSpeed','ballSpeed','smashFactor','launchAngle','spin','direction'].forEach(k=>{
+            if(gdrData[k]!=null) shot[k]=gdrData[k];
+          });
+          shots[i] = shot;
+        }
+      }catch(e){ console.warn(`이미지 ${i+1} 분석 실패:`, e.message); }
     }
+    const newShots = shots.filter(Boolean);
     if(!newShots.length){ toast('분석 결과가 없습니다'); if(btn){btn.disabled=false;btn.textContent='📡 GDR 재분석';} return; }
     const {error} = await sb.from('practice_sessions').update({
-      shots: newShots, total_shots: newShots.length
+      shots: newShots
     }).eq('id', sessionId).eq('user_id', user.id);
     if(error){ toast('저장 실패: '+error.message); if(btn){btn.disabled=false;btn.textContent='📡 GDR 재분석';} return; }
     await loadAll();
-    toast(`✓ ${newShots.length}개 샷 데이터 갱신됨`);
+    toast(`✓ ${newShots.length}/${totalImgs}개 샷 데이터 갱신됨`);
     render();
   } catch(e){
     toast('재분석 실패: '+e.message);
