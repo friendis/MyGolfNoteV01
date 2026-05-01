@@ -161,9 +161,24 @@ textarea:focus{border-color:rgba(200,137,58,.4)}
 
 <script>
 let devContent = null;
-const deployHistory = [];
-let _currentVer = [1,0,0]; // [major, minor, patch]
-let _selectedVerType = 'minor'; // 기본값
+let deployHistory = [];
+let _currentVer = [1,0,0];
+let _selectedVerType = 'minor';
+
+const APIKEY_STORE = 'birdyard_deploy_apikey';
+
+// API 키만 localStorage에 저장
+function saveApiKey(){
+  const k = document.getElementById('anthropic-key')?.value.trim();
+  if(k) try{ localStorage.setItem(APIKEY_STORE, k); }catch(e){}
+}
+function loadApiKey(){
+  try{
+    const k = localStorage.getItem(APIKEY_STORE);
+    const el = document.getElementById('anthropic-key');
+    if(k && el) el.value = k;
+  }catch(e){}
+}
 
 // 초기화
 document.getElementById('username').addEventListener('input', updateUrls);
@@ -171,7 +186,11 @@ document.getElementById('repo').addEventListener('input', updateUrls);
 document.getElementById('prod-confirm').addEventListener('change', function(){
   document.getElementById('prod-btn').disabled = !this.checked;
 });
+document.getElementById('anthropic-key')?.addEventListener('change', saveApiKey);
+
+loadApiKey();
 updateUrls();
+setVersionDisplay(_currentVer);
 
 // CHANGELOG에서 현재 버전 로드
 async function loadCurrentVersion(){
@@ -186,11 +205,23 @@ async function loadCurrentVersion(){
     const bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
     const text=new TextDecoder('utf-8').decode(bytes);
-    // 첫 번째 ## vX.Y.Z 파싱
+
+    // 버전 파싱 — 첫 번째 ## vX.Y.Z
     const m=text.match(/##\s+v(\d+)\.(\d+)\.(\d+)/);
     if(m) _currentVer=[parseInt(m[1]),parseInt(m[2]),parseInt(m[3])];
     else _currentVer=[1,0,0];
     setVersionDisplay(_currentVer);
+
+    // CHANGELOG 항목으로 배포 기록 재구성
+    const entries=[...text.matchAll(/##\s+(v[\d.]+)\s*[—-]\s*(.+)/g)];
+    deployHistory = entries.slice(0,15).map(e=>({
+      type:'PROD',
+      filename:e[1],
+      time:e[2].trim().slice(0,16),
+      commitSha:'',
+      url:`https://${username}.github.io/${repo}/`
+    }));
+    renderHistory();
   }catch(e){setVersionDisplay([1,0,0]);}
 }
 
@@ -517,17 +548,23 @@ function insertTag(tag){
   ta.focus(); updateCharCount();
 }
 
-function addHistory(type,filename,commitSha,url){
-  const time=new Date().toLocaleTimeString('ko-KR');
-  deployHistory.unshift({type,filename,commitSha,url,time});
+function renderHistory(){
   const el=document.getElementById('history');
-  const color=type==='PROD'?'#C8893A':'#A78BFA';
+  if(!el) return;
+  if(!deployHistory.length){ el.innerHTML='아직 배포 기록 없음'; return; }
   el.innerHTML=deployHistory.map(h=>`<div style="display:flex;gap:.4rem;align-items:baseline;padding:.15rem 0;border-bottom:1px solid rgba(240,237,230,.04)">
     <span style="color:${h.type==='PROD'?'#C8893A':'#A78BFA'};font-weight:700;font-size:.68rem;min-width:34px">${h.type}</span>
     <span style="color:#4a6a8a;font-size:.71rem">${h.time}</span>
     <span style="color:#7a9ab8;font-size:.71rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.filename}</span>
     ${h.commitSha?`<span style="color:#4a5568;font-family:monospace;font-size:.67rem;margin-left:auto;flex-shrink:0">${h.commitSha}</span>`:''}
   </div>`).join('');
+}
+
+function addHistory(type,filename,commitSha,url){
+  const time=new Date().toLocaleTimeString('ko-KR');
+  deployHistory.unshift({type,filename,commitSha,url,time});
+  renderHistory();
+  saveState();
 }
 </script>
 </body>
