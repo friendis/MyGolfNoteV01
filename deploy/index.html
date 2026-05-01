@@ -564,7 +564,6 @@ function addHistory(type,filename,commitSha,url){
   const time=new Date().toLocaleTimeString('ko-KR');
   deployHistory.unshift({type,filename,commitSha,url,time});
   renderHistory();
-  saveState();
 }
 </script>
 </body>
