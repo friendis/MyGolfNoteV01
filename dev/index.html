@@ -6430,7 +6430,7 @@ function initCharts(){
   });
 }
 // ── 샷 분포 차트 (인라인 SVG) ────────────────────────
-function renderShotChart(shots){
+function renderShotChart(shots, club=''){
   if(!shots||shots.length<2) return '';
 
   // ── 통계 유틸
@@ -6450,9 +6450,16 @@ function renderShotChart(shots){
   const W=390,H=280, PL=48,PR=16,PT=28,PB=36;
   const cw=W-PL-PR, ch=H-PT-PB;
 
-  // 스케일: carry Y, direction X
-  const cMin=hasCarry?Math.max(0,Math.floor((mc-sc*3-10)/10)*10):0;
-  const cMax=hasCarry?Math.ceil((mc+sc*3+10)/10)*10:300;
+  // 벤치마크 zones (클럽별)
+  const nc = normalizeClub(club);
+  const benchZones = (CLUB_BENCH[nc]||CLUB_BENCH['7I'])?.carry || [];
+  // 벤치마크 최솟값/최댓값으로 Y축 범위 보정
+  const benchMin = benchZones.length ? Math.min(...benchZones.map(z=>z.min)) : 0;
+  const benchMax = benchZones.length ? Math.max(...benchZones.map(z=>z.max)) : 300;
+
+  // 스케일: carry Y, direction X — 벤치마크 포함
+  const cMin=hasCarry?Math.min(Math.max(0,Math.floor((mc-sc*3-10)/10)*10), benchMin) : benchMin;
+  const cMax=hasCarry?Math.max(Math.ceil((mc+sc*3+10)/10)*10, benchMax) : benchMax;
   const dRange=hasDir?Math.max(Math.abs(md)+sd*3+3,10):10;
   const cy2y=(c)=>PT+ch-((c-cMin)/(cMax-cMin)*ch);
   const dx2x=(d)=>PL+cw/2+(d/dRange*(cw/2));
@@ -6461,6 +6468,31 @@ function renderShotChart(shots){
   const ellRx1=(sd/dRange)*(cw/2), ellRx2=ellRx1*2;
   const ellRy1=(sc/(cMax-cMin))*ch, ellRy2=ellRy1*2;
   const ecx=dx2x(md), ecy=cy2y(mc);
+
+  // 벤치마크 배경 띠 — Y축에 수평으로
+  const benchColors = {
+    '초급':'rgba(138,155,170,.13)',
+    '중급':'rgba(167,139,250,.13)',
+    '상급':'rgba(122,176,232,.15)',
+    '프로':'rgba(228,168,85,.15)',
+  };
+  const benchLabelColors = {
+    '초급':'rgba(138,155,170,.7)',
+    '중급':'rgba(167,139,250,.8)',
+    '상급':'rgba(122,176,232,.85)',
+    '프로':'rgba(228,168,85,.9)',
+  };
+  const benchBands = benchZones.map(z=>{
+    const y1=clamp(cy2y(z.max),PT,PT+ch);
+    const y2=clamp(cy2y(z.min),PT,PT+ch);
+    const bandH=Math.max(0,y2-y1);
+    if(bandH<1)return'';
+    const col=benchColors[z.l]||'rgba(200,137,58,.08)';
+    const lCol=benchLabelColors[z.l]||'rgba(200,137,58,.6)';
+    return`<rect x="${PL}" y="${y1}" width="${cw}" height="${bandH}" fill="${col}"/>
+    <text x="${PL+cw-4}" y="${y1+10}" text-anchor="end" font-size="8.5" fill="${lCol}">${z.l} ${z.min}~${z.max}m</text>
+    <line x1="${PL}" y1="${y1}" x2="${PL+cw}" y2="${y1}" stroke="${lCol.replace('.7)','.4)').replace('.8)','.4)').replace('.85)','.4)').replace('.9)','.4)')}" stroke-width="0.6" stroke-dasharray="3 3"/>`;
+  }).join('');
 
   // Y 그리드 틱 생성
   const step=Math.round((cMax-cMin)/4/10)*10||10;
@@ -6480,9 +6512,20 @@ function renderShotChart(shots){
     <text x="${PL-5}" y="${y+4}" text-anchor="end" font-size="9" fill="#5A7A8A">${v}</text>`;
   }).join('');
 
+  // 범례 (벤치마크 레벨)
+  const benchLegend = benchZones.length ? benchZones.map((z,i)=>{
+    const lCol=benchLabelColors[z.l]||'rgba(200,137,58,.6)';
+    const col=benchColors[z.l]||'rgba(200,137,58,.08)';
+    const x=PL+180+i*48;
+    return`<rect x="${x}" y="${PT-16}" width="10" height="8" fill="${col}" rx="1"/>
+    <text x="${x+13}" y="${PT-9}" font-size="8.5" fill="${lCol}">${z.l}</text>`;
+  }).join('') : '';
+
   const chartA=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
   <!-- 배경 -->
   <rect x="${PL}" y="${PT}" width="${cw}" height="${ch}" fill="rgba(240,237,230,.025)" rx="2"/>
+  <!-- 벤치마크 배경 띠 -->
+  ${benchBands}
   <!-- 그리드 -->
   ${gridLines}
   <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${PT+ch}" stroke="rgba(240,237,230,.1)" stroke-width="0.5"/>
@@ -6505,10 +6548,9 @@ function renderShotChart(shots){
   <text x="${PL+12}" y="${PT-7}" font-size="9" fill="#5A7A8A">개별 샷</text>
   <circle cx="${PL+60}" cy="${PT-10}" r="4" fill="#BA7517"/>
   <text x="${PL+68}" y="${PT-7}" font-size="9" fill="#5A7A8A">평균</text>
-  <ellipse cx="${PL+118}" cy="${PT-10}" rx="9" ry="4" fill="none" stroke="#BA7517" stroke-width="1.2"/>
-  <text x="${PL+130}" y="${PT-7}" font-size="9" fill="#5A7A8A">68%</text>
-  <ellipse cx="${PL+162}" cy="${PT-10}" rx="9" ry="4" fill="none" stroke="#BA7517" stroke-width="0.8" stroke-dasharray="4 2"/>
-  <text x="${PL+174}" y="${PT-7}" font-size="9" fill="#5A7A8A">95%</text>
+  <ellipse cx="${PL+108}" cy="${PT-10}" rx="8" ry="4" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+  <text x="${PL+119}" y="${PT-7}" font-size="9" fill="#5A7A8A">68%</text>
+  ${benchLegend}
 </svg>`;
 
   // ── 방향 히스토그램 (200×150)
@@ -6788,7 +6830,7 @@ function pDetail(){
           return '';
         })()}
       </div>
-      <div style="max-width:560px">${renderShotChart(s.shots)}</div>
+      <div style="max-width:560px">${renderShotChart(s.shots, s.club||'')}</div>
       ${shotsH}`;
     }
     return '';
