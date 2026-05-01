@@ -5963,8 +5963,28 @@ function pList(){
       </div>`;
     }).join('<div class="divider"></div>');
     const selCount = selectedChartKeys.size;
+
+    // ── 클럽별 비거리 막대그래프 ─────────────────────
+    // X축: SW → LW → PW → AW/GW → 9I → ... → 드라이버 (오른쪽으로 갈수록 긴 클럽)
+    const distClubOrder = [...CLUBS].reverse(); // CLUBS가 드라이버→SW 순이므로 reverse
+    const distClubs = distClubOrder.filter(c=>cm[normalizeClub(c)]?.c.length||cm[normalizeClub(c)]?.tot.length);
+    const distChartSection = distClubs.length >= 2 ? `
+    <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1.1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">📊 클럽별 비거리</div>
+        <div style="display:flex;gap:.3rem">
+          <button id="dist-btn-carry" onclick="setDistMode('carry')"
+            style="font-size:.7rem;padding:2px 9px;border-radius:2px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);cursor:pointer;font-family:var(--sans)">캐리</button>
+          <button id="dist-btn-total" onclick="setDistMode('total')"
+            style="font-size:.7rem;padding:2px 9px;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">총거리</button>
+        </div>
+      </div>
+      <div style="position:relative;height:180px"><canvas id="club-dist-chart"></canvas></div>
+    </div>` : '';
+
     return`<div class="page">${srow}${ptabs}
     ${gameChartSection}
+    ${distChartSection}
     <div style="margin-bottom:.9rem">
       <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem">
         <span style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">그래프 선택</span>
@@ -6159,6 +6179,25 @@ function clubColor(club) {
   return CLUB_COLORS[club] || {line:'#8A9BAA', bg:'rgba(138,155,170,.15)'};
 }
 
+window.setDistMode = (mode) => {
+  window._distMode = mode;
+  // 버튼 스타일 토글
+  const btnCarry=$('dist-btn-carry'), btnTotal=$('dist-btn-total');
+  if(btnCarry){
+    btnCarry.style.background=mode==='carry'?'rgba(200,137,58,.12)':'none';
+    btnCarry.style.borderColor=mode==='carry'?'rgba(200,137,58,.4)':'var(--border)';
+    btnCarry.style.color=mode==='carry'?'var(--wing2)':'var(--muted)';
+  }
+  if(btnTotal){
+    btnTotal.style.background=mode==='total'?'rgba(200,137,58,.12)':'none';
+    btnTotal.style.borderColor=mode==='total'?'rgba(200,137,58,.4)':'var(--border)';
+    btnTotal.style.color=mode==='total'?'var(--wing2)':'var(--muted)';
+  }
+  // 차트 재그리기
+  if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
+  requestAnimationFrame(initCharts);
+};
+
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
 
@@ -6214,7 +6253,80 @@ function initCharts(){
     }
   }
 
-  // 선택된 차트의 canvas가 하나라도 준비됐는지 확인
+  // 클럽별 비거리 막대그래프
+  const distEl=$('club-dist-chart');
+  if(distEl&&typeof Chart!=='undefined'){
+    try{
+      if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){}}
+      const distClubOrder=[...CLUBS].reverse();
+      const cm2={};
+      sessions.forEach(s=>{
+        const nc=normalizeClub(s.club); if(!nc)return;
+        if(!cm2[nc])cm2[nc]={c:[],tot:[]};
+        const st=ss(s);
+        if(st.avgCarry)cm2[nc].c.push(st.avgCarry);
+        if(st.avgTotal)cm2[nc].tot.push(st.avgTotal);
+      });
+      const mode=window._distMode||'carry';
+      const labels=distClubOrder.filter(c=>cm2[c]?.c.length||cm2[c]?.tot.length);
+      const carryVals=labels.map(c=>cm2[c]?.c.length?Math.round(avg(cm2[c].c)):null);
+      const totalVals=labels.map(c=>cm2[c]?.tot.length?Math.round(avg(cm2[c].tot)):null);
+      const showTotal=mode==='total';
+      const vals=showTotal?totalVals:carryVals;
+      const maxVal=Math.max(...vals.filter(Boolean),50);
+      charts['club-dist-chart']=new Chart(distEl,{
+        type:'bar',
+        data:{
+          labels,
+          datasets:[{
+            label:showTotal?'총거리(m)':'캐리(m)',
+            data:vals,
+            backgroundColor:labels.map((_,i)=>{
+              const v=vals[i];if(!v)return'rgba(74,101,128,.15)';
+              const ratio=v/maxVal;
+              return ratio>0.85?'rgba(200,137,58,.65)':ratio>0.6?'rgba(74,143,168,.55)':'rgba(167,139,250,.45)';
+            }),
+            borderColor:labels.map((_,i)=>{
+              const v=vals[i];if(!v)return'rgba(74,101,128,.3)';
+              const ratio=v/maxVal;
+              return ratio>0.85?'rgba(200,137,58,.9)':ratio>0.6?'rgba(74,143,168,.9)':'rgba(167,139,250,.8)';
+            }),
+            borderWidth:1,
+            borderRadius:3,
+          }]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false,onClick:()=>{}},
+            tooltip:{
+              callbacks:{
+                label:ctx=>`${ctx.raw||'-'}m`,
+                afterLabel:ctx=>{
+                  const club=labels[ctx.dataIndex];
+                  const c=carryVals[ctx.dataIndex],t=totalVals[ctx.dataIndex];
+                  if(c&&t&&!showTotal)return`총거리: ${t}m`;
+                  if(c&&t&&showTotal)return`캐리: ${c}m`;
+                  return '';
+                }
+              }
+            }
+          },
+          scales:{
+            x:{
+              ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},
+              grid:{display:false}
+            },
+            y:{
+              min:0,
+              ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},
+              grid:{color:'rgba(240,237,230,.06)'}
+            }
+          }
+        }
+      });
+    }catch(e){console.warn('club-dist-chart 오류:',e);}
+  }
   const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
   const anyReady=clubs.some(c=>CHART_DEFS.some(cd=>selectedChartKeys.has(cd.key)&&$(`chart-${cd.key}-${c}`)));
   if(!anyReady){setTimeout(initCharts,100);return;}
