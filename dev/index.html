@@ -6927,10 +6927,19 @@ function renderShotChart(shots, club=''){
 function pDetail(){
   const s=D.sessions.find(x=>x.id===selId);if(!s)return'<div class="empty">세션을 찾을 수 없습니다.</div>';
   const st=ss(s);
-  const idx=D.sessions.findIndex(x=>x.id===selId);
-  const prev=D.sessions[idx+1]; // sessions는 최신순 정렬이므로 idx+1이 이전 기록
-  const next=D.sessions[idx-1]; // idx-1이 이후(더 최근) 기록
   const nc=normalizeClub(s.club);
+
+  // 클럽 필터 모드 (같은 클럽만 / 전체)
+  const sameClubMode = window._navSameClub !== false; // 기본: 같은 클럽만
+  const navPool = sameClubMode && nc
+    ? D.sessions.filter(x=>normalizeClub(x.club)===nc)
+    : D.sessions;
+  const idx=navPool.findIndex(x=>x.id===selId);
+  const prev=navPool[idx+1];
+  const next=navPool[idx-1];
+
+  // 전체 인덱스 (표시용)
+  const totalIdx=D.sessions.findIndex(x=>x.id===selId);
   const shotsH=s.shots.length?`<div style="overflow-x:auto"><table class="stbl"><thead><tr><th>#</th><th>캐리</th><th>총거리</th><th>헤드속도</th><th>볼속도</th><th>스매시</th><th>발사각</th><th>스핀</th><th>방향</th></tr></thead><tbody>${s.shots.map((sh,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="vl">${sh.carry||'—'}</td><td class="vl">${sh.total||'—'}</td><td class="vl">${sh.headSpeed||'—'}</td><td class="vl">${sh.ballSpeed||'—'}</td><td class="vl">${sh.smashFactor?Number(sh.smashFactor).toFixed(2):'—'}</td><td class="vl">${sh.launchAngle||'—'}</td><td class="vl">${sh.spin?Number(sh.spin).toLocaleString():'—'}</td><td class="vl" style="color:${sh.direction>0?'var(--amber)':sh.direction<0?'#7ab0e8':'var(--text)'}">${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction||0):'—'}</td></tr>`).join('')}</tbody></table></div><div class="stats-row" style="margin-top:.9rem">${st.avgCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem">${fn(st.avgCarry,'m')}</div><div class="stat-l">캐리 평균</div></div>`:''} ${st.bestCarry!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--wing2)">${fn(st.bestCarry,'m')}</div><div class="stat-l">캐리 베스트</div></div>`:''}${st.avgHs!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:var(--turf)">${fn(st.avgHs)}</div><div class="stat-l">헤드속도 평균</div></div>`:''}${st.consistency!=null?`<div class="stat"><div class="stat-n" style="font-size:1.25rem;color:${consistencyColor(st.consistency)}">${st.consistency}점</div><div class="stat-l">샷 일관성</div></div>`:''}</div>`:'<div style="color:var(--muted);font-size:.84rem;padding:.4rem 0">샷 데이터가 없습니다.</div>';
 
   return`<div class="page">
@@ -6940,9 +6949,17 @@ function pDetail(){
       <button class="session-nav-btn" onclick="goDetail('${prev?.id}')" ${!prev?'disabled':''}>‹ ${prev?prev.date?.slice(5)||'이전':'이전'}</button>
       <div class="session-nav-center">
         <div style="color:var(--chalk);font-weight:500">${s.date||''}</div>
-        <div style="margin-top:1px">${nc?`<span class="club-badge" style="font-size:.68rem;padding:1px 5px">${esc(nc)}</span>`:''} ${D.sessions.length>1?`<span style="opacity:.5">${idx+1} / ${D.sessions.length}</span>`:''}</div>
+        <div style="margin-top:1px;display:flex;align-items:center;justify-content:center;gap:.35rem">
+          ${nc?`<span class="club-badge" style="font-size:.68rem;padding:1px 5px">${esc(nc)}</span>`:''}
+          <span style="opacity:.5;font-size:.68rem">${idx+1} / ${navPool.length}${sameClubMode&&nc?` (${esc(nc)}만)`:'(전체)'}</span>
+        </div>
       </div>
       <button class="session-nav-btn" onclick="goDetail('${next?.id}')" ${!next?'disabled':''}>${next?next.date?.slice(5)||'다음':'다음'} ›</button>
+      <button class="session-nav-btn" onclick="window._navSameClub=!window._navSameClub;render()"
+        style="background:${sameClubMode&&nc?'rgba(200,137,58,.15)':'rgba(240,237,230,.04)'};border-color:${sameClubMode&&nc?'rgba(200,137,58,.35)':'rgba(240,237,230,.1)'};color:${sameClubMode&&nc?'var(--wing2)':'var(--muted)'};font-size:.68rem;min-width:auto;padding:.38rem .5rem"
+        title="${sameClubMode?'전체 기록 탐색으로 전환':'같은 클럽만 탐색으로 전환'}">
+        ${sameClubMode&&nc?`${esc(nc)}만`:'전체'}
+      </button>
       <button class="session-nav-btn" style="background:none;border-color:rgba(240,237,230,.1);color:var(--muted)" onclick="goList()">목록</button>
       <button class="session-nav-btn" style="background:none;border-color:rgba(167,139,250,.2);color:#A78BFA" onclick="gotoStats()">통계</button>
     </div>
