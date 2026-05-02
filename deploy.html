@@ -168,10 +168,41 @@ let _selectedVerType = 'minor';
 const APIKEY_STORE = 'birdyard_deploy_apikey';
 
 // API 키만 localStorage에 저장
-function saveApiKey(){
+const DEV_HISTORY_KEY = 'birdyard_dev_history';
+
+function saveDevHistory(){
+  const devEntries = deployHistory.filter(h=>h.type==='DEV').slice(0,10);
+  try{ localStorage.setItem(DEV_HISTORY_KEY, JSON.stringify(devEntries)); }catch(e){}
+}
+
+function loadDevHistory(){
+  try{ return JSON.parse(localStorage.getItem(DEV_HISTORY_KEY)||'[]'); }catch(e){ return []; }
+}
   const k = document.getElementById('anthropic-key')?.value.trim();
   if(k) try{ localStorage.setItem(APIKEY_STORE, k); }catch(e){}
 }
+async function updateDevHistoryFile(apiBase, headers, entry){
+  try{
+    const sha = await getSHA(apiBase, 'DEV_HISTORY.md', headers);
+    let existing = '';
+    if(sha){
+      const r = await fetch(`${apiBase}/contents/DEV_HISTORY.md`, {headers});
+      if(r.ok){
+        const d = await r.json();
+        const bin = atob(d.content.replace(/\n/g,''));
+        const bytes = new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+        existing = new TextDecoder('utf-8').decode(bytes);
+      }
+    }
+    const header = existing.startsWith('# DEV') ? '' : '# DEV 배포 기록\n\n| 구분 | 시간 | 파일 | 커밋 |\n|------|------|------|------|\n';
+    const newLine = `| DEV | ${entry.time} | ${entry.filename} | ${entry.commitSha||'-'} |\n`;
+    const prevBody = existing.replace(/^# DEV 배포 기록\n\n\|[^\n]*\n\|[^\n]*\n/,'');
+    const body = (header || '# DEV 배포 기록\n\n| 구분 | 시간 | 파일 | 커밋 |\n|------|------|------|------|\n') + newLine + prevBody;
+    await putFile(apiBase, 'DEV_HISTORY.md', body, `🧪 DEV 기록 ${entry.time}`, sha, headers);
+  }catch(e){ console.warn('DEV_HISTORY.md 저장 실패:', e.message); }
+}
+
 function loadApiKey(){
   try{
     const k = localStorage.getItem(APIKEY_STORE);
@@ -189,6 +220,7 @@ document.getElementById('prod-confirm').addEventListener('change', function(){
 document.getElementById('anthropic-key')?.addEventListener('change', saveApiKey);
 
 loadApiKey();
+deployHistory = loadDevHistory(); // DEV 기록 먼저 복원
 updateUrls();
 setVersionDisplay(_currentVer);
 
@@ -221,9 +253,27 @@ async function loadCurrentVersion(){
       commitSha:'',
       url:`https://${username}.github.io/${repo}/`
     }));
-    // 현재 세션의 DEV 기록은 앞에 유지
-    const devEntries = deployHistory.filter(h=>h.type==='DEV');
-    deployHistory = [...devEntries, ...prodHistory];
+
+    // DEV_HISTORY.md 로드
+    let devHistory = [];
+    try{
+      const devRes = await fetch(`${apiBase}/contents/DEV_HISTORY.md`, {headers});
+      if(devRes.ok){
+        const devData = await devRes.json();
+        const devBin = atob(devData.content.replace(/\n/g,''));
+        const devBytes = new Uint8Array(devBin.length);
+        for(let i=0;i<devBin.length;i++) devBytes[i]=devBin.charCodeAt(i);
+        const devText = new TextDecoder('utf-8').decode(devBytes);
+        const devEntries = [...devText.matchAll(/\|\s*DEV\s*\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|/g)];
+        devHistory = devEntries.slice(0,10).map(e=>({
+          type:'DEV', time:e[1].trim(), filename:e[2].trim(), commitSha:e[3].trim(),
+          url:`https://${username}.github.io/${repo}/dev/`
+        }));
+      }
+    }catch(e){}
+
+    // DEV + PROD 합쳐서 시간순 정렬
+    deployHistory = [...devHistory, ...prodHistory];
     renderHistory();
   }catch(e){setVersionDisplay([1,0,0]);}
 }
@@ -340,7 +390,11 @@ async function deployDev(){
     logTo('dev-log',`DEV URL: https://${username}.github.io/${repo}/dev/`,'gold');
     logTo('dev-log','※ 반영까지 1~2분 소요','info');
     badge.className='badge badge-ok'; badge.textContent='✓ 완료';
-    addHistory('DEV',fileInput.files[0].name,result.commit?.sha?.slice(0,7),`https://${username}.github.io/${repo}/dev/`);
+    const devEntry = {type:'DEV', filename:fileInput.files[0].name, commitSha:result.commit?.sha?.slice(0,7), url:`https://${username}.github.io/${repo}/dev/`, time:new Date().toLocaleString('ko-KR')};
+    addHistory('DEV', devEntry.filename, devEntry.commitSha, devEntry.url);
+    saveDevHistory();
+    // DEV_HISTORY.md 업데이트
+    await updateDevHistoryFile(apiBase, headers, devEntry);
     loadCurrentVersion(); // 버전 정보 로드
   }catch(e){
     logTo('dev-log',`오류: ${e.message}`,'err');
