@@ -692,6 +692,20 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
   </div>
 </div>
 
+<!-- passive 이벤트 패치 (Chart.js 스크롤 경고 방지) -->
+<script>
+(function(){
+  const orig = EventTarget.prototype.addEventListener;
+  EventTarget.prototype.addEventListener = function(type, fn, opts) {
+    if(['touchstart','touchmove','wheel','mousewheel'].includes(type)){
+      if(typeof opts === 'object') opts = Object.assign({}, opts, {passive: opts.passive !== false});
+      else opts = {capture: !!opts, passive: true};
+    }
+    return orig.call(this, type, fn, opts);
+  };
+})();
+</script>
+
 <script type="module">
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
