@@ -6955,7 +6955,7 @@ function pDetail(){
         </div>
       </div>
       <button class="session-nav-btn" onclick="goDetail('${next?.id}')" ${!next?'disabled':''}>${next?next.date?.slice(5)||'다음':'다음'} ›</button>
-      <button class="session-nav-btn" onclick="window._navSameClub=!window._navSameClub;render()"
+      <button class="session-nav-btn" onclick="window._navSameClub=!window._navSameClub;window._rerender()"
         style="background:${sameClubMode&&nc?'rgba(200,137,58,.15)':'rgba(240,237,230,.04)'};border-color:${sameClubMode&&nc?'rgba(200,137,58,.35)':'rgba(240,237,230,.1)'};color:${sameClubMode&&nc?'var(--wing2)':'var(--muted)'};font-size:.68rem;min-width:auto;padding:.38rem .5rem"
         title="${sameClubMode?'전체 기록 탐색으로 전환':'같은 클럽만 탐색으로 전환'}">
         ${sameClubMode&&nc?`${esc(nc)}만`:'전체'}
