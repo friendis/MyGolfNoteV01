@@ -696,7 +696,8 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
 Chart.register(...registerables);
-Chart.defaults.plugins.legend.onClick = () => {}; // legend handleEvent 오류 방어
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.legend.onClick = () => {};
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 // ── AI 모델 설정 ── 문제 발생 시 'gemini-2.5-flash' 로 변경 ──
@@ -2186,7 +2187,7 @@ function _drawProfSparklines(cm){
       new Chart(el,{type:'line',data:{
         labels:d.c.map((_,i)=>i+1+''),
         datasets:[{data:d.c.map(v=>Math.round(v)),borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.1)',borderWidth:1.5,pointRadius:2,fill:true,tension:.3}]
-      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false,onClick:()=>{}}},scales:{x:{display:false},y:{display:false}}}});
+      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:false},scales:{x:{display:false},y:{display:false}}}});
     }catch(e){}
   });
 }
@@ -6476,7 +6477,7 @@ function initCharts(){
           options:{
             responsive:true,maintainAspectRatio:false,
             plugins:{
-              legend:{display:false,onClick:()=>{}},
+              legend:false,
               tooltip:{callbacks:{label:c=>`${c.raw}타`}}
             },
             scales:{
@@ -6543,7 +6544,7 @@ function initCharts(){
         options:{
           responsive:true,maintainAspectRatio:false,
           plugins:{
-            legend:{display:false,onClick:()=>{}},
+            legend:false,
             tooltip:{
               callbacks:{
                 label:ctx=>`${ctx.raw||'-'}m`,
@@ -6626,7 +6627,7 @@ function initCharts(){
         pointRadius:6,pointHoverRadius:10,pointHitRadius:20,spanGaps:true}]},
       options:{responsive:true,maintainAspectRatio:false,onClick,
         interaction:{mode:'nearest',axis:'x',intersect:false},
-        plugins:{legend:{display:false,onClick:()=>{}},tooltip:{
+        plugins:{legend:false,tooltip:{
           enabled:true,
           callbacks:{label:ctx=>`${ctx.parsed.y}${yOpts.unit||''} (탭하면 상세보기)`},
           backgroundColor:'rgba(13,17,23,.92)',
