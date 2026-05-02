@@ -2723,7 +2723,10 @@ async function initWebPush() {
 
   try {
     // Service Worker 등록
-    const reg = await navigator.serviceWorker.register('/MyGolfNoteV01/sw.js', { scope: '/MyGolfNoteV01/' });
+    const swPath = location.hostname === 'birdyard.app' ? '/sw.js' : '/MyGolfNoteV01/sw.js';
+    const reg = await navigator.serviceWorker.register(swPath, {
+      scope: location.hostname === 'birdyard.app' ? '/' : '/MyGolfNoteV01/'
+    });
     await navigator.serviceWorker.ready;
 
     // 이미 구독 중인지 확인
