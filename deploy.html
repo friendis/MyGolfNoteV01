@@ -2,69 +2,47 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Birdyard 배포 도구</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0D1117;color:#F0EDE6;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0D1117;color:#F0EDE6;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem}
 .wrap{width:100%;max-width:560px}
-
-/* 헤더 */
-.logo{font-family:Georgia,serif;font-size:1.5rem;color:#C8893A;letter-spacing:.15em;margin-bottom:.2rem}
-.logo-sub{font-size:.72rem;color:#4a5568;letter-spacing:.2em;text-transform:uppercase;margin-bottom:2rem}
-
-/* 카드 */
-.card{background:#161B22;border:1px solid rgba(200,137,58,.2);border-radius:10px;padding:1.5rem;margin-bottom:1rem}
-.card-title{font-size:.68rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
-.card-title .dot{width:8px;height:8px;border-radius:50%}
-.dot-dev{background:#A78BFA}
-.dot-prod{background:#C8893A}
-.dot-gray{background:#4a5568}
-
-/* 폼 */
-.fg{margin-bottom:.85rem}
-label{display:block;font-size:.68rem;font-weight:600;color:#4a6a8a;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem}
-input,select{width:100%;background:#0D1117;border:1px solid rgba(240,237,230,.12);color:#F0EDE6;padding:.55rem .8rem;border-radius:6px;font-family:inherit;font-size:.85rem;outline:none;transition:border-color .15s}
-input:focus,select:focus{border-color:rgba(200,137,58,.45)}
+.logo{font-family:Georgia,serif;font-size:1.4rem;color:#C8893A;letter-spacing:.15em;margin-bottom:.2rem}
+.logo-sub{font-size:.7rem;color:#4a5568;letter-spacing:.2em;text-transform:uppercase;margin-bottom:1.75rem}
+.card{background:#161B22;border:1px solid rgba(200,137,58,.2);border-radius:10px;padding:1.25rem;margin-bottom:.85rem}
+.card-title{font-size:.67rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot-dev{background:#A78BFA}.dot-prod{background:#C8893A}.dot-gray{background:#4a5568}
+.fg{margin-bottom:.75rem}
+label{display:block;font-size:.67rem;font-weight:600;color:#4a6a8a;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.28rem}
+input{width:100%;background:#0D1117;border:1px solid rgba(240,237,230,.12);color:#F0EDE6;padding:.5rem .75rem;border-radius:6px;font-family:inherit;font-size:.84rem;outline:none;transition:border-color .15s}
+input:focus{border-color:rgba(200,137,58,.45)}
 input[type=password]{letter-spacing:2px}
-input[type=file]{color:#7a9ab8;border-style:dashed;padding:.45rem .8rem}
-
-/* 버튼 */
-.btn{width:100%;padding:.65rem;border-radius:6px;border:none;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem}
-.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type=file]{color:#7a9ab8;border-style:dashed;font-size:.8rem}
+.btn{width:100%;padding:.6rem;border-radius:6px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-dev{background:rgba(167,139,250,.15);color:#A78BFA;border:1px solid rgba(167,139,250,.35)}
-.btn-dev:hover:not(:disabled){background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.6)}
+.btn-dev:hover:not(:disabled){background:rgba(167,139,250,.25)}
 .btn-prod{background:rgba(200,137,58,.15);color:#C8893A;border:1px solid rgba(200,137,58,.35)}
-.btn-prod:hover:not(:disabled){background:rgba(200,137,58,.25);border-color:rgba(200,137,58,.6)}
-.btn-sm{font-size:.78rem;padding:.4rem .9rem;width:auto;border-radius:4px}
-
-/* 상태 뱃지 */
-.badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.05em}
+.btn-prod:hover:not(:disabled){background:rgba(200,137,58,.25)}
+.badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.67rem;padding:2px 7px;border-radius:4px;font-weight:600}
 .badge-dev{background:rgba(167,139,250,.15);color:#A78BFA;border:1px solid rgba(167,139,250,.3)}
 .badge-prod{background:rgba(200,137,58,.12);color:#C8893A;border:1px solid rgba(200,137,58,.25)}
 .badge-ok{background:rgba(61,158,116,.15);color:#3D9E74;border:1px solid rgba(61,158,116,.3)}
 .badge-idle{background:rgba(74,101,128,.1);color:#4a6a8a;border:1px solid rgba(74,101,128,.2)}
-
-/* 로그 */
-.log{background:#0D1117;border:1px solid rgba(240,237,230,.08);border-radius:6px;padding:.75rem 1rem;min-height:72px;max-height:200px;overflow-y:auto;font-size:.78rem;font-family:'SF Mono',Consolas,monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all;margin-top:.85rem}
+.log{background:#0D1117;border:1px solid rgba(240,237,230,.08);border-radius:6px;padding:.65rem .9rem;min-height:60px;max-height:160px;overflow-y:auto;font-size:.76rem;font-family:'SF Mono',Consolas,monospace;line-height:1.7;white-space:pre-wrap;word-break:break-all;margin-top:.75rem}
 .ok{color:#3D9E74}.err{color:#E05252}.info{color:#7a9ab8}.gold{color:#C8893A}.purple{color:#A78BFA}
-
-/* 구분선 */
-.divider{height:1px;background:rgba(240,237,230,.07);margin:1.25rem 0}
-
-/* 화살표 */
-.arrow{text-align:center;color:#4a5568;font-size:1.2rem;margin:.3rem 0;line-height:1}
-
-/* 상태 표시 */
-.status-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid rgba(240,237,230,.06)}
+.status-row{display:flex;align-items:center;justify-content:space-between;padding:.42rem 0;border-bottom:1px solid rgba(240,237,230,.06)}
 .status-row:last-child{border-bottom:none}
-.status-label{font-size:.75rem;color:#7a9ab8}
-
-/* 노트 */
-.note{font-size:.7rem;color:#4a5568;line-height:1.6;margin-top:.35rem}
-.warn{font-size:.72rem;color:rgba(200,137,58,.75);background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.18);border-radius:4px;padding:.45rem .7rem;margin-top:.5rem;line-height:1.5}
-.tag-chip{background:rgba(240,237,230,.05);border:1px solid rgba(240,237,230,.15);color:#7a9ab8;font-size:.72rem;padding:3px 9px;border-radius:12px;cursor:pointer;font-family:inherit;transition:all .12s}
+.status-label{font-size:.74rem;color:#7a9ab8}
+.warn{font-size:.71rem;color:rgba(200,137,58,.8);background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.18);border-radius:4px;padding:.4rem .65rem;margin-top:.5rem;line-height:1.5}
+.note{font-size:.68rem;color:#4a5568;line-height:1.6;margin-top:.25rem}
+.arrow{text-align:center;color:#4a5568;font-size:1.1rem;margin:.2rem 0}
+.tag-chip{background:rgba(240,237,230,.05);border:1px solid rgba(240,237,230,.15);color:#7a9ab8;font-size:.71rem;padding:3px 9px;border-radius:12px;cursor:pointer;font-family:inherit;transition:all .12s}
 .tag-chip:hover{background:rgba(200,137,58,.1);border-color:rgba(200,137,58,.3);color:#C8893A}
+textarea{width:100%;background:#0D1117;border:1px solid rgba(240,237,230,.12);color:#F0EDE6;padding:.6rem .75rem;border-radius:6px;font-family:inherit;font-size:.81rem;resize:vertical;min-height:120px;line-height:1.65;outline:none;box-sizing:border-box}
+textarea:focus{border-color:rgba(200,137,58,.4)}
 </style>
 </head>
 <body>
@@ -72,164 +50,242 @@ input[type=file]{color:#7a9ab8;border-style:dashed;padding:.45rem .8rem}
   <div class="logo">BIRDYARD</div>
   <div class="logo-sub">배포 도구 · Deploy Tool</div>
 
-  <!-- 설정 카드 -->
+  <!-- 설정 -->
   <div class="card">
     <div class="card-title"><span class="dot dot-gray"></span>GitHub 설정</div>
     <div class="fg">
       <label>사용자명</label>
-      <input type="text" id="username" placeholder="friendis" value="friendis">
+      <input id="username" value="friendis">
     </div>
     <div class="fg">
       <label>저장소 이름</label>
-      <input type="text" id="repo" placeholder="MyGolfNoteV01" value="MyGolfNoteV01">
+      <input id="repo" value="MyGolfNoteV01">
     </div>
     <div class="fg">
       <label>Personal Access Token</label>
       <input type="password" id="token" placeholder="ghp_...">
-      <div class="note">토큰은 이 페이지 안에서만 사용되며 어디에도 저장되지 않습니다.</div>
+      <div class="note">이 페이지 안에서만 사용되며 저장되지 않습니다.</div>
     </div>
     <div class="fg">
-      <label>Anthropic API Key <span style="font-weight:400;color:#4a5568">(릴리즈 노트 자동 생성용 · 선택)</span></label>
+      <label>Anthropic API Key <span style="font-weight:400;color:#4a5568">(AI 자동 작성용)</span></label>
       <input type="password" id="anthropic-key" placeholder="sk-ant-api03-...">
-      <div class="note">입력 시 DEV→PROD 변경 사항을 Claude가 분석해 릴리즈 노트를 자동 작성합니다.</div>
+      <div class="note">console.anthropic.com에서 발급. 저장되지 않습니다.</div>
     </div>
   </div>
 
-  <!-- STEP 1: DEV 배포 -->
+  <!-- STEP 1 -->
   <div class="card">
     <div class="card-title">
-      <span class="dot dot-dev"></span>
-      STEP 1 — DEV 배포
+      <span class="dot dot-dev"></span>STEP 1 — DEV 배포
       <span id="dev-badge" class="badge badge-idle" style="margin-left:auto">대기 중</span>
     </div>
-
     <div class="fg">
-      <label>배포할 파일 선택</label>
+      <label>배포할 파일</label>
       <input type="file" id="dev-file" accept=".html">
-      <div class="note">Birdyard.html (최신 빌드 파일) 선택</div>
     </div>
-
-    <div style="background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.15);border-radius:6px;padding:.65rem .85rem;margin-bottom:.85rem">
-      <div class="status-row">
-        <span class="status-label">업로드 경로</span>
-        <code style="font-size:.75rem;color:#A78BFA">dev/index.html</code>
-      </div>
-      <div class="status-row">
-        <span class="status-label">접속 URL</span>
-        <span id="dev-url-display" style="font-size:.72rem;color:#7a9ab8">—</span>
-      </div>
+    <div style="background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.15);border-radius:6px;padding:.55rem .75rem;margin-bottom:.75rem">
+      <div class="status-row"><span class="status-label">경로</span><code style="font-size:.73rem;color:#A78BFA">dev/index.html</code></div>
+      <div class="status-row"><span class="status-label">URL</span><span id="dev-url-display" style="font-size:.71rem;color:#7a9ab8">—</span></div>
     </div>
-
-    <button class="btn btn-dev" id="dev-btn" onclick="deployDev()">
-      ⬡ DEV에 배포
-    </button>
-
+    <button class="btn btn-dev" id="dev-btn" onclick="deployDev()">⬡ DEV에 배포</button>
     <div class="log" id="dev-log">DEV 배포 로그...</div>
   </div>
 
   <div class="arrow">↓</div>
 
-  <!-- STEP 2: PROD 승격 -->
+  <!-- STEP 2 -->
   <div class="card">
     <div class="card-title">
-      <span class="dot dot-prod"></span>
-      STEP 2 — PROD 승격
+      <span class="dot dot-prod"></span>STEP 2 — PROD 승격
       <span id="prod-badge" class="badge badge-idle" style="margin-left:auto">대기 중</span>
     </div>
-
-    <div class="warn">⚠ DEV에서 충분히 검증한 후에만 진행하세요. PROD는 실제 사용자에게 바로 반영됩니다.</div>
-
-    <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:6px;padding:.65rem .85rem;margin:.85rem 0">
-      <div class="status-row">
-        <span class="status-label">업로드 경로</span>
-        <code style="font-size:.75rem;color:#C8893A">index.html</code>
-      </div>
-      <div class="status-row">
-        <span class="status-label">방식</span>
-        <span style="font-size:.72rem;color:#7a9ab8">DEV 파일을 그대로 PROD로 복사</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">접속 URL</span>
-        <span id="prod-url-display" style="font-size:.72rem;color:#7a9ab8">—</span>
-      </div>
+    <div class="warn">⚠ DEV에서 충분히 검증한 후에만 진행하세요.</div>
+    <div style="background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.15);border-radius:6px;padding:.55rem .75rem;margin:.75rem 0">
+      <div class="status-row"><span class="status-label">경로</span><code style="font-size:.73rem;color:#C8893A">index.html</code></div>
+      <div class="status-row"><span class="status-label">현재 버전</span><span id="current-ver-display" style="font-size:.73rem;color:#7a9ab8">불러오는 중...</span></div>
+      <div class="status-row"><span class="status-label">URL</span><span id="prod-url-display" style="font-size:.71rem;color:#7a9ab8">—</span></div>
     </div>
 
-    <!-- 릴리즈 노트 -->
-    <div style="margin-bottom:.85rem">
-      <label style="font-size:.68rem;font-weight:700;color:#C8893A;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:.4rem">
-        릴리즈 노트 <span style="font-weight:400;color:#4a5568">(CHANGELOG.md에 저장 · 앱에서 사용자에게 표시)</span>
-      </label>
-      <div style="display:flex;gap:.4rem;margin-bottom:.4rem;flex-wrap:wrap" id="release-tag-btns">
+    <!-- 버전 선택 -->
+    <div class="fg">
+      <label>다음 버전</label>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap" id="ver-btns">
+        <button type="button" id="ver-major" onclick="selectVer('major')"
+          class="tag-chip" style="font-size:.78rem;padding:5px 12px">
+          📦 Major <span id="ver-major-val" style="color:#A78BFA"></span>
+        </button>
+        <button type="button" id="ver-minor" onclick="selectVer('minor')"
+          class="tag-chip" style="font-size:.78rem;padding:5px 12px">
+          ✨ Minor <span id="ver-minor-val" style="color:#C8893A"></span>
+        </button>
+        <button type="button" id="ver-patch" onclick="selectVer('patch')"
+          class="tag-chip" style="font-size:.78rem;padding:5px 12px">
+          🔧 Patch <span id="ver-patch-val" style="color:#4a6a8a"></span>
+        </button>
+      </div>
+      <div id="ver-hint" style="font-size:.7rem;color:#4a5568;margin-top:.35rem"></div>
+    </div>
+
+    <!-- 릴리즈 노트 (patch면 선택) -->
+    <div class="fg" id="release-notes-section">
+      <label>릴리즈 노트 <span id="rn-optional" style="font-weight:400;color:#4a5568"></span></label>
+      <div style="display:flex;gap:.35rem;margin-bottom:.4rem;flex-wrap:wrap">
         <button type="button" onclick="insertTag('✨ 새 기능')" class="tag-chip">✨ 새 기능</button>
         <button type="button" onclick="insertTag('🐛 버그 수정')" class="tag-chip">🐛 버그 수정</button>
-        <button type="button" onclick="insertTag('⚡ 성능 개선')" class="tag-chip">⚡ 성능 개선</button>
-        <button type="button" onclick="insertTag('🎨 UI 개선')" class="tag-chip">🎨 UI 개선</button>
-        <button type="button" onclick="insertTag('🔧 기타 수정')" class="tag-chip">🔧 기타 수정</button>
+        <button type="button" onclick="insertTag('⚡ 성능 개선')" class="tag-chip">⚡ 성능</button>
+        <button type="button" onclick="insertTag('🎨 UI 개선')" class="tag-chip">🎨 UI</button>
         <button type="button" id="ai-gen-btn" onclick="autoGenerateNotes()"
-          class="tag-chip" style="background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.35);color:#A78BFA;margin-left:auto">
+          class="tag-chip" style="background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.4);color:#A78BFA;margin-left:auto;font-weight:600">
           ✦ AI 자동 작성
         </button>
       </div>
-      <div id="ai-gen-status" style="font-size:.72rem;color:#4a6a8a;margin-bottom:.4rem;display:none"></div>
-      <textarea id="release-notes" placeholder="이번 업데이트 내용을 간략히 작성해주세요.
-
-예시:
-✨ 새 기능
-• 학습노트 AI 자동 분석 기능 추가
-• 버디에게 노트 전달 기능
-
-🐛 버그 수정
-• 공개 프로필 저장 오류 수정"
-        style="width:100%;background:#0D1117;border:1px solid rgba(240,237,230,.12);color:#F0EDE6;padding:.65rem .8rem;border-radius:6px;font-family:inherit;font-size:.82rem;resize:vertical;min-height:130px;line-height:1.6;outline:none;box-sizing:border-box"
-        oninput="updateReleasePreview()"></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.3rem">
-        <span id="release-char-count" style="font-size:.68rem;color:#4a5568">0자</span>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:#4a6a8a">
-          <input type="checkbox" id="show-preview" onchange="togglePreview()" style="accent-color:#C8893A;width:auto">
-          미리보기
-        </label>
-      </div>
-      <div id="release-preview" style="display:none;background:#161B22;border:1px solid rgba(200,137,58,.2);border-radius:6px;padding:.75rem 1rem;margin-top:.5rem;font-size:.82rem;color:#F0EDE6;line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+      <div id="ai-gen-status" style="font-size:.71rem;color:#4a6a8a;margin-bottom:.35rem;min-height:1.2em"></div>
+      <textarea id="release-notes" placeholder="이번 업데이트 내용을 작성하거나 AI 자동 작성을 눌러주세요." oninput="updateCharCount()"></textarea>
+      <div style="font-size:.67rem;color:#4a5568;text-align:right;margin-top:.2rem"><span id="char-count">0</span>자</div>
     </div>
 
     <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
       <input type="checkbox" id="prod-confirm" style="width:auto;accent-color:#C8893A">
-      <label for="prod-confirm" style="font-size:.78rem;color:#7a9ab8;text-transform:none;letter-spacing:0;cursor:pointer;margin:0">
-        DEV에서 테스트 완료. PROD에 배포할 준비가 됐습니다.
-      </label>
+      <label for="prod-confirm" style="font-size:.77rem;color:#7a9ab8;text-transform:none;letter-spacing:0;cursor:pointer;margin:0">DEV 테스트 완료. PROD 배포 준비 됐습니다.</label>
     </div>
-
-    <button class="btn btn-prod" id="prod-btn" onclick="deployProd()" disabled>
-      🚀 PROD에 배포 (승격)
-    </button>
-
+    <button class="btn btn-prod" id="prod-btn" onclick="deployProd()" disabled>🚀 PROD에 배포 (승격)</button>
     <div class="log" id="prod-log">PROD 배포 로그...</div>
   </div>
 
-  <!-- 배포 히스토리 -->
+  <!-- 히스토리 -->
   <div class="card">
-    <div class="card-title"><span class="dot dot-gray"></span>이번 세션 배포 기록</div>
-    <div id="history" style="font-size:.75rem;color:#4a5568;line-height:1.8">아직 배포 기록 없음</div>
+    <div class="card-title"><span class="dot dot-gray"></span>배포 기록</div>
+    <div id="history" style="font-size:.74rem;color:#4a5568;line-height:1.9">아직 배포 기록 없음</div>
   </div>
-
 </div>
 
 <script>
-let devContent = null;  // DEV 배포된 파일 내용 (PROD 승격에 재사용)
-const history = [];
+let devContent = null;
+let deployHistory = [];
+let _currentVer = [1,0,0];
+let _selectedVerType = 'minor';
 
-function logTo(id, msg, cls='info') {
-  const el = document.getElementById(id);
-  const time = new Date().toLocaleTimeString('ko-KR');
-  el.innerHTML += `<span class="${cls}">[${time}] ${msg}\n</span>`;
-  el.scrollTop = el.scrollHeight;
+const APIKEY_STORE = 'birdyard_deploy_apikey';
+
+// API 키만 localStorage에 저장
+function saveApiKey(){
+  const k = document.getElementById('anthropic-key')?.value.trim();
+  if(k) try{ localStorage.setItem(APIKEY_STORE, k); }catch(e){}
+}
+function loadApiKey(){
+  try{
+    const k = localStorage.getItem(APIKEY_STORE);
+    const el = document.getElementById('anthropic-key');
+    if(k && el) el.value = k;
+  }catch(e){}
 }
 
-function clearLog(id) {
-  document.getElementById(id).innerHTML = '';
+// 초기화
+document.getElementById('username').addEventListener('input', updateUrls);
+document.getElementById('repo').addEventListener('input', updateUrls);
+document.getElementById('prod-confirm').addEventListener('change', function(){
+  document.getElementById('prod-btn').disabled = !this.checked;
+});
+document.getElementById('anthropic-key')?.addEventListener('change', saveApiKey);
+
+loadApiKey();
+updateUrls();
+setVersionDisplay(_currentVer);
+
+// CHANGELOG에서 현재 버전 로드
+async function loadCurrentVersion(){
+  const {username,repo,token}=getInputs();
+  if(!username||!repo||!token) return;
+  try{
+    const headers={'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github.v3+json','X-GitHub-Api-Version':'2022-11-28'};
+    const res=await fetch(`https://api.github.com/repos/${username}/${repo}/contents/CHANGELOG.md`,{headers});
+    if(!res.ok){setVersionDisplay([1,0,0]);return;}
+    const data=await res.json();
+    const bin=atob(data.content.replace(/\n/g,''));
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const text=new TextDecoder('utf-8').decode(bytes);
+
+    // 버전 파싱 — 첫 번째 ## vX.Y.Z
+    const m=text.match(/##\s+v(\d+)\.(\d+)\.(\d+)/);
+    if(m) _currentVer=[parseInt(m[1]),parseInt(m[2]),parseInt(m[3])];
+    else _currentVer=[1,0,0];
+    setVersionDisplay(_currentVer);
+
+    // CHANGELOG 항목으로 PROD 기록 재구성 (현재 세션 DEV 기록은 유지)
+    const entries=[...text.matchAll(/##\s+(v[\d.]+)\s*[—-]\s*(.+)/g)];
+    const prodHistory = entries.slice(0,15).map(e=>({
+      type:'PROD',
+      filename:e[1],
+      time:e[2].trim().slice(0,16),
+      commitSha:'',
+      url:`https://${username}.github.io/${repo}/`
+    }));
+    // 현재 세션의 DEV 기록은 앞에 유지
+    const devEntries = deployHistory.filter(h=>h.type==='DEV');
+    deployHistory = [...devEntries, ...prodHistory];
+    renderHistory();
+  }catch(e){setVersionDisplay([1,0,0]);}
 }
 
-function getInputs() {
+function setVersionDisplay(cur){
+  const [ma,mi,pa]=cur;
+  document.getElementById('current-ver-display').textContent=`v${ma}.${mi}.${pa}`;
+  document.getElementById('ver-major-val').textContent=`→ v${ma+1}.0.0`;
+  document.getElementById('ver-minor-val').textContent=`→ v${ma}.${mi+1}.0`;
+  document.getElementById('ver-patch-val').textContent=`→ v${ma}.${mi}.${pa+1}`;
+  selectVer('minor'); // 기본 선택
+}
+
+function selectVer(type){
+  _selectedVerType=type;
+  const hints={
+    major:'큰 기능 추가 또는 대규모 개편 — 사용자 알림 표시',
+    minor:'새 기능 추가 — 사용자 알림 표시',
+    patch:'버그 수정·사소한 개선 — 조용히 배포, 릴리즈 노트 선택사항'
+  };
+  const colors={major:'rgba(167,139,250,.3)',minor:'rgba(200,137,58,.4)',patch:'rgba(74,101,128,.3)'};
+  ['major','minor','patch'].forEach(t=>{
+    const btn=document.getElementById(`ver-${t}`);
+    btn.style.borderColor=t===type?colors[t]:'rgba(240,237,230,.15)';
+    btn.style.background=t===type?(t==='patch'?'rgba(74,101,128,.12)':t==='minor'?'rgba(200,137,58,.1)':'rgba(167,139,250,.1)'):'rgba(240,237,230,.05)';
+    btn.style.color=t===type?(t==='patch'?'#7a9ab8':t==='minor'?'#C8893A':'#A78BFA'):'#7a9ab8';
+  });
+  document.getElementById('ver-hint').textContent=hints[type];
+  // patch는 릴리즈 노트 선택사항
+  const rnOptional=document.getElementById('rn-optional');
+  if(rnOptional) rnOptional.textContent=type==='patch'?'(선택 — patch는 생략 가능)':'(앱에서 사용자에게 표시)';
+}
+
+function getNextVersion(){
+  const [ma,mi,pa]=_currentVer;
+  if(_selectedVerType==='major') return `v${ma+1}.0.0`;
+  if(_selectedVerType==='minor') return `v${ma}.${mi+1}.0`;
+  return `v${ma}.${mi}.${pa+1}`;
+}
+
+function updateUrls(){
+  const u = document.getElementById('username').value.trim();
+  const r = document.getElementById('repo').value.trim();
+  if(u&&r){
+    document.getElementById('dev-url-display').textContent = `https://${u}.github.io/${r}/dev/`;
+    document.getElementById('prod-url-display').textContent = `https://${u}.github.io/${r}/`;
+  }
+}
+
+function updateCharCount(){
+  document.getElementById('char-count').textContent = document.getElementById('release-notes').value.length;
+}
+
+function logTo(id, msg, cls='info'){
+  const el=document.getElementById(id);
+  const t=new Date().toLocaleTimeString('ko-KR');
+  el.innerHTML += `<span class="${cls}">[${t}] ${msg}\n</span>`;
+  el.scrollTop=el.scrollHeight;
+}
+function clearLog(id){ document.getElementById(id).innerHTML=''; }
+
+function getInputs(){
   return {
     username: document.getElementById('username').value.trim(),
     repo: document.getElementById('repo').value.trim(),
@@ -237,415 +293,280 @@ function getInputs() {
   };
 }
 
-function updateUrls() {
-  const {username, repo} = getInputs();
-  if(username && repo) {
-    document.getElementById('dev-url-display').textContent =
-      `https://${username}.github.io/${repo}/dev/`;
-    document.getElementById('prod-url-display').textContent =
-      `https://${username}.github.io/${repo}/`;
-  }
-}
-document.getElementById('username').addEventListener('input', updateUrls);
-document.getElementById('repo').addEventListener('input', updateUrls);
-updateUrls();
-
-// 체크박스 → PROD 버튼 활성화
-document.getElementById('prod-confirm').addEventListener('change', function() {
-  document.getElementById('prod-btn').disabled = !this.checked;
-});
-
-function readFile(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = e => res(e.target.result);
-    r.onerror = rej;
-    r.readAsText(file, 'UTF-8');
+function readFile(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.onerror=rej;
+    r.readAsText(file,'UTF-8');
   });
 }
+function toB64(str){ return btoa(unescape(encodeURIComponent(str))); }
 
-function toB64(str) {
-  return btoa(unescape(encodeURIComponent(str)));
-}
-
-async function getSHA(apiBase, path, headers) {
-  const res = await fetch(`${apiBase}/contents/${path}`, { headers });
-  if(res.ok) {
-    const data = await res.json();
-    return data.sha;
-  }
+async function getSHA(apiBase,path,headers){
+  const res=await fetch(`${apiBase}/contents/${path}`,{headers});
+  if(res.ok){ const d=await res.json(); return d.sha; }
   return null;
 }
-
-async function putFile(apiBase, path, content, message, sha, headers) {
-  const body = { message, content: toB64(content), ...(sha ? { sha } : {}) };
-  const res = await fetch(`${apiBase}/contents/${path}`, {
-    method: 'PUT', headers, body: JSON.stringify(body)
-  });
-  if(!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || '업로드 실패');
-  }
+async function putFile(apiBase,path,content,message,sha,headers){
+  const body={message,content:toB64(content),...(sha?{sha}:{})};
+  const res=await fetch(`${apiBase}/contents/${path}`,{method:'PUT',headers,body:JSON.stringify(body)});
+  if(!res.ok){ const e=await res.json(); throw new Error(e.message||'업로드 실패'); }
   return await res.json();
 }
 
-async function deployDev() {
-  const {username, repo, token} = getInputs();
-  const fileInput = document.getElementById('dev-file');
-  const btn = document.getElementById('dev-btn');
-  const badge = document.getElementById('dev-badge');
-
-  if(!username || !repo || !token) {
-    logTo('dev-log', 'GitHub 설정을 모두 입력하세요', 'err'); return;
-  }
-  if(!fileInput.files[0]) {
-    logTo('dev-log', '배포할 HTML 파일을 선택하세요', 'err'); return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = '배포 중...';
-  badge.className = 'badge badge-dev';
-  badge.textContent = '배포 중...';
+// ── DEV 배포 ─────────────────────────────────────────
+async function deployDev(){
+  const {username,repo,token}=getInputs();
+  const fileInput=document.getElementById('dev-file');
+  const btn=document.getElementById('dev-btn');
+  const badge=document.getElementById('dev-badge');
+  if(!username||!repo||!token){logTo('dev-log','GitHub 설정을 입력해주세요','err');return;}
+  if(!fileInput.files[0]){logTo('dev-log','파일을 선택해주세요','err');return;}
+  btn.disabled=true; btn.textContent='배포 중...';
+  badge.className='badge badge-dev'; badge.textContent='배포 중...';
   clearLog('dev-log');
-
-  try {
-    logTo('dev-log', '파일 읽는 중...', 'purple');
-    const content = await readFile(fileInput.files[0]);
-    logTo('dev-log', `파일 크기: ${(content.length/1024).toFixed(1)} KB`, 'ok');
-
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    };
-    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
-
-    logTo('dev-log', 'dev/index.html SHA 확인 중...', 'purple');
-    const sha = await getSHA(apiBase, 'dev/index.html', headers);
-    if(sha) logTo('dev-log', `기존 파일 발견 (SHA: ${sha.slice(0,7)}...)`, 'info');
-    else logTo('dev-log', 'dev/index.html 없음 — 새로 생성합니다', 'info');
-
-    logTo('dev-log', 'dev/index.html 업로드 중...', 'purple');
-    const now = new Date().toLocaleString('ko-KR');
-    const result = await putFile(
-      apiBase, 'dev/index.html', content,
-      `🧪 DEV 배포 ${now}`, sha, headers
-    );
-    logTo('dev-log', `업로드 완료! 커밋: ${result.commit?.sha?.slice(0,7)}`, 'ok');
-
-    devContent = content;  // PROD 승격용 저장
-
-    const devUrl = `https://${username}.github.io/${repo}/dev/`;
-    logTo('dev-log', `DEV URL: ${devUrl}`, 'gold');
-    logTo('dev-log', '※ GitHub Pages 반영까지 1~2분 소요', 'info');
-
-    badge.className = 'badge badge-ok';
-    badge.textContent = '✓ 완료';
-
-    addHistory('DEV', fileInput.files[0].name, result.commit?.sha?.slice(0,7), devUrl);
-
-  } catch(e) {
-    logTo('dev-log', `오류: ${e.message}`, 'err');
-    badge.className = 'badge badge-idle';
-    badge.textContent = '실패';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '⬡ DEV에 배포';
+  try{
+    logTo('dev-log','파일 읽는 중...','purple');
+    const content=await readFile(fileInput.files[0]);
+    logTo('dev-log',`파일 크기: ${(content.length/1024).toFixed(1)}KB`,'ok');
+    const headers={'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
+    const apiBase=`https://api.github.com/repos/${username}/${repo}`;
+    const sha=await getSHA(apiBase,'dev/index.html',headers);
+    logTo('dev-log',sha?`기존 파일 SHA: ${sha.slice(0,7)}...`:'dev/index.html 없음 — 신규 생성','info');
+    const result=await putFile(apiBase,'dev/index.html',content,`🧪 DEV 배포 ${new Date().toLocaleString('ko-KR')}`,sha,headers);
+    devContent=content;
+    logTo('dev-log',`완료! 커밋: ${result.commit?.sha?.slice(0,7)}`,'ok');
+    logTo('dev-log',`DEV URL: https://${username}.github.io/${repo}/dev/`,'gold');
+    logTo('dev-log','※ 반영까지 1~2분 소요','info');
+    badge.className='badge badge-ok'; badge.textContent='✓ 완료';
+    addHistory('DEV',fileInput.files[0].name,result.commit?.sha?.slice(0,7),`https://${username}.github.io/${repo}/dev/`);
+    loadCurrentVersion(); // 버전 정보 로드
+  }catch(e){
+    logTo('dev-log',`오류: ${e.message}`,'err');
+    badge.className='badge badge-idle'; badge.textContent='실패';
+  }finally{
+    btn.disabled=false; btn.textContent='⬡ DEV에 배포';
   }
 }
 
-async function autoGenerateNotes() {
-  const anthropicKey = document.getElementById('anthropic-key').value.trim();
-  if(!anthropicKey) {
-    alert('설정에서 Anthropic API Key를 먼저 입력해주세요.');
+// ── AI 릴리즈 노트 자동 생성 (내장 Claude API 사용) ──
+async function autoGenerateNotes(){
+  if(!devContent){
+    alert('DEV 배포를 먼저 진행해주세요.');
+    return;
+  }
+  const anthropicKey=document.getElementById('anthropic-key').value.trim();
+  if(!anthropicKey){
+    alert('설정에서 Anthropic API Key를 먼저 입력해주세요.\nconsole.anthropic.com에서 발급받을 수 있습니다.');
     document.getElementById('anthropic-key').focus();
     return;
   }
-  if(!devContent) {
-    alert('DEV 배포를 먼저 진행해주세요. DEV 파일과 현재 PROD 파일을 비교해서 릴리즈 노트를 작성합니다.');
-    return;
-  }
+  const btn=document.getElementById('ai-gen-btn');
+  const status=document.getElementById('ai-gen-status');
+  btn.disabled=true; btn.textContent='✦ 분석 중...';
+  status.textContent='PROD 파일 가져오는 중...'; status.style.color='#4a6a8a';
 
-  const btn = document.getElementById('ai-gen-btn');
-  const status = document.getElementById('ai-gen-status');
-  btn.disabled = true;
-  btn.textContent = '✦ 분석 중...';
-  status.style.display = 'block';
-  status.textContent = '현재 PROD 파일을 가져오는 중...';
-
-  try {
+  try{
     // 1. 현재 PROD 파일 가져오기
-    const {username, repo, token} = getInputs();
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    };
-    const apiBase = `https://api.github.com/repos/${username}/${repo}`;
-
-    let prodContent = '';
-    const res = await fetch(`${apiBase}/contents/index.html`, { headers });
-    if(res.ok) {
-      const data = await res.json();
-      // Base64 디코딩 (한글 포함 UTF-8)
-      const binary = atob(data.content.replace(/\n/g, ''));
-      const bytes = new Uint8Array(binary.length);
+    const {username,repo,token}=getInputs();
+    const headers={'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github.v3+json','X-GitHub-Api-Version':'2022-11-28'};
+    const apiBase=`https://api.github.com/repos/${username}/${repo}`;
+    let prodContent='';
+    const res=await fetch(`${apiBase}/contents/index.html`,{headers});
+    if(res.ok){
+      const data=await res.json();
+      const binary=atob(data.content.replace(/\n/g,''));
+      const bytes=new Uint8Array(binary.length);
       for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-      prodContent = new TextDecoder('utf-8').decode(bytes);
-      status.textContent = `현재 PROD 파일 확인 완료 (${(prodContent.length/1024).toFixed(0)}KB) → Claude로 분석 중...`;
+      prodContent=new TextDecoder('utf-8').decode(bytes);
+      status.textContent=`PROD 파일 확인 (${(prodContent.length/1024).toFixed(0)}KB) → Claude 분석 중...`;
     } else {
-      status.textContent = 'PROD 파일 없음 (첫 배포) → Claude로 분석 중...';
+      status.textContent='첫 배포 → Claude 분석 중...';
     }
 
-    // 2. 변경 사항 추출 (JS/HTML 함수명·주요 변경점 위주로 샘플링)
-    // 두 파일이 너무 크므로 의미있는 diff 포인트만 추출
-    const extractSignature = (code) => {
-      const lines = code.split('\n');
-      const sigs = [];
-      lines.forEach(line => {
-        const t = line.trim();
-        // window.xxx 함수, function xxx, CSS 클래스 추가, 주요 UI 텍스트 등
+    // 2. 함수·UI 시그니처 diff 추출
+    const extractSigs=code=>{
+      const sigs=[];
+      code.split('\n').forEach(line=>{
+        const t=line.trim();
         if(/^window\.[a-zA-Z]+=/.test(t)) sigs.push(t.slice(0,80));
         else if(/^function [a-zA-Z]/.test(t)) sigs.push(t.slice(0,60));
         else if(/const [A-Z_]{3,}=/.test(t)) sigs.push(t.slice(0,60));
       });
       return sigs;
     };
+    const extractUi=code=>[...new Set((code.match(/>[가-힣a-zA-Z ]{4,25}</g)||[]).map(m=>m.slice(1,-1).trim()).filter(Boolean))].slice(0,80);
 
-    const prodSigs = new Set(prodContent ? extractSignature(prodContent) : []);
-    const devSigs = extractSignature(devContent);
+    const prodSigs=new Set(prodContent?extractSigs(prodContent):[]);
+    const devSigs=extractSigs(devContent);
+    const added=devSigs.filter(s=>!prodSigs.has(s)).slice(0,25);
+    const removed=prodContent?[...prodSigs].filter(s=>!devSigs.includes(s)).slice(0,15):[];
+    const prodUi=new Set(prodContent?extractUi(prodContent):[]);
+    const newUi=extractUi(devContent).filter(t=>!prodUi.has(t)).slice(0,25);
 
-    const added = devSigs.filter(s => !prodSigs.has(s));
-    const removed = prodContent ? [...prodSigs].filter(s => !devSigs.includes(s)) : [];
+    const diffSummary=[
+      added.length?`신규 함수/기능 (${added.length}개):\n${added.join('\n')}`:'',
+      removed.length?`제거된 항목 (${removed.length}개):\n${removed.join('\n')}`:'',
+      newUi.length?`새 UI 텍스트: ${newUi.join(', ')}`:''
+    ].filter(Boolean).join('\n\n')||'(분석 정보 부족 — 전반적인 업데이트로 작성)';
 
-    // HTML 변경 (버튼 텍스트, 라벨 등 UI 관련)
-    const extractUiTexts = (code) => {
-      const matches = [];
-      (code.match(/>[가-힣a-zA-Z\s]{4,30}</g) || []).forEach(m => {
-        const t = m.slice(1,-1).trim();
-        if(t) matches.push(t);
-      });
-      return [...new Set(matches)].slice(0,100);
-    };
-    const prodUi = new Set(prodContent ? extractUiTexts(prodContent) : []);
-    const devUi = extractUiTexts(devContent);
-    const newUi = devUi.filter(t => !prodUi.has(t)).slice(0,30);
+    // 3. Claude API 호출 (Artifact 내장 — API 키 불필요)
+    const claudeRes=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': document.getElementById('anthropic-key').value.trim(),
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:800,
+        messages:[{role:'user',content:`당신은 Birdyard 골프 앱의 프로덕션 릴리즈 노트 작성자입니다. 코드 변경 사항을 분석해 실제 사용자에게 보여줄 릴리즈 노트를 작성하세요.
 
-    const diffSummary = [
-      added.length ? `신규 함수/기능 (${added.length}개):\n${added.slice(0,20).join('\n')}` : '',
-      removed.length ? `제거된 항목 (${removed.length}개):\n${removed.slice(0,10).join('\n')}` : '',
-      newUi.length ? `새로운 UI 텍스트:\n${newUi.join(', ')}` : '',
-    ].filter(Boolean).join('\n\n');
+코드 변경 분석:
+${diffSummary}
 
-    // 3. Claude API 호출
-    const prompt = `당신은 Birdyard 골프 앱의 개발자입니다. 아래 코드 변경 사항을 분석해서 사용자가 이해할 수 있는 릴리즈 노트를 작성해주세요.
-
-## 코드 변경 분석
-${diffSummary || '(첫 배포 또는 분석 불가)'}
-
-## 작성 규칙
-- 사용자 관점에서 "무엇이 달라졌는지" 중심으로 작성
-- 기술적인 용어 대신 기능 이름으로 설명
-- 아래 이모지 섹션 형식 사용:
+작성 규칙:
+- 실제 사용자가 앱을 쓸 때 체감할 수 있는 변경사항만 포함
+- 아래 항목은 절대 포함하지 말 것:
+  • DEV/테스트 환경 관련 내용
+  • 개발 인프라, 배포 파이프라인, 스키마 분리 등 내부 기술 변경
+  • 디버깅, 로깅, 콘솔 출력 관련
+  • 오타 수정이나 사소한 텍스트 변경
+- 사용자 관점에서 "무엇이 달라졌는지" 중심으로 기능명으로 설명
+- 이모지 섹션 형식 (해당하는 것만):
   ✨ 새 기능
-  • [기능명] — [한 줄 설명]
+  • 기능명 — 한 줄 설명
 
   🐛 버그 수정
-  • [수정 내용]
+  • 수정 내용
 
   🎨 UI 개선
-  • [개선 내용]
+  • 개선 내용
 
-- 변경이 없거나 불명확한 섹션은 생략
-- 전체 5~12줄 이내로 간결하게
-- 한국어로 작성`;
-
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+- 5~10줄 이내, 한국어로
+- 확실하지 않은 내용은 포함하지 말 것`}]
       })
     });
-
-    if(!claudeRes.ok) {
-      const err = await claudeRes.json();
-      throw new Error(err.error?.message || `API 오류 ${claudeRes.status}`);
-    }
-
-    const claudeData = await claudeRes.json();
-    const generated = claudeData.content?.[0]?.text?.trim() || '';
-
+    if(!claudeRes.ok) throw new Error(`API 오류 ${claudeRes.status}`);
+    const data=await claudeRes.json();
+    const generated=data.content?.[0]?.text?.trim()||'';
     if(!generated) throw new Error('응답이 비어있습니다');
 
-    // 4. textarea에 삽입 (기존 내용이 있으면 앞에 추가)
-    const ta = document.getElementById('release-notes');
-    ta.value = generated + (ta.value.trim() ? '\n\n' + ta.value : '');
-    updateReleasePreview();
-
-    status.textContent = `✓ 자동 작성 완료! 내용을 검토하고 수정해주세요.`;
-    status.style.color = '#3D9E74';
-    btn.textContent = '✦ 재생성';
-
-  } catch(e) {
-    status.textContent = `오류: ${e.message}`;
-    status.style.color = '#E05252';
-    btn.textContent = '✦ AI 자동 작성';
-  } finally {
-    btn.disabled = false;
+    const ta=document.getElementById('release-notes');
+    ta.value=generated+(ta.value.trim()?'\n\n'+ta.value:'');
+    updateCharCount();
+    status.textContent='✓ 자동 작성 완료! 내용을 검토하고 필요시 수정해주세요.';
+    status.style.color='#3D9E74';
+    btn.textContent='✦ 재생성';
+  }catch(e){
+    status.textContent=`오류: ${e.message}`;
+    status.style.color='#E05252';
+    btn.textContent='✦ AI 자동 작성';
+  }finally{
+    btn.disabled=false;
   }
 }
 
-function insertTag(tag) {
-  const ta = document.getElementById('release-notes');
-  const pos = ta.selectionStart;
-  const before = ta.value.slice(0, pos);
-  const after = ta.value.slice(pos);
-  const insert = (before && !before.endsWith('\n') ? '\n' : '') + tag + '\n';
-  ta.value = before + insert + after;
-  ta.selectionStart = ta.selectionEnd = pos + insert.length;
-  ta.focus();
-  updateReleasePreview();
-}
+// ── PROD 배포 ─────────────────────────────────────────
 
-function updateReleasePreview() {
-  const val = document.getElementById('release-notes').value;
-  document.getElementById('release-char-count').textContent = val.length + '자';
-  const preview = document.getElementById('release-preview');
-  if(preview.style.display !== 'none') preview.textContent = val;
-}
+async function deployProd(){
+  const {username,repo,token}=getInputs();
+  const btn=document.getElementById('prod-btn');
+  const badge=document.getElementById('prod-badge');
+  const releaseNotes=document.getElementById('release-notes').value.trim();
+  const nextVer=getNextVersion();
 
-function togglePreview() {
-  const preview = document.getElementById('release-preview');
-  const show = document.getElementById('show-preview').checked;
-  preview.style.display = show ? 'block' : 'none';
-  if(show) updateReleasePreview();
-}
-
-function buildChangelog(notes, version, commitSha) {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\.\s*/g,'-').replace(/-$/,'');
-  const timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  return `## ${version} — ${dateStr} ${timeStr}\n${commitSha ? `> 커밋: ${commitSha}\n` : ''}\n${notes}\n`;
-}
-
-async function deployProd() {
-  const {username, repo, token} = getInputs();
-  const btn = document.getElementById('prod-btn');
-  const badge = document.getElementById('prod-badge');
-  const releaseNotes = document.getElementById('release-notes').value.trim();
-
-  if(!devContent) {
-    logTo('prod-log', 'DEV 배포를 먼저 진행하세요.', 'err');
-    return;
+  if(!devContent){logTo('prod-log','DEV 배포를 먼저 진행하세요','err');return;}
+  // patch는 릴리즈 노트 없어도 배포 가능
+  if(_selectedVerType!=='patch'&&!releaseNotes){
+    logTo('prod-log','Major/Minor 배포는 릴리즈 노트를 작성해주세요','err');
+    document.getElementById('release-notes').focus();return;
   }
-  if(!releaseNotes) {
-    logTo('prod-log', '릴리즈 노트를 작성해주세요.', 'err');
-    document.getElementById('release-notes').focus();
-    return;
-  }
-  if(!confirm('PROD에 배포하면 실제 사용자에게 즉시 반영됩니다.\n계속하시겠습니까?')) return;
+  if(!confirm(`${nextVer}으로 PROD 배포합니다.\n실제 사용자에게 즉시 반영됩니다. 계속할까요?`)) return;
 
-  btn.disabled = true;
-  btn.textContent = '배포 중...';
-  badge.className = 'badge badge-prod';
-  badge.textContent = '배포 중...';
+  btn.disabled=true; btn.textContent='배포 중...';
+  badge.className='badge badge-prod'; badge.textContent='배포 중...';
   clearLog('prod-log');
+  const headers={'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
+  const apiBase=`https://api.github.com/repos/${username}/${repo}`;
+  try{
+    // index.html 업로드
+    logTo('prod-log',`${nextVer} 배포 중...`,'gold');
+    const sha=await getSHA(apiBase,'index.html',headers);
+    const now=new Date().toLocaleString('ko-KR');
+    const result=await putFile(apiBase,'index.html',devContent,`🚀 ${nextVer} PROD 배포 ${now}`,sha,headers);
+    const commitSha=result.commit?.sha?.slice(0,7);
+    logTo('prod-log',`index.html 완료! 커밋: ${commitSha}`,'ok');
 
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  };
-  const apiBase = `https://api.github.com/repos/${username}/${repo}`;
-
-  try {
-    // 1. index.html 업로드
-    logTo('prod-log', 'index.html SHA 확인 중...', 'gold');
-    const sha = await getSHA(apiBase, 'index.html', headers);
-    if(sha) logTo('prod-log', `기존 파일 (SHA: ${sha.slice(0,7)}...)`, 'info');
-
-    logTo('prod-log', 'index.html 업로드 중...', 'gold');
-    const now = new Date().toLocaleString('ko-KR');
-    const result = await putFile(
-      apiBase, 'index.html', devContent,
-      `🚀 PROD 배포 ${now}`, sha, headers
-    );
-    const commitSha = result.commit?.sha?.slice(0,7);
-    logTo('prod-log', `index.html 완료! 커밋: ${commitSha}`, 'ok');
-
-    // 2. CHANGELOG.md 업로드 (기존 내용 앞에 추가)
-    logTo('prod-log', 'CHANGELOG.md 업데이트 중...', 'gold');
-    const changelogSha = await getSHA(apiBase, 'CHANGELOG.md', headers);
-    let existingChangelog = '';
-
-    if(changelogSha) {
-      // 기존 파일 읽기
-      const res = await fetch(`${apiBase}/contents/CHANGELOG.md`, { headers });
-      if(res.ok) {
-        const data = await res.json();
-        existingChangelog = atob(data.content.replace(/\n/g, ''));
-      }
+    // CHANGELOG.md 업로드 (patch+노트 없으면 조용히 기록, major/minor는 사용자 노출)
+    logTo('prod-log','CHANGELOG.md 업데이트 중...','gold');
+    const clSha=await getSHA(apiBase,'CHANGELOG.md',headers);
+    let existing='';
+    if(clSha){
+      const r2=await fetch(`${apiBase}/contents/CHANGELOG.md`,{headers});
+      if(r2.ok){const d=await r2.json();const bin=atob(d.content.replace(/\n/g,''));const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);existing=new TextDecoder('utf-8').decode(bytes);}
     }
+    const d2=new Date();
+    const ds=d2.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\.\s*/g,'-').replace(/-$/,'');
+    const ts=d2.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    // patch에 노트 없으면 최소 항목만 기록
+    const noteBody = releaseNotes || (_selectedVerType==='patch'?'🔧 사소한 개선 및 버그 수정':'');
+    const newEntry=`## ${nextVer} — ${ds} ${ts}\n\n${noteBody}\n`;
+    const header=existing.startsWith('# CHANGELOG')?'':'# CHANGELOG — Birdyard\n\n';
+    const fullLog=header+newEntry+'\n'+(existing.replace(/^# CHANGELOG.*\n\n?/,'')||'');
+    await putFile(apiBase,'CHANGELOG.md',fullLog,`📝 ${nextVer} 릴리즈 노트`,clSha,headers);
+    logTo('prod-log',`CHANGELOG.md 완료! (${nextVer})`,'ok');
 
-    // 버전 카운트 (기존 항목 수 + 1)
-    const versionNum = (existingChangelog.match(/^## /gm) || []).length + 1;
-    const versionStr = `v1.${versionNum}`;
-    const newEntry = buildChangelog(releaseNotes, versionStr, commitSha);
-    const header = existingChangelog.startsWith('# CHANGELOG') ? '' : '# CHANGELOG — Birdyard\n\n';
-    const fullChangelog = header + newEntry + '\n' + (existingChangelog.replace(/^# CHANGELOG.*\n\n?/,'') || '');
-
-    await putFile(
-      apiBase, 'CHANGELOG.md', fullChangelog,
-      `📝 릴리즈 노트 ${versionStr}`, changelogSha, headers
-    );
-    logTo('prod-log', `CHANGELOG.md 완료! (${versionStr})`, 'ok');
-
-    // 3. 완료
-    const prodUrl = `https://${username}.github.io/${repo}/`;
-    logTo('prod-log', `PROD URL: ${prodUrl}`, 'gold');
-    logTo('prod-log', `릴리즈: ${versionStr}`, 'purple');
-    logTo('prod-log', '※ GitHub Pages 반영까지 1~2분 소요', 'info');
-
-    badge.className = 'badge badge-ok';
-    badge.textContent = '✓ 완료';
-    document.getElementById('prod-confirm').checked = false;
-    btn.disabled = true;
-    document.getElementById('release-notes').value = '';
-    updateReleasePreview();
-
-    addHistory('PROD', versionStr, commitSha, prodUrl);
-
-  } catch(e) {
-    logTo('prod-log', `오류: ${e.message}`, 'err');
-    badge.className = 'badge badge-idle';
-    badge.textContent = '실패';
-    btn.disabled = false;
-    btn.textContent = '🚀 PROD에 배포 (승격)';
+    const prodUrl=`https://${username}.github.io/${repo}/`;
+    logTo('prod-log',`PROD URL: ${prodUrl}`,'gold');
+    logTo('prod-log',`버전: ${nextVer} (${_selectedVerType})`,'purple');
+    logTo('prod-log',_selectedVerType==='patch'&&!releaseNotes?'※ 사용자에게 알림 없이 조용히 배포됨':'※ 앱에서 업데이트 알림 표시','info');
+    logTo('prod-log','※ GitHub Pages 반영까지 1~2분 소요','info');
+    badge.className='badge badge-ok'; badge.textContent='✓ 완료';
+    document.getElementById('prod-confirm').checked=false;
+    btn.disabled=true;
+    document.getElementById('release-notes').value='';
+    updateCharCount();
+    // 현재 버전 갱신
+    const parts=nextVer.slice(1).split('.').map(Number);
+    _currentVer=parts; setVersionDisplay(parts);
+    addHistory('PROD',nextVer,commitSha,prodUrl);
+  }catch(e){
+    logTo('prod-log',`오류: ${e.message}`,'err');
+    badge.className='badge badge-idle'; badge.textContent='실패';
+    btn.disabled=false; btn.textContent='🚀 PROD에 배포 (승격)';
   }
 }
 
-function addHistory(type, filename, commitSha, url) {
-  const time = new Date().toLocaleTimeString('ko-KR');
-  history.unshift({ type, filename, commitSha, url, time });
-  const el = document.getElementById('history');
-  el.innerHTML = history.map(h => {
-    const color = h.type === 'PROD' ? '#C8893A' : '#A78BFA';
-    return `<div style="display:flex;gap:.5rem;align-items:baseline;padding:.2rem 0;border-bottom:1px solid rgba(240,237,230,.04)">
-      <span style="color:${color};font-weight:700;font-size:.7rem;min-width:36px">${h.type}</span>
-      <span style="color:#4a6a8a">${h.time}</span>
-      <span style="color:#7a9ab8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.filename}</span>
-      ${h.commitSha ? `<span style="color:#4a5568;font-family:monospace;font-size:.68rem;margin-left:auto;flex-shrink:0">${h.commitSha}</span>` : ''}
-    </div>`;
-  }).join('');
+function insertTag(tag){
+  const ta=document.getElementById('release-notes');
+  const pos=ta.selectionStart;
+  const before=ta.value.slice(0,pos),after=ta.value.slice(pos);
+  const ins=(before&&!before.endsWith('\n')?'\n':'')+tag+'\n';
+  ta.value=before+ins+after;
+  ta.selectionStart=ta.selectionEnd=pos+ins.length;
+  ta.focus(); updateCharCount();
+}
+
+function renderHistory(){
+  const el=document.getElementById('history');
+  if(!el) return;
+  if(!deployHistory.length){ el.innerHTML='아직 배포 기록 없음'; return; }
+  el.innerHTML=deployHistory.map(h=>`<div style="display:flex;gap:.4rem;align-items:baseline;padding:.15rem 0;border-bottom:1px solid rgba(240,237,230,.04)">
+    <span style="color:${h.type==='PROD'?'#C8893A':'#A78BFA'};font-weight:700;font-size:.68rem;min-width:34px">${h.type}</span>
+    <span style="color:#4a6a8a;font-size:.71rem">${h.time}</span>
+    <span style="color:#7a9ab8;font-size:.71rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.filename}</span>
+    ${h.commitSha?`<span style="color:#4a5568;font-family:monospace;font-size:.67rem;margin-left:auto;flex-shrink:0">${h.commitSha}</span>`:''}
+  </div>`).join('');
+}
+
+function addHistory(type,filename,commitSha,url){
+  const time=new Date().toLocaleTimeString('ko-KR');
+  deployHistory.unshift({type,filename,commitSha,url,time});
+  renderHistory();
 }
 </script>
 </body>
