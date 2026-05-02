@@ -2723,7 +2723,10 @@ async function initWebPush() {
 
   try {
     // Service Worker 등록
-    const reg = await navigator.serviceWorker.register('/MyGolfNoteV01/sw.js', { scope: '/MyGolfNoteV01/' });
+    const swPath = location.hostname === 'birdyard.app' ? '/sw.js' : '/MyGolfNoteV01/sw.js';
+    const reg = await navigator.serviceWorker.register(swPath, {
+      scope: location.hostname === 'birdyard.app' ? '/' : '/MyGolfNoteV01/'
+    });
     await navigator.serviceWorker.ready;
 
     // 이미 구독 중인지 확인
@@ -5860,6 +5863,7 @@ function pList(){
     <button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 훈련</button>
     <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
     <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
+    <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
     <button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
   </div>`;
   const srow=`<div class="stats-row">
@@ -5905,6 +5909,11 @@ function pList(){
       <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border:1px solid var(--border);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:var(--chalk)">${gameSessions.length}</div><div style="font-size:.70rem;color:var(--muted)">총 게임</div></div>
     </div>`:'';
     return`<div class="page">${srow}${ptabs}${summaryRow}${gameCards}</div>`;
+  }
+
+  // ── 연습 플랜 탭 ─────────────────────────────────
+  if(pSub==='plan'){
+    return`<div class="page">${ptabs}<div id="plan-area"><div style="padding:2rem;text-align:center;color:var(--muted);font-size:.82rem">🤖 AI가 연습 플랜을 분석 중입니다...<br><span style="font-size:.72rem">잠시 후 자동으로 표시됩니다</span></div></div></div>`;
   }
 
   // ── 비행 통계 탭 ─────────────────────────────────
@@ -6140,6 +6149,9 @@ window.setPSub=t=>{
   charts={};
   const m=$('main');
   m.innerHTML=pList();
+  if(t==='plan'){
+    requestAnimationFrame(()=>generatePracticePlan());
+  }
   if(t==='stats'){
     requestAnimationFrame(()=>requestAnimationFrame(initCharts));
     // 성장 분석 캐시 복원
@@ -6155,7 +6167,190 @@ window.setPSub=t=>{
   }
 };
 
-// 클럽별 고정 색상 팔레트
+// ── 연습 플랜 AI 생성 ────────────────────────────────
+async function generatePracticePlan(){
+  const area=$('plan-area');
+  if(!area) return;
+
+  // ── 데이터 수집 ──────────────────────────────────
+  const gdrSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0);
+  const ownedClubs=D.equip.filter(e=>e.status==='owned');
+
+  // 클럽별 샷 통계
+  const clubStats={};
+  gdrSessions.forEach(s=>{
+    const nc=normalizeClub(s.club);if(!nc)return;
+    if(!clubStats[nc])clubStats[nc]={sessions:[],shots:[],aiAnalyses:[]};
+    clubStats[nc].sessions.push(s);
+    clubStats[nc].shots.push(...(s.shots||[]));
+    if(s.aiAnalysis)clubStats[nc].aiAnalyses.push({date:s.date,text:s.aiAnalysis});
+  });
+
+  // 보유 클럽 목록
+  const ownedClubNames=ownedClubs.map(e=>{
+    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW|GW/i);
+    return m?m[0]:null;
+  }).filter(Boolean);
+
+  // 학습 노트 매핑
+  const notesByKeyword={};
+  D.videos.forEach(v=>{
+    (v.keywords||[]).forEach(k=>{
+      const kl=k.toLowerCase();
+      if(!notesByKeyword[kl])notesByKeyword[kl]=[];
+      notesByKeyword[kl].push({id:v.id,title:v.title,url:v.url});
+    });
+  });
+
+  // ── AI 프롬프트 데이터 준비 ──────────────────────
+  const clubSummary=Object.entries(clubStats).map(([c,d])=>{
+    const carries=d.shots.map(s=>s.carry).filter(Boolean);
+    const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
+    const lastAnalysis=d.aiAnalyses.sort((a,b)=>b.date?.localeCompare(a.date||'')||0)[0];
+    return `클럽: ${c} | 세션수: ${d.sessions.length} | 평균캐리: ${avgC||'?'}m | 최근분석: ${lastAnalysis?lastAnalysis.text.slice(0,200):'없음'}`;
+  }).join('\n');
+
+  const noDataClubs=CLUBS.filter(c=>!clubStats[c]&&ownedClubNames.some(o=>o.includes(c)||c.includes(o)));
+  const noteKeywords=Object.keys(notesByKeyword).slice(0,30).join(', ');
+
+  area.innerHTML=`<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.82rem">🤖 데이터 분석 중... (${gdrSessions.length}개 세션)</div>`;
+
+  try{
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({
+        type:'swing',model:GEMINI_MODEL,maxOutputTokens:3000,
+        prompt:`당신은 골프 코치입니다. 아래 데이터를 분석해서 다음 번 연습 계획을 JSON으로만 응답하세요.
+
+[클럽별 데이터]
+${clubSummary||'데이터 없음'}
+
+[보유 장비]
+${ownedClubs.map(e=>e.name).join(', ')||'없음'}
+
+[데이터 없는 보유 클럽]
+${noDataClubs.join(', ')||'없음'}
+
+[보유 학습노트 키워드]
+${noteKeywords||'없음'}
+
+아래 JSON 형식으로만 응답 (다른 텍스트 금지):
+{
+  "priority_clubs": [
+    {
+      "club": "7I",
+      "reason": "개선 필요 이유 한 줄",
+      "tip": "다음 연습에서 집중할 핵심 포인트 2~3줄",
+      "has_data": true
+    }
+  ],
+  "routines": {
+    "20": ["드라이버 5구 워밍업", "7I 어프로치 10구"],
+    "40": ["드라이버 10구 워밍업", "7I 15구", "퍼팅 5분"],
+    "60": ["드라이버 15구", "7I 20구", "PW 10구", "퍼팅 10분"],
+    "80": ["드라이버 20구", "아이언 세트 30구", "웨지 숏게임 15분", "퍼팅 15분"]
+  },
+  "youtube_keywords": ["7I 임팩트 포인트", "드라이버 슬라이스 교정"]
+}`
+      })
+    });
+    if(!resp.ok){
+      const errText=await resp.text().catch(()=>'');
+      throw new Error(`서버 오류 (${resp.status})${errText?': '+errText.slice(0,100):''}`);
+    }
+    const raw=await resp.json();
+    console.log('[plan] raw keys:', Object.keys(raw));
+    if(raw.error) throw new Error(`AI 오류: ${raw.error}`);
+    let text=raw.result||raw.text||(raw.content?.[0]?.text)||'';
+    console.log('[plan] text 앞 200자:', text.slice(0,200));
+    text=text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const jm=text.match(/\{[\s\S]*\}/);
+    if(!jm) throw new Error(`JSON 파싱 실패 (응답: "${text.slice(0,80)}")`);
+    const plan=JSON.parse(jm[0]);
+    renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs);
+  }catch(e){
+    console.error('[plan] 오류:', e);
+    area.innerHTML=`<div style="padding:1.5rem;text-align:center;color:var(--muted)">
+      <div style="margin-bottom:.5rem">분석 실패: ${esc(e.message)}</div>
+      <button onclick="generatePracticePlan()" style="background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.35rem .85rem;border-radius:3px;font-size:.8rem;cursor:pointer;font-family:var(--sans)">🔄 다시 시도</button>
+    </div>`;
+  }
+}
+
+function renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs){
+  const area=$('plan-area'); if(!area) return;
+
+  // ── 우선순위 클럽 카드 ──
+  const clubCards=(plan.priority_clubs||[]).map((c,i)=>{
+    const hasData=!!clubStats[c.club];
+    // 관련 학습노트 찾기
+    const relNotes=D.videos.filter(v=>(v.keywords||[]).some(k=>
+      k.toLowerCase().includes(c.club.toLowerCase())||
+      c.tip?.toLowerCase().includes(k.toLowerCase())
+    )).slice(0,2);
+    const notesHtml=relNotes.length?`
+      <div style="margin-top:.5rem">
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:.2rem">📚 관련 학습노트</div>
+        ${relNotes.map(n=>`<div onclick="gotoTab('videos');goDetail('${n.id}')" style="font-size:.75rem;color:var(--wing2);cursor:pointer;padding:2px 0">▸ ${esc(n.title)}</div>`).join('')}
+      </div>`:'';
+
+    return`<div style="background:var(--dusk2);border:1px solid ${i===0?'rgba(200,137,58,.3)':'var(--border)'};border-radius:4px;padding:.75rem .9rem;margin-bottom:.5rem">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">
+        <span style="font-size:.72rem;font-weight:700;color:${i===0?'var(--wing2)':'var(--sky2)'};background:${i===0?'rgba(200,137,58,.12)':'rgba(74,143,168,.1)'};padding:2px 8px;border-radius:2px">${i===0?'🥇':'📌'} ${i+1}순위</span>
+        <span style="font-size:.85rem;font-weight:600;color:var(--chalk)">${esc(c.club)}</span>
+        ${!hasData?`<button onclick="setPSub('sessions');goAdd()" style="margin-left:auto;background:rgba(61,158,116,.1);border:1px solid rgba(61,158,116,.3);color:#3D9E74;padding:2px 8px;border-radius:2px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">+ 기록 추가</button>`:''}
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">${esc(c.reason)}</div>
+      <div style="font-size:.78rem;color:var(--dim);line-height:1.6;background:rgba(240,237,230,.03);border-radius:3px;padding:.4rem .6rem">${esc(c.tip).replace(/\n/g,'<br>')}</div>
+      ${notesHtml}
+    </div>`;
+  }).join('');
+
+  // 데이터 없는 클럽 카드
+  const noDataCards=noDataClubs.slice(0,3).map(c=>`
+    <div style="background:rgba(240,237,230,.03);border:1px dashed rgba(240,237,230,.12);border-radius:4px;padding:.6rem .9rem;margin-bottom:.4rem;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:.8rem;color:var(--muted)">${esc(c)} <span style="font-size:.7rem">— 데이터 없음</span></span>
+      <button onclick="setPSub('sessions');goAdd()" style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">+ 기록 추가</button>
+    </div>`).join('');
+
+  // ── 연습 루틴 ──
+  const routineColors={20:'#4A8FA8',40:'#3D9E74',60:'#C8893A',80:'#A78BFA'};
+  const routineTabs=Object.entries(plan.routines||{}).map(([min,items])=>`
+    <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.65rem .85rem;flex:1;min-width:140px">
+      <div style="font-size:.78rem;font-weight:700;color:${routineColors[min]||'var(--wing2)'};margin-bottom:.4rem">⏱ ${min}분</div>
+      ${(items||[]).map(item=>`<div style="font-size:.73rem;color:var(--dim);padding:2px 0;display:flex;gap:.3rem"><span style="color:var(--muted);flex-shrink:0">•</span>${esc(item)}</div>`).join('')}
+    </div>`).join('');
+
+  // ── 유튜브 키워드 ──
+  const ytKeywords=(plan.youtube_keywords||[]).map(kw=>`
+    <button onclick="window.open('https://www.youtube.com/results?search_query=${encodeURIComponent(kw+' 골프')}','_blank')"
+      style="background:rgba(240,237,230,.05);border:1px solid rgba(240,237,230,.15);color:var(--dim);font-size:.75rem;padding:4px 10px;border-radius:12px;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:.3rem">
+      🔍 ${esc(kw)}
+    </button>`).join('');
+
+  area.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.08em">🎯 AI 연습 플랜</div>
+      <button onclick="generatePracticePlan()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:.72rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">🔄 재분석</button>
+    </div>
+
+    <!-- 우선순위 클럽 -->
+    <div style="font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">연습 우선순위 클럽</div>
+    ${clubCards}
+    ${noDataCards}
+
+    <!-- 연습 루틴 -->
+    <div style="font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:.9rem 0 .5rem">연습 루틴 추천</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">${routineTabs}</div>
+
+    <!-- 유튜브 키워드 -->
+    <div style="font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:.9rem 0 .5rem">📺 참고 유튜브 검색</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem">${ytKeywords}</div>
+  `;
+}
+
+// ── 클럽별 색상 팔레트 ────────────────────────────────
 const CLUB_COLORS = {
   '드라이버':  {line:'#E8A855', bg:'rgba(232,168,85,.15)'},
   '3W':        {line:'#F07070', bg:'rgba(240,112,112,.15)'},
