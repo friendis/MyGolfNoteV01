@@ -7754,7 +7754,10 @@ ${wishList}
 
 // ── 클럽별 개별 추천 분석 ─────────────────────────────
 // ── AI 분석 결과 캐시 (DB 우선, localStorage 폴백) ──
-const AI_CACHE_KEY = 'birdyard_ai_cache';
+// Chart.js 전역 기본값 — legend.onClick 누락 방어
+if(typeof Chart !== 'undefined'){
+  Chart.defaults.plugins.legend.onClick = () => {};
+}
 function loadAiCache(){
   // DB 프로필에 ai_cache가 있으면 우선 사용
   if(D.profile?.ai_cache && typeof D.profile.ai_cache === 'object') return D.profile.ai_cache;
