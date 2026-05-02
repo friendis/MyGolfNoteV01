@@ -6282,7 +6282,7 @@ ${noteKeywords||'없음'}
     if(!jm) throw new Error(`JSON 파싱 실패 (응답: "${text.slice(0,80)}")`);
     const plan=JSON.parse(jm[0]);
     setAiCacheWithHash(CACHE_KEY, plan, dataHash);
-    renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, cached?.analyzedAt||today());
+    renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, today(), false);
   }catch(e){
     console.error('[plan] 오류:', e);
     area.innerHTML=`<div style="padding:1.5rem;text-align:center;color:var(--muted)">
