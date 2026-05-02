@@ -696,6 +696,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
 Chart.register(...registerables);
+Chart.defaults.plugins.legend.onClick = () => {}; // legend handleEvent 오류 방어
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 // ── AI 모델 설정 ── 문제 발생 시 'gemini-2.5-flash' 로 변경 ──
@@ -7754,10 +7755,6 @@ ${wishList}
 
 // ── 클럽별 개별 추천 분석 ─────────────────────────────
 // ── AI 분석 결과 캐시 (DB 우선, localStorage 폴백) ──
-// Chart.js 전역 기본값 — legend.onClick 누락 방어
-if(typeof Chart !== 'undefined'){
-  Chart.defaults.plugins.legend.onClick = () => {};
-}
 function loadAiCache(){
   // DB 프로필에 ai_cache가 있으면 우선 사용
   if(D.profile?.ai_cache && typeof D.profile.ai_cache === 'object') return D.profile.ai_cache;
