@@ -6168,12 +6168,25 @@ window.setPSub=t=>{
 };
 
 // ── 연습 플랜 AI 생성 ────────────────────────────────
-async function generatePracticePlan(){
+async function generatePracticePlan(forceRefresh=false){
   const area=$('plan-area');
   if(!area) return;
 
-  // ── 데이터 수집 ──────────────────────────────────
+  // 데이터 해시 (세션 수 + 마지막 세션 ID)
   const gdrSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0);
+  const dataHash=gdrSessions.map(s=>s.id+s.shots.length).join('|')+'|'+gdrSessions.length;
+  const CACHE_KEY='practice_plan';
+
+  // 캐시 확인
+  if(!forceRefresh){
+    const cached=getAiCache(CACHE_KEY);
+    if(cached?.result){
+      const newSessions=gdrSessions.filter(s=>s.date>(cached.analyzedAt||''));
+      const hasNew=newSessions.length>0;
+      renderPracticePlanFromCache(cached, dataHash, hasNew);
+      return;
+    }
+  }
   const ownedClubs=D.equip.filter(e=>e.status==='owned');
 
   // 클럽별 샷 통계
@@ -6268,7 +6281,8 @@ ${noteKeywords||'없음'}
     const jm=text.match(/\{[\s\S]*\}/);
     if(!jm) throw new Error(`JSON 파싱 실패 (응답: "${text.slice(0,80)}")`);
     const plan=JSON.parse(jm[0]);
-    renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs);
+    setAiCacheWithHash(CACHE_KEY, plan, dataHash);
+    renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, cached?.analyzedAt||today());
   }catch(e){
     console.error('[plan] 오류:', e);
     area.innerHTML=`<div style="padding:1.5rem;text-align:center;color:var(--muted)">
@@ -6278,7 +6292,33 @@ ${noteKeywords||'없음'}
   }
 }
 
-function renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs){
+function renderPracticePlanFromCache(cached, dataHash, hasNew){
+  const area=$('plan-area'); if(!area) return;
+  const plan=cached.result;
+  const ownedClubs=D.equip.filter(e=>e.status==='owned');
+  const gdrSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0);
+  const clubStats={};
+  gdrSessions.forEach(s=>{
+    const nc=normalizeClub(s.club);if(!nc)return;
+    if(!clubStats[nc])clubStats[nc]={sessions:[],shots:[],aiAnalyses:[]};
+    clubStats[nc].sessions.push(s);
+    clubStats[nc].shots.push(...(s.shots||[]));
+    if(s.aiAnalysis)clubStats[nc].aiAnalyses.push({date:s.date,text:s.aiAnalysis});
+  });
+  const notesByKeyword={};
+  D.videos.forEach(v=>(v.keywords||[]).forEach(k=>{
+    const kl=k.toLowerCase();
+    if(!notesByKeyword[kl])notesByKeyword[kl]=[];
+    notesByKeyword[kl].push({id:v.id,title:v.title,url:v.url});
+  }));
+  const noDataClubs=CLUBS.filter(c=>!clubStats[c]&&ownedClubs.some(e=>{
+    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW|GW/i);
+    return m&&(m[0]===c||c.includes(m[0]));
+  }));
+  renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, cached.analyzedAt, hasNew);
+}
+
+function renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, analyzedAt='', hasNew=false){
   const area=$('plan-area'); if(!area) return;
 
   // ── 우선순위 클럽 카드 ──
@@ -6330,10 +6370,19 @@ function renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs){
     </button>`).join('');
 
   area.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.08em">🎯 AI 연습 플랜</div>
-      <button onclick="generatePracticePlan()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:.72rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">🔄 재분석</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.4rem">
+      <div>
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.08em">🎯 AI 연습 플랜</div>
+        ${analyzedAt?`<div style="font-size:.67rem;color:var(--muted);margin-top:1px">분석일: ${analyzedAt}</div>`:''}
+      </div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        ${hasNew?`<span style="font-size:.7rem;background:rgba(200,137,58,.15);color:var(--wing2);border:1px solid rgba(200,137,58,.3);padding:2px 8px;border-radius:10px">🆕 새 훈련 추가됨</span>`:''}
+        <button onclick="generatePracticePlan(true)" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:.72rem;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans)">🔄 재분석</button>
+      </div>
     </div>
+    ${hasNew?`<div style="background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.2);border-radius:4px;padding:.5rem .8rem;margin-bottom:.75rem;font-size:.75rem;color:var(--dim)">
+      📊 마지막 분석 이후 새로운 훈련 기록이 추가됐습니다. <button onclick="generatePracticePlan(true)" style="background:none;border:none;color:var(--wing2);font-size:.75rem;cursor:pointer;font-family:var(--sans);font-weight:600;text-decoration:underline">지금 재분석하기 →</button>
+    </div>`:''}
 
     <!-- 우선순위 클럽 -->
     <div style="font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem">연습 우선순위 클럽</div>
