@@ -855,6 +855,24 @@ let dictView = 'list'; // 'list' | 'detail'
 let dictSelId = null;  // 선택된 용어 id
 let dictCat = '';      // 선택된 카테고리
 let dictKw = '';       // 태그 클릭 필터 컨텍스트
+let _tagFilterMode = 'exact'; // 'exact' | 'similar'
+
+window.filterByTag = (e, tag) => {
+  e?.stopPropagation();
+  if(dictKw === tag && _tagFilterMode === 'exact') {
+    // 같은 태그 재클릭 → similar 모드로 전환
+    _tagFilterMode = 'similar';
+  } else if(dictKw === tag && _tagFilterMode === 'similar') {
+    // similar에서 재클릭 → 필터 해제
+    dictKw = ''; _tagFilterMode = 'exact';
+  } else {
+    dictKw = tag; _tagFilterMode = 'exact';
+  }
+  window._rerender();
+};
+
+window.clearTagFilter = () => { dictKw=''; _tagFilterMode='exact'; window._rerender(); };
+window.setTagFilterMode = (mode) => { _tagFilterMode=mode; window._rerender(); };
 // 차트 선택 상태 - localStorage 유지 (최대 3개)
 const CHART_DEFS = [
   {key:'carry', label:'캐리',       icon:'📏', unit:'m',  color:'rgba(200,137,58,.5)',  bg:'rgba(200,137,58,.08)',  lineColor:'#C8893A'},
@@ -3342,7 +3360,24 @@ function vList(){
   if(vSub==='explore') return exploreView(vtabs);
 
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
-  const filtered = dictKw ? D.videos.filter(v=>v.kw.includes(dictKw)) : D.videos;
+
+  // 태그 필터링
+  const filtered = dictKw ? D.videos.filter(v => {
+    if(_tagFilterMode === 'exact') return v.kw.includes(dictKw);
+    // similar: 같은 태그 포함 OR 부분 일치
+    const kl = dictKw.toLowerCase();
+    return v.kw.some(k => k.toLowerCase().includes(kl) || kl.includes(k.toLowerCase()));
+  }) : D.videos;
+
+  // 필터 바
+  const filterBar = dictKw ? `<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem;flex-wrap:wrap">
+    <span style="font-size:.75rem;color:var(--dim)">필터:</span>
+    <span style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:2px 8px;border-radius:10px;font-size:.73rem">${esc(dictKw)}</span>
+    <button onclick="setTagFilterMode('exact')" style="font-size:.7rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${_tagFilterMode==='exact'?'rgba(200,137,58,.4)':'rgba(240,237,230,.15)'};background:${_tagFilterMode==='exact'?'rgba(200,137,58,.12)':'none'};color:${_tagFilterMode==='exact'?'var(--wing2)':'var(--muted)'}">동일 태그</button>
+    <button onclick="setTagFilterMode('similar')" style="font-size:.7rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${_tagFilterMode==='similar'?'rgba(74,143,168,.4)':'rgba(240,237,230,.15)'};background:${_tagFilterMode==='similar'?'rgba(74,143,168,.1)':'none'};color:${_tagFilterMode==='similar'?'var(--sky2)':'var(--muted)'}">유사 태그</button>
+    <span style="font-size:.7rem;color:var(--muted)">${filtered.length}개</span>
+    <button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-left:auto">✕</button>
+  </div>` : '';
   const mkCard = v => {
     const tid = vidId(v.url);
     const tsHtml = v.ts.slice(0,3).map(t=>`
@@ -3376,7 +3411,7 @@ function vList(){
       </div>
     </div>`;
   };
-  const cards = filtered.length ? filtered.map(mkCard).join('') : `<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>${dictKw?`'${esc(dictKw)}' 태그가 있는 영상이 없습니다.`:'저장된 노트가 없습니다.'}</div>`;
+  const cards = filtered.length ? filtered.map(mkCard).join('') : `<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>${dictKw?`'${esc(dictKw)}' ${_tagFilterMode==='similar'?'유사':'동일'} 태그가 있는 영상이 없습니다.`:'저장된 노트가 없습니다.'}</div>`;
 
   // 태그 사전 컨텍스트 카드
   const termCard = dictKw ? (()=>{
@@ -3385,7 +3420,7 @@ function vList(){
     return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.70rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="dictViewDetail('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
-  return `<div class="page">${guestBanner()}${vtabs}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  return `<div class="page">${guestBanner()}${vtabs}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${filterBar}
   <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
 }
 window.setVSub=t=>{vSub=t;render();if(t==='explore')setTimeout(loadExplore,50);};
