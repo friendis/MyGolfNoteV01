@@ -476,6 +476,11 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
       <div id="forgot-msg" style="font-size:.75rem;margin-top:.4rem"></div>
     </div>
     <div class="auth-divider">또는</div>
+    <!-- 구글 로그인 -->
+    <button onclick="doGoogleLogin()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:4px;padding:.55rem;font-size:.88rem;font-weight:500;cursor:pointer;font-family:var(--sans);margin-bottom:.5rem;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 1px 3px rgba(0,0,0,.2)'" onmouseout="this.style.boxShadow='none'">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.02a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.5a4.8 4.8 0 0 1 0-3.01V5.42H1.83a8 8 0 0 0 0 7.16z"/><path fill="#EA4335" d="M8.98 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8 8 0 0 0 1.83 5.42L4.5 7.5c.69-2.07 2.62-3.92 4.48-3.92z"/></svg>
+      Google로 계속하기
+    </button>
     <button class="btn-ghost" onclick="doGuestLogin()">🐦 테스트 계정으로 체험하기</button>
     <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.6rem;line-height:1.6">
       회원가입 없이 모든 기능 체험 · 영상 5 · 장비 10 · 세션 5개 제한<br>
@@ -850,6 +855,26 @@ let dictView = 'list'; // 'list' | 'detail'
 let dictSelId = null;  // 선택된 용어 id
 let dictCat = '';      // 선택된 카테고리
 let dictKw = '';       // 태그 클릭 필터 컨텍스트
+let _tagFilterMode = 'exact'; // 'exact' | 'similar'
+
+window.filterNoteByTag = (e, tag) => {
+  e?.stopPropagation();
+  if(dictKw === tag && _tagFilterMode === 'exact') {
+    _tagFilterMode = 'similar';
+  } else if(dictKw === tag && _tagFilterMode === 'similar') {
+    dictKw = ''; _tagFilterMode = 'exact';
+  } else {
+    dictKw = tag; _tagFilterMode = 'exact';
+  }
+  window._rerender();
+};
+
+window.goListWithTag = (tag) => {
+  dictKw = tag;
+  _tagFilterMode = 'exact';
+  goList();
+};
+window.setTagFilterMode = (mode) => { _tagFilterMode=mode; window._rerender(); };
 // 차트 선택 상태 - localStorage 유지 (최대 3개)
 const CHART_DEFS = [
   {key:'carry', label:'캐리',       icon:'📏', unit:'m',  color:'rgba(200,137,58,.5)',  bg:'rgba(200,137,58,.08)',  lineColor:'#C8893A'},
@@ -970,6 +995,23 @@ const t2s=t=>{const p=t.split(':').map(Number);return p.length===2?p[0]*60+p[1]:
 const $=id=>document.getElementById(id);
 function toast(msg){const el=document.createElement('div');el.className='toast-el';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2700)}
 function sync(s){const d=$('sync-dot');if(!d)return;d.className='sync-dot'+(s==='busy'?' busy':s==='err'?' err':'')}
+
+// ── 구글 로그인 ───────────────────────────────────────
+window.doGoogleLogin = async () => {
+  try{
+    const redirectTo = location.hostname === 'birdyard.app'
+      ? 'https://birdyard.app'
+      : `https://friendis.github.io/MyGolfNoteV01`;
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo }
+    });
+    if(error) throw error;
+    // 구글 로그인 페이지로 리다이렉트됨 (자동)
+  }catch(e){
+    toast('Google 로그인 실패: '+e.message);
+  }
+};
 
 // ── 테스트 계정 로그인 ────────────────────────────────
 window.doGuestLogin = async () => {
@@ -3320,7 +3362,24 @@ function vList(){
   if(vSub==='explore') return exploreView(vtabs);
 
   const allKw=[...new Set(D.videos.flatMap(v=>v.kw))],totalTs=D.videos.reduce((a,v)=>a+v.ts.length,0);
-  const filtered = dictKw ? D.videos.filter(v=>v.kw.includes(dictKw)) : D.videos;
+
+  // 태그 필터링
+  const filtered = dictKw ? D.videos.filter(v => {
+    if(_tagFilterMode === 'exact') return v.kw.includes(dictKw);
+    // similar: 같은 태그 포함 OR 부분 일치
+    const kl = dictKw.toLowerCase();
+    return v.kw.some(k => k.toLowerCase().includes(kl) || kl.includes(k.toLowerCase()));
+  }) : D.videos;
+
+  // 필터 바
+  const filterBar = dictKw ? `<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem;flex-wrap:wrap">
+    <span style="font-size:.75rem;color:var(--dim)">필터:</span>
+    <span style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:2px 8px;border-radius:10px;font-size:.73rem">${esc(dictKw)}</span>
+    <button onclick="setTagFilterMode('exact')" style="font-size:.7rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${_tagFilterMode==='exact'?'rgba(200,137,58,.4)':'rgba(240,237,230,.15)'};background:${_tagFilterMode==='exact'?'rgba(200,137,58,.12)':'none'};color:${_tagFilterMode==='exact'?'var(--wing2)':'var(--muted)'}">동일 태그</button>
+    <button onclick="setTagFilterMode('similar')" style="font-size:.7rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${_tagFilterMode==='similar'?'rgba(74,143,168,.4)':'rgba(240,237,230,.15)'};background:${_tagFilterMode==='similar'?'rgba(74,143,168,.1)':'none'};color:${_tagFilterMode==='similar'?'var(--sky2)':'var(--muted)'}">유사 태그</button>
+    <span style="font-size:.7rem;color:var(--muted)">${filtered.length}개</span>
+    <button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;margin-left:auto">✕</button>
+  </div>` : '';
   const mkCard = v => {
     const tid = vidId(v.url);
     const tsHtml = v.ts.slice(0,3).map(t=>`
@@ -3340,7 +3399,7 @@ function vList(){
         ${thumbEl}
         <div style="flex:1;min-width:0">
           <div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(v.title)}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:2px">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer;font-size:.68rem" onclick="event.stopPropagation();filterByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:2px">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer;font-size:.68rem" onclick="event.stopPropagation();filterNoteByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div>
         </div>
       </div>
       ${v.memo?`<div style="font-size:.73rem;color:var(--dim);line-height:1.6;margin-bottom:.4rem;padding:.35rem .5rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.2);border-radius:0 2px 2px 0;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(v.memo)}</div>`:''}
@@ -3354,7 +3413,7 @@ function vList(){
       </div>
     </div>`;
   };
-  const cards = filtered.length ? filtered.map(mkCard).join('') : `<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>${dictKw?`'${esc(dictKw)}' 태그가 있는 영상이 없습니다.`:'저장된 노트가 없습니다.'}</div>`;
+  const cards = filtered.length ? filtered.map(mkCard).join('') : `<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📋</div>${dictKw?`'${esc(dictKw)}' ${_tagFilterMode==='similar'?'유사':'동일'} 태그가 있는 영상이 없습니다.`:'저장된 노트가 없습니다.'}</div>`;
 
   // 태그 사전 컨텍스트 카드
   const termCard = dictKw ? (()=>{
@@ -3363,7 +3422,7 @@ function vList(){
     return `<div class="term-info-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="term-name">📖 ${esc(t.term)}</div><span style="font-size:.70rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">${t.category}</span></div><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1">✕</button></div><div class="term-def" style="margin-top:.4rem">${esc(t.definition)}</div><div style="margin-top:.5rem"><button onclick="dictViewDetail('${esc(t.id)}')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.75rem;text-decoration:underline">자세히 보기 →</button></div></div>`;
   })() : '';
 
-  return `<div class="page">${guestBanner()}${vtabs}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${dictKw?`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem"><span style="font-size:.78rem;color:var(--dim)">태그 필터: <strong style="color:var(--wing2)">${esc(dictKw)}</strong></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">✕ 해제</button></div>`:''}
+  return `<div class="page">${guestBanner()}${vtabs}<div class="stats-row"><div class="stat"><div class="stat-n">${D.videos.length}</div><div class="stat-l">영상</div></div><div class="stat"><div class="stat-n">${totalTs}</div><div class="stat-l">저장 구간</div></div><div class="stat"><div class="stat-n">${allKw.length}</div><div class="stat-l">키워드</div></div></div>${termCard}${filterBar}
   <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterV(this.value,document.getElementById('vcat').value)" id="vsrch"><select class="sel" id="vcat" onchange="filterV(document.getElementById('vsrch').value,this.value)"><option value="">전체</option>${VCATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn btn-s btn-sm" style="flex-shrink:0;border-color:rgba(167,139,250,.3);color:#A78BFA" onclick="goDict()">📖 용어사전</button></div><div id="vcards">${cards}</div></div>`;
 }
 window.setVSub=t=>{vSub=t;render();if(t==='explore')setTimeout(loadExplore,50);};
@@ -3519,7 +3578,7 @@ window.filterV=(q,cat)=>{
     const thumbEl=thumbSrc?`<img src="${thumbSrc}" style="width:64px;height:44px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:isInsta(v.url)?`<div style="width:64px;height:44px;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);font-size:1.3rem">📸</div>`:`<div style="width:64px;height:44px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>`;
     const tsHtml=v.ts.slice(0,3).map(t=>`<span onclick="event.stopPropagation();playFrom('${t.time}','${v.id}')" style="display:inline-flex;align-items:center;gap:3px;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.2);border-radius:2px;padding:1px 6px;margin:2px 3px 2px 0;cursor:pointer;font-size:.72rem;color:var(--wing2)">⏱${esc(t.time)} <span style="color:var(--dim)">${esc(t.note)}</span></span>`).join('');
     return`<div onclick="goDetail('${v.id}')" style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer">
-      <div style="display:flex;gap:.65rem;align-items:flex-start;margin-bottom:${v.memo||tsHtml?'.5rem':'0'}">${thumbEl}<div style="flex:1;min-width:0"><div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(v.title)}</div><div style="display:flex;flex-wrap:wrap;gap:2px">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer;font-size:.68rem" onclick="event.stopPropagation();filterByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div></div></div>
+      <div style="display:flex;gap:.65rem;align-items:flex-start;margin-bottom:${v.memo||tsHtml?'.5rem':'0'}">${thumbEl}<div style="flex:1;min-width:0"><div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(v.title)}</div><div style="display:flex;flex-wrap:wrap;gap:2px">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer;font-size:.68rem" onclick="event.stopPropagation();filterNoteByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div></div></div>
       ${v.memo?`<div style="font-size:.73rem;color:var(--dim);line-height:1.6;margin-bottom:.4rem;padding:.35rem .5rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.2);border-radius:0 2px 2px 0;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(v.memo)}</div>`:''}
       ${tsHtml?`<div onclick="event.stopPropagation()" style="margin-bottom:.35rem">${tsHtml}</div>`:''}
       <div style="display:flex;align-items:center;gap:.4rem;font-size:.68rem;color:var(--muted)" onclick="event.stopPropagation()"><span>${v.addedAt||''}</span>${v.likeCount?`<span style="color:var(--red)">❤️ ${v.likeCount}</span>`:''}${v.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div>
@@ -3741,7 +3800,7 @@ window.saveTermNote=async(termId,memo)=>{
   if(error){toast('메모 저장 실패');return;}
   D_TERMS.notes[termId]=data;toast('메모 저장됨');
 };
-window.filterByTag=(e,kw)=>{e.stopPropagation();dictKw=kw;render();};
+window.filterNoteByTag=(e,kw)=>{e?.stopPropagation?.();dictKw=kw;_tagFilterMode='exact';window._rerender();};
 window.clearTagFilter=()=>{dictKw='';render();};
 window.goNoteDetail=id=>{tab='videos';view='detail';selId=id;render();};
 window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';tab='videos';document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));const tb=$('tab-videos');if(tb)tb.classList.add('on');render();};
@@ -3926,8 +3985,12 @@ function vDetail(){
   const tagsH=`
     <div style="margin-bottom:.65rem">
       <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:28px" id="vtag-list">
-        ${v.kw.map((k,i)=>`<span class="badge b-gold" style="cursor:default">${esc(k)}<button onclick="delVTag('${v.id}',${i})" style="background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="삭제">✕</button></span>`).join('')}
+        ${v.kw.map((k,i)=>`<span class="badge b-gold" style="cursor:pointer;display:inline-flex;align-items:center;gap:2px" title="'${esc(k)}' 태그 필터링">
+          <span onclick="goListWithTag('${esc(k)}')">${esc(k)}</span>
+          <button onclick="delVTag('${v.id}',${i})" style="background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;font-size:.7rem;padding:0;line-height:1" title="삭제">✕</button>
+        </span>`).join('')}
       </div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:.25rem">태그 클릭 시 해당 태그 노트 목록으로 이동</div>
       <div style="display:flex;gap:.4rem;margin-top:6px">
         <input class="inp" id="vtag-input" placeholder="태그 추가..." style="flex:1;padding:.35rem .7rem;font-size:.8rem" onkeydown="if(event.key==='Enter'){addVTag('${v.id}');event.preventDefault()}">
         <button class="btn btn-s btn-sm" onclick="addVTag('${v.id}')">+ 추가</button>
@@ -3969,6 +4032,20 @@ function vDetail(){
     <!-- 공간 확보 — 삭제 버튼은 아래 별도 영역 -->
   </div>
   ${isOwnNote?`
+  <!-- AI 재분석 (YouTube 영상만) -->
+  ${vid?`<div style="margin-top:.75rem">
+    <div style="display:flex;gap:.4rem">
+      <button id="reanalyze-btn-${v.id}" onclick="reanalyzeVideo('${v.id}','${ea(v.url)}')"
+        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);color:#A78BFA;padding:.4rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
+        ✦ AI 영상 분석 다시하기
+      </button>
+      <button id="reanalyze-save-btn-${v.id}" onclick="reanalyzeVideo('${v.id}','${ea(v.url)}',true)"
+        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:.4rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
+        ✦ 분석 후 메모·태그 덮어쓰기
+      </button>
+    </div>
+    <div id="reanalyze-status-${v.id}" style="font-size:.71rem;color:var(--muted);margin-top:.25rem;text-align:center"></div>
+  </div>`:''}
   <!-- 하단 액션 바: 삭제(좌) + 전달·공개(우) -->
   <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
@@ -4141,18 +4218,34 @@ function vAdd(){return`<div class="page"><button class="back-btn" onclick="goLis
 <div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb();onVUrlInput()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div>
 <!-- AI 자동 분석 버튼 (YouTube일 때만 표시) -->
 <div id="yt-analyze-wrap" style="display:none;margin-bottom:.85rem">
-  <button class="btn-analyze" id="yt-analyze-btn" onclick="analyzeYouTube()" style="width:100%;padding:.55rem;font-size:.82rem;justify-content:center;display:flex;align-items:center;gap:.4rem">
-    ✦ AI로 자동 분석 <span style="font-size:.72rem;opacity:.7">(메모·타임스탬프·태그 자동 생성)</span>
-  </button>
+  <div style="display:flex;gap:.4rem">
+    <button class="btn-analyze" id="yt-analyze-btn" onclick="analyzeYouTube(false)" style="flex:1;padding:.5rem;font-size:.8rem;justify-content:center;display:flex;align-items:center;gap:.3rem">
+      ✦ AI로 자동 분석
+    </button>
+    <button class="btn-analyze" id="yt-analyze-save-btn" onclick="analyzeYouTube(true)" style="flex:1;padding:.5rem;font-size:.8rem;justify-content:center;display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.1);border-color:rgba(200,137,58,.4);color:var(--wing2)">
+      ✦ AI 분석 후 바로 저장
+    </button>
+  </div>
   <div id="yt-analyze-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;text-align:center"></div>
 </div>
-<div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div>
+<div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div>
+<div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초">
+  <div style="font-size:.68rem;color:var(--muted);margin:.25rem 0 .3rem">YouTube 채널명도 키워드로 추가하면 나중에 채널별로 필터링할 수 있습니다.</div>
+  <div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div>
+</div>
+<div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div>
 <!-- 타임스탬프 미리보기 (AI 분석 후 자동 채워짐) -->
 <div id="vts-preview" style="display:none;margin-bottom:.75rem">
   <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프 <span style="font-size:.68rem;font-weight:400">(AI 분석 결과)</span></div>
   <div id="vts-list"></div>
 </div>
-<div class="brow" style="display:flex;align-items:center;gap:.5rem"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button><label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label></div></div></div>`}
+<div class="brow" style="display:flex;align-items:center;gap:.5rem">
+  <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label>
+    <button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button>
+  </div>
+</div></div></div>`}
 window.prevThumb=()=>{
   const url=$('vu').value.trim();
   const t=thumb(url),img=$('vthumb');
@@ -4192,17 +4285,22 @@ window.onVUrlInput=()=>{
 // AI 자동 분석
 window._ytAnalyzedTs=[];
 
-window.analyzeYouTube=async()=>{
+window.analyzeYouTube=async(autoSave=false)=>{
   const url=$('vu')?.value.trim()||'';
   if(!vidId(url)){toast('YouTube URL을 먼저 입력하세요');return;}
-  const btn=$('yt-analyze-btn'),status=$('yt-analyze-status');
-  btn.disabled=true;btn.textContent='✦ 분석 중... (10~30초 소요)';
+  const btn=$('yt-analyze-btn'),saveBtn=$('yt-analyze-save-btn'),status=$('yt-analyze-status');
+  if(btn){btn.disabled=true;btn.textContent='✦ 분석 중...';}
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='✦ 분석 중...';}
   if(status){status.textContent='영상 내용을 읽고 있습니다...';status.style.color='var(--muted)';}
   try{
+    // YouTube 채널명 URL에서 추출 시도
+    const channelMatch = url.match(/youtube\.com\/@([^/?&]+)/);
+    const channelName = channelMatch ? channelMatch[1] : '';
     const prompt=`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.
 
 {
   "title": "영상 제목 (한국어로)",
+  "channel": "유튜브 채널명 (알 수 있는 경우)",
   "keywords": ["태그1", "태그2", "태그3"],
   "memo": "메모 내용",
   "timestamps": [
@@ -4254,7 +4352,23 @@ window.analyzeYouTube=async()=>{
 
     // 폼 자동 입력
     if(parsed.title){const vt=$('vt');if(vt&&!vt.value) vt.value=parsed.title;}
-    if(parsed.keywords?.length){const vk=$('vk');if(vk) vk.value=parsed.keywords.join(', ');}
+    if(parsed.keywords?.length){
+      const vk=$('vk');
+      if(vk){
+        const existingKws = vk.value.trim() ? vk.value.split(',').map(k=>k.trim()).filter(Boolean) : [];
+        const newKws = parsed.keywords.filter(k=>!existingKws.includes(k));
+        // 채널명 키워드 추가 (URL 또는 AI 응답에서)
+        const ch = channelName || parsed.channel || '';
+        if(ch && !existingKws.includes(ch) && !newKws.includes(ch)) newKws.unshift('@'+ch.replace(/^@/,''));
+        vk.value = [...existingKws, ...newKws].join(', ');
+      }
+    } else if(channelName || parsed.channel){
+      const vk=$('vk');
+      if(vk){
+        const ch = '@'+(channelName||parsed.channel||'').replace(/^@/,'');
+        if(!vk.value.includes(ch)) vk.value = vk.value.trim() ? vk.value+', '+ch : ch;
+      }
+    }
     if(parsed.memo){const vm=$('vm');if(vm) vm.value=parsed.memo;}
 
     // 타임스탬프 미리보기
@@ -4268,15 +4382,116 @@ window.analyzeYouTube=async()=>{
           <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
         </div>`).join('');
     }
-    btn.textContent='✓ 분석 완료';
-    btn.style.borderColor='rgba(61,158,116,.4)';
-    btn.style.color='#3D9E74';
+    if(btn){btn.textContent='✓ 분석 완료';btn.style.borderColor='rgba(61,158,116,.4)';btn.style.color='#3D9E74';}
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ AI 분석 후 바로 저장';}
     if(status) status.textContent=`태그 ${(parsed.keywords||[]).length}개 · 타임스탬프 ${window._ytAnalyzedTs.length}개 생성됨`;
+    if(autoSave){ await saveVideo(); }
   }catch(e){
     console.error('YouTube 분석 오류:',e);
-    btn.disabled=false;btn.textContent='✦ AI로 자동 분석';
+    if(btn){btn.disabled=false;btn.textContent='✦ AI로 자동 분석';}
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ AI 분석 후 바로 저장';}
     if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
     toast('분석 실패: '+e.message);
+  }
+};
+
+window.reanalyzeVideo = async (noteId, url, overwrite=false) => {
+  const btn=$(`reanalyze-btn-${noteId}`);
+  const saveBtn=$(`reanalyze-save-btn-${noteId}`);
+  const status=$(`reanalyze-status-${noteId}`);
+  if(btn){btn.disabled=true;btn.textContent='✦ 분석 중...';}
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='✦ 분석 중...';}
+  if(status){status.textContent='AI가 영상을 분석하고 있습니다...';status.style.color='var(--muted)';}
+  try{
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({type:'youtube',model:GEMINI_MODEL,maxOutputTokens:2000,youtubeUrl:url,
+        prompt:`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.
+
+{
+  "title": "영상 제목 (한국어로)",
+  "channel": "유튜브 채널명 (알 수 있는 경우)",
+  "keywords": ["태그1", "태그2", "태그3"],
+  "memo": "메모 내용",
+  "timestamps": [
+    {"time": "0:30", "note": "해당 구간 핵심 내용"},
+    {"time": "1:45", "note": "해당 구간 핵심 내용"}
+  ]
+}
+
+메모 작성 규칙:
+- 글머리표(•)와 소제목을 사용해 섹션별로 구조화
+- 각 항목은 간결하게 (한 줄에 하나의 포인트)
+- 아래 섹션 중 영상에 해당하는 것만 포함:
+
+  ❌ 문제점/실수
+  • [흔한 실수나 잘못된 동작 나열]
+
+  ✅ 올바른 방법
+  • [정상적인 자세나 동작 나열]
+
+  🏋️ 연습 방법
+  • [드릴이나 연습 방법 나열]
+
+  💡 핵심 포인트
+  • [기억할 핵심 감각이나 체크포인트]
+
+- 섹션당 항목은 2~5개, 너무 짧거나 너무 길지 않게
+- 전문 용어는 괄호로 설명: 예) 코킹(손목 꺾기)
+
+기타 규칙:
+- keywords: 골프 핵심 태그 3~6개
+- timestamps: 핵심 구간 4~8개, 각 note는 15자 이내
+- 모든 응답은 한국어`})
+    });
+    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    const data=await resp.json();
+    let text=data.result||data.text||'';
+    text=text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const jm=text.match(/\{[\s\S]*\}/);
+    if(!jm) throw new Error('분석 응답 파싱 실패');
+    const parsed=JSON.parse(jm[0]);
+
+    const v=D.videos.find(x=>x.id===noteId);
+    if(!v) throw new Error('노트를 찾을 수 없습니다');
+
+    if(overwrite){
+      // 덮어쓰기: 메모·태그·타임스탬프 업데이트
+      const ch=parsed.channel?'@'+parsed.channel.replace(/^@/,''):'';
+      const newKw=[...(parsed.keywords||[]),...(ch?[ch]:[])].filter(Boolean);
+      const{error}=await sb.from('videos').update({
+        memo:parsed.memo||v.memo,
+        keywords:newKw.length?newKw:v.kw,
+        timestamps:parsed.timestamps||v.ts,
+      }).eq('id',noteId).eq('user_id',user.id);
+      if(error) throw error;
+      v.memo=parsed.memo||v.memo;
+      v.kw=newKw.length?newKw:v.kw;
+      v.ts=parsed.timestamps||v.ts;
+      if(status){status.textContent='✓ 메모·태그·타임스탬프가 업데이트됐습니다';status.style.color='var(--turf)';}
+      toast('✓ AI 분석 결과로 업데이트됐습니다');
+      window._rerender();
+    } else {
+      // 미리보기: 분석 결과만 보여주고 직접 편집 가능하게
+      const ch=parsed.channel?'@'+parsed.channel.replace(/^@/,''):'';
+      const preview=[
+        parsed.memo?`📝 메모 미리보기:\n${parsed.memo}`:'',
+        parsed.keywords?.length?`🏷 태그: ${[...parsed.keywords,...(ch?[ch]:[])].join(', ')}`:'',
+        parsed.timestamps?.length?`⏱ 타임스탬프: ${parsed.timestamps.length}개`:'',
+      ].filter(Boolean).join('\n\n');
+      if(status){
+        status.innerHTML=`<div style="text-align:left;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:3px;padding:.5rem .7rem;font-size:.72rem;color:var(--dim);white-space:pre-wrap;line-height:1.6">${esc(preview)}</div>
+        <button onclick="reanalyzeVideo('${noteId}','${ea(url)}',true)" style="margin-top:.35rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">이 내용으로 덮어쓰기</button>`;
+      }
+    }
+  }catch(e){
+    console.error('재분석 오류:',e);
+    if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
+    toast('재분석 실패: '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='✦ AI 영상 분석 다시하기';}
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ 분석 후 메모·태그 덮어쓰기';}
   }
 };
 
