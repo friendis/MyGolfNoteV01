@@ -4163,18 +4163,34 @@ function vAdd(){return`<div class="page"><button class="back-btn" onclick="goLis
 <div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb();onVUrlInput()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div>
 <!-- AI 자동 분석 버튼 (YouTube일 때만 표시) -->
 <div id="yt-analyze-wrap" style="display:none;margin-bottom:.85rem">
-  <button class="btn-analyze" id="yt-analyze-btn" onclick="analyzeYouTube()" style="width:100%;padding:.55rem;font-size:.82rem;justify-content:center;display:flex;align-items:center;gap:.4rem">
-    ✦ AI로 자동 분석 <span style="font-size:.72rem;opacity:.7">(메모·타임스탬프·태그 자동 생성)</span>
-  </button>
+  <div style="display:flex;gap:.4rem">
+    <button class="btn-analyze" id="yt-analyze-btn" onclick="analyzeYouTube(false)" style="flex:1;padding:.5rem;font-size:.8rem;justify-content:center;display:flex;align-items:center;gap:.3rem">
+      ✦ AI로 자동 분석
+    </button>
+    <button class="btn-analyze" id="yt-analyze-save-btn" onclick="analyzeYouTube(true)" style="flex:1;padding:.5rem;font-size:.8rem;justify-content:center;display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.1);border-color:rgba(200,137,58,.4);color:var(--wing2)">
+      ✦ AI 분석 후 바로 저장
+    </button>
+  </div>
   <div id="yt-analyze-status" style="font-size:.72rem;color:var(--muted);margin-top:.3rem;text-align:center"></div>
 </div>
-<div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div><div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초"><div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div></div><div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div>
+<div class="fg"><label class="fl-label">제목</label><input class="inp" id="vt" placeholder="영상 제목"></div>
+<div class="fg"><label class="fl-label">키워드 (쉼표 구분)</label><input class="inp" id="vk" placeholder="드라이버, 스윙, 기초">
+  <div style="font-size:.68rem;color:var(--muted);margin:.25rem 0 .3rem">YouTube 채널명도 키워드로 추가하면 나중에 채널별로 필터링할 수 있습니다.</div>
+  <div class="kw-pills">${VCATS.map(c=>`<span class="kw-pill" onclick="addKw('${c}')">${c}</span>`).join('')}</div>
+</div>
+<div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="vm" placeholder="핵심 내용, 기억할 포인트..."></textarea></div>
 <!-- 타임스탬프 미리보기 (AI 분석 후 자동 채워짐) -->
 <div id="vts-preview" style="display:none;margin-bottom:.75rem">
   <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">구간 타임스탬프 <span style="font-size:.68rem;font-weight:400">(AI 분석 결과)</span></div>
   <div id="vts-list"></div>
 </div>
-<div class="brow" style="display:flex;align-items:center;gap:.5rem"><button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button><button class="btn btn-s" onclick="goList()">취소</button><label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label></div></div></div>`}
+<div class="brow" style="display:flex;align-items:center;gap:.5rem">
+  <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label>
+    <button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button>
+  </div>
+</div></div></div>`}
 window.prevThumb=()=>{
   const url=$('vu').value.trim();
   const t=thumb(url),img=$('vthumb');
@@ -4214,17 +4230,22 @@ window.onVUrlInput=()=>{
 // AI 자동 분석
 window._ytAnalyzedTs=[];
 
-window.analyzeYouTube=async()=>{
+window.analyzeYouTube=async(autoSave=false)=>{
   const url=$('vu')?.value.trim()||'';
   if(!vidId(url)){toast('YouTube URL을 먼저 입력하세요');return;}
-  const btn=$('yt-analyze-btn'),status=$('yt-analyze-status');
-  btn.disabled=true;btn.textContent='✦ 분석 중... (10~30초 소요)';
+  const btn=$('yt-analyze-btn'),saveBtn=$('yt-analyze-save-btn'),status=$('yt-analyze-status');
+  if(btn){btn.disabled=true;btn.textContent='✦ 분석 중...';}
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='✦ 분석 중...';}
   if(status){status.textContent='영상 내용을 읽고 있습니다...';status.style.color='var(--muted)';}
   try{
+    // YouTube 채널명 URL에서 추출 시도
+    const channelMatch = url.match(/youtube\.com\/@([^/?&]+)/);
+    const channelName = channelMatch ? channelMatch[1] : '';
     const prompt=`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.
 
 {
   "title": "영상 제목 (한국어로)",
+  "channel": "유튜브 채널명 (알 수 있는 경우)",
   "keywords": ["태그1", "태그2", "태그3"],
   "memo": "메모 내용",
   "timestamps": [
@@ -4276,7 +4297,23 @@ window.analyzeYouTube=async()=>{
 
     // 폼 자동 입력
     if(parsed.title){const vt=$('vt');if(vt&&!vt.value) vt.value=parsed.title;}
-    if(parsed.keywords?.length){const vk=$('vk');if(vk) vk.value=parsed.keywords.join(', ');}
+    if(parsed.keywords?.length){
+      const vk=$('vk');
+      if(vk){
+        const existingKws = vk.value.trim() ? vk.value.split(',').map(k=>k.trim()).filter(Boolean) : [];
+        const newKws = parsed.keywords.filter(k=>!existingKws.includes(k));
+        // 채널명 키워드 추가 (URL 또는 AI 응답에서)
+        const ch = channelName || parsed.channel || '';
+        if(ch && !existingKws.includes(ch) && !newKws.includes(ch)) newKws.unshift('@'+ch.replace(/^@/,''));
+        vk.value = [...existingKws, ...newKws].join(', ');
+      }
+    } else if(channelName || parsed.channel){
+      const vk=$('vk');
+      if(vk){
+        const ch = '@'+(channelName||parsed.channel||'').replace(/^@/,'');
+        if(!vk.value.includes(ch)) vk.value = vk.value.trim() ? vk.value+', '+ch : ch;
+      }
+    }
     if(parsed.memo){const vm=$('vm');if(vm) vm.value=parsed.memo;}
 
     // 타임스탬프 미리보기
@@ -4290,13 +4327,14 @@ window.analyzeYouTube=async()=>{
           <span style="font-size:.76rem;color:var(--dim);line-height:1.5">${esc(t.note)}</span>
         </div>`).join('');
     }
-    btn.textContent='✓ 분석 완료';
-    btn.style.borderColor='rgba(61,158,116,.4)';
-    btn.style.color='#3D9E74';
+    if(btn){btn.textContent='✓ 분석 완료';btn.style.borderColor='rgba(61,158,116,.4)';btn.style.color='#3D9E74';}
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ AI 분석 후 바로 저장';}
     if(status) status.textContent=`태그 ${(parsed.keywords||[]).length}개 · 타임스탬프 ${window._ytAnalyzedTs.length}개 생성됨`;
+    if(autoSave){ await saveVideo(); }
   }catch(e){
     console.error('YouTube 분석 오류:',e);
-    btn.disabled=false;btn.textContent='✦ AI로 자동 분석';
+    if(btn){btn.disabled=false;btn.textContent='✦ AI로 자동 분석';}
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ AI 분석 후 바로 저장';}
     if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
     toast('분석 실패: '+e.message);
   }
