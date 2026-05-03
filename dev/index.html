@@ -4024,6 +4024,20 @@ function vDetail(){
     <!-- 공간 확보 — 삭제 버튼은 아래 별도 영역 -->
   </div>
   ${isOwnNote?`
+  <!-- AI 재분석 (YouTube 영상만) -->
+  ${vid?`<div style="margin-top:.75rem">
+    <div style="display:flex;gap:.4rem">
+      <button id="reanalyze-btn-${v.id}" onclick="reanalyzeVideo('${v.id}','${ea(v.url)}')"
+        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);color:#A78BFA;padding:.4rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
+        ✦ AI 영상 분석 다시하기
+      </button>
+      <button id="reanalyze-save-btn-${v.id}" onclick="reanalyzeVideo('${v.id}','${ea(v.url)}',true)"
+        style="flex:1;display:flex;align-items:center;justify-content:center;gap:.35rem;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:.4rem .75rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">
+        ✦ 분석 후 메모·태그 덮어쓰기
+      </button>
+    </div>
+    <div id="reanalyze-status-${v.id}" style="font-size:.71rem;color:var(--muted);margin-top:.25rem;text-align:center"></div>
+  </div>`:''}
   <!-- 하단 액션 바: 삭제(좌) + 전달·공개(우) -->
   <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(193,123,106,.12);display:flex;align-items:center;justify-content:space-between;gap:.4rem">
     <button class="btn btn-d btn-sm" onclick="delVideo('${v.id}')">노트 삭제</button>
@@ -4370,6 +4384,71 @@ window.analyzeYouTube=async(autoSave=false)=>{
     if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ AI 분석 후 바로 저장';}
     if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
     toast('분석 실패: '+e.message);
+  }
+};
+
+window.reanalyzeVideo = async (noteId, url, overwrite=false) => {
+  const btn=$(`reanalyze-btn-${noteId}`);
+  const saveBtn=$(`reanalyze-save-btn-${noteId}`);
+  const status=$(`reanalyze-status-${noteId}`);
+  if(btn){btn.disabled=true;btn.textContent='✦ 분석 중...';}
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='✦ 분석 중...';}
+  if(status){status.textContent='AI가 영상을 분석하고 있습니다...';status.style.color='var(--muted)';}
+  try{
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({type:'youtube',model:GEMINI_MODEL,maxOutputTokens:2000,url,
+        prompt:`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요.
+{"title":"영상 제목(한국어)","channel":"채널명","keywords":["태그1","태그2"],"memo":"핵심 내용 요약","timestamps":[{"time":"0:30","note":"구간 설명"}]}`})
+    });
+    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    const data=await resp.json();
+    let text=data.result||data.text||'';
+    text=text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const jm=text.match(/\{[\s\S]*\}/);
+    if(!jm) throw new Error('분석 응답 파싱 실패');
+    const parsed=JSON.parse(jm[0]);
+
+    const v=D.videos.find(x=>x.id===noteId);
+    if(!v) throw new Error('노트를 찾을 수 없습니다');
+
+    if(overwrite){
+      // 덮어쓰기: 메모·태그·타임스탬프 업데이트
+      const ch=parsed.channel?'@'+parsed.channel.replace(/^@/,''):'';
+      const newKw=[...(parsed.keywords||[]),...(ch?[ch]:[])].filter(Boolean);
+      const{error}=await sb.from('videos').update({
+        memo:parsed.memo||v.memo,
+        keywords:newKw.length?newKw:v.kw,
+        timestamps:parsed.timestamps||v.ts,
+      }).eq('id',noteId).eq('user_id',user.id);
+      if(error) throw error;
+      v.memo=parsed.memo||v.memo;
+      v.kw=newKw.length?newKw:v.kw;
+      v.ts=parsed.timestamps||v.ts;
+      if(status){status.textContent='✓ 메모·태그·타임스탬프가 업데이트됐습니다';status.style.color='var(--turf)';}
+      toast('✓ AI 분석 결과로 업데이트됐습니다');
+      window._rerender();
+    } else {
+      // 미리보기: 분석 결과만 보여주고 직접 편집 가능하게
+      const ch=parsed.channel?'@'+parsed.channel.replace(/^@/,''):'';
+      const preview=[
+        parsed.memo?`📝 메모 미리보기:\n${parsed.memo}`:'',
+        parsed.keywords?.length?`🏷 태그: ${[...parsed.keywords,...(ch?[ch]:[])].join(', ')}`:'',
+        parsed.timestamps?.length?`⏱ 타임스탬프: ${parsed.timestamps.length}개`:'',
+      ].filter(Boolean).join('\n\n');
+      if(status){
+        status.innerHTML=`<div style="text-align:left;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:3px;padding:.5rem .7rem;font-size:.72rem;color:var(--dim);white-space:pre-wrap;line-height:1.6">${esc(preview)}</div>
+        <button onclick="reanalyzeVideo('${noteId}','${ea(url)}',true)" style="margin-top:.35rem;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">이 내용으로 덮어쓰기</button>`;
+      }
+    }
+  }catch(e){
+    console.error('재분석 오류:',e);
+    if(status){status.textContent='분석 실패: '+e.message;status.style.color='var(--red)';}
+    toast('재분석 실패: '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='✦ AI 영상 분석 다시하기';}
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✦ 분석 후 메모·태그 덮어쓰기';}
   }
 };
 
