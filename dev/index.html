@@ -4398,7 +4398,7 @@ window.reanalyzeVideo = async (noteId, url, overwrite=false) => {
     const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'youtube',model:GEMINI_MODEL,maxOutputTokens:2000,url,
+      body:JSON.stringify({type:'youtube',model:GEMINI_MODEL,maxOutputTokens:2000,youtubeUrl:url,
         prompt:`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요.
 {"title":"영상 제목(한국어)","channel":"채널명","keywords":["태그1","태그2"],"memo":"핵심 내용 요약","timestamps":[{"time":"0:30","note":"구간 설명"}]}`})
     });
