@@ -4399,8 +4399,43 @@ window.reanalyzeVideo = async (noteId, url, overwrite=false) => {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
       body:JSON.stringify({type:'youtube',model:GEMINI_MODEL,maxOutputTokens:2000,youtubeUrl:url,
-        prompt:`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요.
-{"title":"영상 제목(한국어)","channel":"채널명","keywords":["태그1","태그2"],"memo":"핵심 내용 요약","timestamps":[{"time":"0:30","note":"구간 설명"}]}`})
+        prompt:`당신은 골프 레슨 영상 분석 전문가입니다. 이 YouTube 골프 레슨 영상을 분석해서 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.
+
+{
+  "title": "영상 제목 (한국어로)",
+  "channel": "유튜브 채널명 (알 수 있는 경우)",
+  "keywords": ["태그1", "태그2", "태그3"],
+  "memo": "메모 내용",
+  "timestamps": [
+    {"time": "0:30", "note": "해당 구간 핵심 내용"},
+    {"time": "1:45", "note": "해당 구간 핵심 내용"}
+  ]
+}
+
+메모 작성 규칙:
+- 글머리표(•)와 소제목을 사용해 섹션별로 구조화
+- 각 항목은 간결하게 (한 줄에 하나의 포인트)
+- 아래 섹션 중 영상에 해당하는 것만 포함:
+
+  ❌ 문제점/실수
+  • [흔한 실수나 잘못된 동작 나열]
+
+  ✅ 올바른 방법
+  • [정상적인 자세나 동작 나열]
+
+  🏋️ 연습 방법
+  • [드릴이나 연습 방법 나열]
+
+  💡 핵심 포인트
+  • [기억할 핵심 감각이나 체크포인트]
+
+- 섹션당 항목은 2~5개, 너무 짧거나 너무 길지 않게
+- 전문 용어는 괄호로 설명: 예) 코킹(손목 꺾기)
+
+기타 규칙:
+- keywords: 골프 핵심 태그 3~6개
+- timestamps: 핵심 구간 4~8개, 각 note는 15자 이내
+- 모든 응답은 한국어`})
     });
     if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
     const data=await resp.json();
