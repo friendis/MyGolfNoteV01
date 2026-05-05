@@ -5536,10 +5536,68 @@ window.delEquipMemoryPhoto = async (id, idx) => {
 
 window.viewEquipPhoto = (url) => {
   const ov = document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:5000;display:flex;align-items:center;justify-content:center;cursor:pointer';
-  ov.innerHTML=`<img src="${url}" style="max-width:95vw;max-height:95vh;object-fit:contain;border-radius:4px">`;
-  ov.addEventListener('click',()=>ov.remove());
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:5000;display:flex;flex-direction:column;overflow:hidden';
+
+  ov.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .75rem;background:rgba(0,0,0,.6);flex-shrink:0">
+      <div style="display:flex;gap:.4rem">
+        <button id="photo-zoom-out" style="background:rgba(240,237,230,.1);border:1px solid rgba(240,237,230,.2);color:var(--chalk);width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">－</button>
+        <button id="photo-fit" style="background:rgba(240,237,230,.1);border:1px solid rgba(240,237,230,.2);color:var(--chalk);padding:0 10px;height:32px;border-radius:4px;cursor:pointer;font-size:.75rem;font-family:var(--sans)">폭 맞춤</button>
+        <button id="photo-zoom-in" style="background:rgba(240,237,230,.1);border:1px solid rgba(240,237,230,.2);color:var(--chalk);width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">＋</button>
+        <span id="photo-zoom-label" style="font-size:.72rem;color:var(--muted);align-self:center;min-width:40px">100%</span>
+      </div>
+      <button onclick="document.getElementById('equip-photo-viewer').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;line-height:1;padding:.25rem">✕</button>
+    </div>
+    <div id="photo-scroll-area" style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:.5rem;cursor:grab">
+      <img id="photo-viewer-img" src="${url}" style="max-width:100%;height:auto;border-radius:3px;user-select:none;transition:width .15s" draggable="false">
+    </div>`;
+
+  ov.id='equip-photo-viewer';
   document.body.appendChild(ov);
+
+  const img = ov.querySelector('#photo-viewer-img');
+  const scroll = ov.querySelector('#photo-scroll-area');
+  const label = ov.querySelector('#photo-zoom-label');
+  let scale = 1;
+
+  const applyScale = (s) => {
+    scale = Math.max(0.25, Math.min(4, s));
+    img.style.width = (scale * 100) + '%';
+    img.style.maxWidth = 'none';
+    label.textContent = Math.round(scale * 100) + '%';
+  };
+
+  ov.querySelector('#photo-zoom-in').addEventListener('click', () => applyScale(scale + 0.25));
+  ov.querySelector('#photo-zoom-out').addEventListener('click', () => applyScale(scale - 0.25));
+  ov.querySelector('#photo-fit').addEventListener('click', () => {
+    img.style.maxWidth = '100%';
+    img.style.width = '100%';
+    scale = 1;
+    label.textContent = '맞춤';
+  });
+
+  // 핀치 줌 (모바일)
+  let lastDist = 0;
+  scroll.addEventListener('touchstart', e => {
+    if(e.touches.length === 2) lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }, {passive:true});
+  scroll.addEventListener('touchmove', e => {
+    if(e.touches.length === 2){
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if(lastDist) applyScale(scale * (d / lastDist));
+      lastDist = d;
+    }
+  }, {passive:true});
+
+  // 드래그 스크롤
+  let dragging=false, sx=0, sy=0, sl=0, st=0;
+  scroll.addEventListener('mousedown', e=>{dragging=true;sx=e.clientX;sy=e.clientY;sl=scroll.scrollLeft;st=scroll.scrollTop;scroll.style.cursor='grabbing';});
+  document.addEventListener('mousemove', e=>{if(!dragging)return;scroll.scrollLeft=sl-(e.clientX-sx);scroll.scrollTop=st-(e.clientY-sy);});
+  document.addEventListener('mouseup', ()=>{dragging=false;scroll.style.cursor='grab';});
+
+  // 배경 클릭 닫기 (스크롤 영역 외)
+  ov.querySelector('[style*="flex-shrink:0"]').addEventListener('click', e=>e.stopPropagation());
+  scroll.addEventListener('click', e=>{ if(e.target===scroll) ov.remove(); });
 };
 
 window.saveEName=async(id,val)=>{
