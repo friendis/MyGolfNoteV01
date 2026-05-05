@@ -712,6 +712,31 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 })();
 </script>
 
+<!-- 배너 높이에 따라 헤더/탭 sticky top 보정 -->
+<script>
+function adjustStickyPositions(){
+  const banner = document.getElementById('early-access-banner');
+  const bannerH = (banner && banner.offsetHeight > 0 && banner.style.display !== 'none') ? banner.offsetHeight : 0;
+  const header = document.querySelector('#app header');
+  const tabs = document.querySelector('#app .tabs');
+  if(header) header.style.top = bannerH + 'px';
+  if(tabs) tabs.style.top = (bannerH + 58) + 'px';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  adjustStickyPositions();
+  const banner = document.getElementById('early-access-banner');
+  if(banner){
+    new ResizeObserver(adjustStickyPositions).observe(banner);
+    // ✕ 닫기 후 재조정
+    const closeBtn = banner.querySelector('button');
+    if(closeBtn){
+      const orig = closeBtn.onclick;
+      closeBtn.onclick = function(e){ if(orig) orig.call(this,e); setTimeout(adjustStickyPositions,50); };
+    }
+  }
+});
+</script>
+
 <script type="module">
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm?v=1';
