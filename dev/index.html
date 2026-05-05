@@ -1404,7 +1404,11 @@ async function loadAll(){
     ]);
     if(vR.error)throw vR.error;if(eR.error)throw eR.error;if(sR.error)throw sR.error;
     D.videos=vR.data.map(r=>({id:r.id,url:r.url,title:r.title,kw:r.keywords||[],memo:r.memo||'',ts:r.timestamps||[],addedAt:r.added_at,userId:r.user_id,isPublic:r.is_public||false,likeCount:r.like_count||0}));
-    D.equip=eR.data.map(r=>({id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags:Array.isArray(r.tags)?r.tags:[],ironSet:Array.isArray(r.tags?.iron_set)?r.tags.iron_set:(Array.isArray(r.tags)?[]:r.tags?.iron_set||[]),aiInfo:r.ai_info||'',photoUrl:r.photo_url||'',isPublic:r.is_public||false}));
+    D.equip=eR.data.map(r=>{
+      const tags = r.tags && !Array.isArray(r.tags) ? r.tags : {};
+      const ironSet = Array.isArray(tags.iron_set) ? tags.iron_set : [];
+      return {id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags,ironSet,aiInfo:r.ai_info||'',photoUrl:r.photo_url||'',isPublic:r.is_public||false};
+    });
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.sets=(csR.data||[]).map(r=>({id:r.id,name:r.name,clubs:r.clubs||[],memo:r.memo||'',createdAt:r.created_at}));
     D.profile=pR.data||null;
@@ -4933,10 +4937,10 @@ function eDetail(){
 
   // 태그 (category + 커스텀 tags)
   const tags = Array.isArray(e.tags)?e.tags:[];
-  const ironSetSection = e.cat==='아이언'?`
+  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지')?`
     <div style="margin-bottom:.9rem;padding:.7rem;background:rgba(13,17,23,.4);border:1px solid var(--border);border-radius:2px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
-        <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 아이언 번호</div>
+        <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 클럽 번호</div>
         <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
       </div>
       ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[])}
@@ -5503,6 +5507,7 @@ window.uploadEquipMemoryPhotos = async (id, input) => {
     if(error) throw error;
     e.tags=newTags;
     toast(`✓ ${urls.length}장 추가됨`);
+    await loadAll();
     render();
   }catch(err){
     toast('업로드 실패: '+err.message);
@@ -5518,7 +5523,10 @@ window.delEquipMemoryPhoto = async (id, idx) => {
     ? {...e.tags, photos} : {photos};
   const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
   if(error){ toast('삭제 실패'); return; }
-  e.tags=newTags; toast('사진 삭제됨'); render();
+  e.tags=newTags;
+  toast('사진 삭제됨');
+  await loadAll();
+  render();
 };
 
 window.viewEquipPhoto = (url) => {
