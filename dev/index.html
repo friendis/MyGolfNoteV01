@@ -5563,7 +5563,7 @@ window.viewEquipPhoto = (url) => {
 
   const ov = document.createElement('div');
   ov.id = 'equip-photo-viewer';
-  ov.style.cssText = 'position:fixed;inset:0;background:#000;z-index:9000;display:flex;flex-direction:column;touch-action:none';
+  ov.style.cssText = 'position:fixed;inset:0;background:#000;z-index:999999;display:flex;flex-direction:column;touch-action:none';
 
   ov.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:rgba(0,0,0,.8);flex-shrink:0;z-index:1">
