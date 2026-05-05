@@ -714,7 +714,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 
 <script type="module">
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
+import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm?v=1';
 Chart.register(...registerables);
 Chart.defaults.plugins.legend.display = false;
 Chart.defaults.plugins.legend.onClick = () => {};
