@@ -5565,7 +5565,7 @@ window.genEquipMemo = async () => {
     const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:1500,
+      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:1500,useSearch:true,
         prompt:`골프 장비 전문가로서 아래 골프 장비의 스펙을 조사해서 정리해주세요.
 
 장비명: ${name}${cat?'\n분류: '+cat:''}${gameType?'\n사용자 게임 타입: '+gameType:''}
