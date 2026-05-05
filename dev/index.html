@@ -4847,7 +4847,12 @@ function eList(){
   const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
-  const cards=D.equip.length?D.equip.map(e=>{const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${Array.isArray(e.tags)&&e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}<div style="font-size:.68rem;color:var(--muted);margin-top:3px">${e.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`}).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
+  const cards=D.equip.length?D.equip.map(e=>{
+    const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;
+    // tags가 객체(jsonb)이므로 커스텀 태그는 별도 필드에서 읽음
+    const customTags=Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string'):(e.tags?.custom||[]);
+    return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}<div style="font-size:.68rem;color:var(--muted);margin-top:3px">${e.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`;
+  }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
 
   // 태그 칩: 커스텀 태그 + 분류(cat) 모두 수집
   const allCats=[...new Set(D.equip.map(e=>e.cat).filter(Boolean))].sort();
@@ -5496,8 +5501,8 @@ window.uploadEquipMemoryPhotos = async (id, input) => {
       const path = `${user.id}/equip_mem_${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
       const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType:file.type||'image/jpeg'});
       if(ue) throw ue;
-      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
-      if(sd?.publicUrl) urls.push(sd.publicUrl);
+      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365*5);
+      if(sd?.signedUrl) urls.push(sd.signedUrl);
     }
     const existing = e.tags?.photos||[];
     const newPhotos = [...existing, ...urls].slice(0,10); // 최대 10장
