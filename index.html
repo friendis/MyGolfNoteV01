@@ -521,6 +521,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
         <div class="acct-panel" id="acct-panel">
           <div class="acct-email" id="panel-email"></div>
           <button class="acct-btn" id="apanel-settings" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
+          <button class="acct-btn" onclick="openInstallGuide();closeAcctPanel()">📱 홈 화면에 추가하기</button>
           <button class="acct-btn" onclick="openFeedback();closeAcctPanel()">📣 피드백 / 버그 신고</button>
           <button class="acct-btn" onclick="renderPublicProfile('friendis');closeAcctPanel()" style="color:var(--wing2)">🏌️ 개발자 계정 구경하기</button>
           <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
@@ -713,7 +714,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 
 <script type="module">
 import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm';
+import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm?v=1';
 Chart.register(...registerables);
 Chart.defaults.plugins.legend.display = false;
 Chart.defaults.plugins.legend.onClick = () => {};
@@ -942,12 +943,19 @@ function clubLabel(club){
   return club;
 }
 // 아이언 세트 체크박스 HTML
-function ironSetUI(selected=[], disabled=false){
+function ironSetUI(selectedIrons=[], selectedWedges=[], disabled=false){
+  const wedgeNums=['PW','AW/GW','SW','LW'];
   return`<div style="margin-top:.5rem">
     <div class="fl-label">보유 아이언 번호</div>
     <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selected.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
-        <input type="checkbox" value="${n}" name="iron_set"${selected.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
+      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedIrons.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selectedIrons.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
+        <input type="checkbox" value="${n}" name="iron_set"${selectedIrons.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
+      </label>`).join('')}
+    </div>
+    <div class="fl-label" style="margin-top:.5rem">보유 웨지</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${wedgeNums.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedWedges.includes(n)?'rgba(74,143,168,.5)':'var(--border)'};background:${selectedWedges.includes(n)?'rgba(74,143,168,.1)':'transparent'};transition:all .15s">
+        <input type="checkbox" value="${n}" name="wedge_set"${selectedWedges.includes(n)?' checked':''} style="accent-color:var(--sky2)"> ${n}
       </label>`).join('')}
     </div>
   </div>`;
@@ -955,6 +963,10 @@ function ironSetUI(selected=[], disabled=false){
 // 선택된 아이언 번호 읽기
 function readIronSet(){
   return [...document.querySelectorAll('input[name="iron_set"]:checked')].map(el=>el.value);
+}
+// 선택된 웨지 읽기
+function readWedgeSet(){
+  return [...document.querySelectorAll('input[name="wedge_set"]:checked')].map(el=>el.value);
 }
 // 보유 장비 클럽 옵션 HTML 생성
 function ownedClubOptions(currentVal=''){
@@ -1058,6 +1070,136 @@ function guestBanner() {
   </div>`;
 }
 window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow=''};
+
+window.openInstallGuide = () => {
+  const existing = document.getElementById('install-guide-overlay');
+  if(existing) existing.remove();
+
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  // 기기 감지로 기본 탭 설정
+  const defaultTab = isIOS ? 'ios' : 'android';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'install-guide-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:4000;display:flex;align-items:flex-end;justify-content:center';
+
+  overlay.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px 10px 0 0;width:min(520px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-family:var(--serif);font-size:.95rem;font-weight:700;color:var(--chalk)">📱 홈 화면에 추가하기</div>
+      <button onclick="document.getElementById('install-guide-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+    </div>
+    <!-- 탭 -->
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button id="install-tab-ios" onclick="switchInstallTab('ios')"
+        style="flex:1;padding:.55rem;font-size:.8rem;font-family:var(--sans);border:none;cursor:pointer;background:none;border-bottom:2px solid ${defaultTab==='ios'?'var(--wing2)':'transparent'};color:${defaultTab==='ios'?'var(--wing2)':'var(--muted)'}">
+         iPhone / iPad
+      </button>
+      <button id="install-tab-android" onclick="switchInstallTab('android')"
+        style="flex:1;padding:.55rem;font-size:.8rem;font-family:var(--sans);border:none;cursor:pointer;background:none;border-bottom:2px solid ${defaultTab==='android'?'var(--wing2)':'transparent'};color:${defaultTab==='android'?'var(--wing2)':'var(--muted)'}">
+        🤖 Android
+      </button>
+    </div>
+    <!-- iOS 안내 -->
+    <div id="install-content-ios" style="overflow-y:auto;padding:1rem;display:${defaultTab==='ios'?'block':'none'}">
+      <div style="font-size:.8rem;color:var(--dim);line-height:1.8">
+        <div style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);border-radius:4px;padding:.6rem .85rem;margin-bottom:.85rem;font-size:.75rem;color:var(--sky2)">
+          Safari 브라우저에서만 홈 화면 추가가 가능합니다
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">Safari로 열기</div>
+              <div style="font-size:.75rem;color:var(--muted)">Chrome이나 다른 브라우저를 사용 중이라면 Safari로 <strong style="color:var(--wing2)">birdyard.app</strong> 을 열어주세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">공유 버튼 탭</div>
+              <div style="font-size:.75rem;color:var(--muted)">하단 가운데의 <span style="font-size:1rem">⎙</span> 공유 버튼을 탭하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">"홈 화면에 추가" 선택</div>
+              <div style="font-size:.75rem;color:var(--muted)">스크롤을 내려 <strong style="color:var(--chalk)">홈 화면에 추가</strong> 항목을 탭하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">추가 탭</div>
+              <div style="font-size:.75rem;color:var(--muted)">이름을 확인하고 오른쪽 위 <strong style="color:var(--chalk)">추가</strong>를 탭하세요</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:.85rem;background:rgba(240,237,230,.04);border-radius:4px;padding:.55rem .75rem;font-size:.73rem;color:var(--muted)">
+          ✓ 홈 화면에서 앱처럼 전체화면으로 실행됩니다<br>
+          ✓ 로그인 상태가 유지됩니다
+        </div>
+      </div>
+    </div>
+    <!-- Android 안내 -->
+    <div id="install-content-android" style="overflow-y:auto;padding:1rem;display:${defaultTab==='android'?'block':'none'}">
+      <div style="font-size:.8rem;color:var(--dim);line-height:1.8">
+        <div style="background:rgba(61,158,116,.08);border:1px solid rgba(61,158,116,.2);border-radius:4px;padding:.6rem .85rem;margin-bottom:.85rem;font-size:.75rem;color:#3D9E74">
+          Chrome 브라우저에서 가장 쉽게 설치할 수 있습니다
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">Chrome으로 열기</div>
+              <div style="font-size:.75rem;color:var(--muted)">Chrome 주소창에 <strong style="color:var(--wing2)">birdyard.app</strong> 을 입력하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">설치 배너 탭 (자동 표시)</div>
+              <div style="font-size:.75rem;color:var(--muted)">하단에 <strong style="color:var(--chalk)">"Birdyard 앱 설치"</strong> 배너가 자동으로 나타나면 탭하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">배너가 없는 경우 — 수동 설치</div>
+              <div style="font-size:.75rem;color:var(--muted)">우측 상단 <strong style="color:var(--chalk)">⋮ 메뉴</strong> → <strong style="color:var(--chalk)">앱 설치</strong> 또는 <strong style="color:var(--chalk)">홈 화면에 추가</strong></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">설치 탭</div>
+              <div style="font-size:.75rem;color:var(--muted)">팝업에서 <strong style="color:var(--chalk)">설치</strong>를 탭하면 홈 화면에 아이콘이 추가됩니다</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:.85rem;background:rgba(240,237,230,.04);border-radius:4px;padding:.55rem .75rem;font-size:.73rem;color:var(--muted)">
+          ✓ 알림 수신이 가능해집니다<br>
+          ✓ 앱처럼 전체화면으로 실행됩니다<br>
+          ✓ 로그인 상태가 유지됩니다
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+};
+
+window.switchInstallTab = (tab) => {
+  ['ios','android'].forEach(t => {
+    const btn = document.getElementById(`install-tab-${t}`);
+    const content = document.getElementById(`install-content-${t}`);
+    const active = t === tab;
+    if(btn){ btn.style.borderBottomColor = active ? 'var(--wing2)' : 'transparent'; btn.style.color = active ? 'var(--wing2)' : 'var(--muted)'; }
+    if(content) content.style.display = active ? 'block' : 'none';
+  });
+};
 
 window.openFeedback = () => {
   const existing = document.getElementById('feedback-overlay');
@@ -3428,7 +3570,7 @@ function vList(){
 window.setVSub=t=>{vSub=t;render();if(t==='explore')setTimeout(loadExplore,50);};
 
 // 탐색 탭 현재 상태
-let _exploreState={tags:[],notes:[],activeTag:'',query:'',sort:'popular',loading:false,page:0};
+let _exploreState={tags:[],notes:[],activeTag:'',tagMode:'exact',query:'',sort:'popular',loading:false,page:0};
 
 function exploreView(vtabs){
   const s=_exploreState;
@@ -3439,9 +3581,14 @@ function exploreView(vtabs){
     </button>`).join('');
 
   const sortBar=`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap">
-    ${s.activeTag?`<div style="display:flex;align-items:center;gap:.3rem;padding:3px 10px;border-radius:14px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.75rem">
-      🏷 ${esc(s.activeTag)}
-      <button onclick="setExploreTag('')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.8rem;padding:0;line-height:1;margin-left:2px">✕</button>
+    ${s.activeTag?`<div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.3rem;padding:3px 10px;border-radius:14px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.75rem">
+        🏷 ${esc(s.activeTag)}
+        <button onclick="setExploreTag('')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.8rem;padding:0;line-height:1;margin-left:2px">✕</button>
+      </div>
+      <button onclick="setExploreTagMode('exact')" style="padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${s.tagMode==='exact'?'rgba(200,137,58,.4)':'rgba(240,237,230,.15)'};background:${s.tagMode==='exact'?'rgba(200,137,58,.12)':'none'};color:${s.tagMode==='exact'?'var(--wing2)':'var(--muted)'};font-size:.7rem">동일 태그</button>
+      <button onclick="setExploreTagMode('similar')" style="padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${s.tagMode==='similar'?'rgba(74,143,168,.4)':'rgba(240,237,230,.15)'};background:${s.tagMode==='similar'?'rgba(74,143,168,.1)':'none'};color:${s.tagMode==='similar'?'var(--sky2)':'var(--muted)'};font-size:.7rem">유사 태그</button>
+      <span style="font-size:.7rem;color:var(--muted)">${s.notes.length}개</span>
     </div>`:''}
     <div style="margin-left:auto;display:flex;gap:.3rem">
       <button onclick="setExploreSort('popular')" style="padding:3px 9px;border-radius:3px;border:1px solid ${s.sort==='popular'?'rgba(200,137,58,.4)':'var(--border)'};background:${s.sort==='popular'?'rgba(200,137,58,.1)':'none'};color:${s.sort==='popular'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">인기순</button>
@@ -3526,16 +3673,30 @@ async function loadExplore(reset=true){
     }
 
     // 노트 쿼리
-    const {activeTag,query,sort,page}=_exploreState;
+    const {activeTag,tagMode,query,sort,page}=_exploreState;
     const from=page*20, to=from+19;
     let q=sb.from('videos').select('id,url,title,keywords,memo,like_count,added_at,user_id')
       .eq('is_public',true).neq('user_id',user?.id||'00000000-0000-0000-0000-000000000000')
       .range(from,to);
     if(sort==='popular') q=q.order('like_count',{ascending:false});
     else q=q.order('added_at',{ascending:false});
-    if(activeTag) q=q.contains('keywords',[activeTag]);
+    if(activeTag){
+      if(tagMode==='similar'){
+        // 유사 태그: 더 넓게 가져온 후 클라이언트 필터
+        q=q.range(0, 99); // 더 많이 가져와서 필터링
+      } else {
+        q=q.contains('keywords',[activeTag]);
+      }
+    }
     if(query) q=q.or(`title.ilike.%${query}%,keywords.cs.{${query}}`);
-    const{data:notes}=await q;
+    let {data:notes}=await q;
+    // 유사 태그 클라이언트 필터
+    if(activeTag && tagMode==='similar' && notes){
+      const kl=activeTag.toLowerCase();
+      notes=notes.filter(n=>(n.keywords||[]).some(k=>
+        k.toLowerCase().includes(kl)||kl.includes(k.toLowerCase())
+      ));
+    }
 
     // 닉네임 조회
     const uids=[...new Set((notes||[]).map(n=>n.user_id))];
@@ -3558,6 +3719,11 @@ async function loadExplore(reset=true){
 
 window.setExploreTag=tag=>{
   _exploreState.activeTag=_exploreState.activeTag===tag?'':tag;
+  _exploreState.tagMode='exact'; // 태그 클릭 시 exact 모드로 초기화
+  loadExplore();
+};
+window.setExploreTagMode=mode=>{
+  _exploreState.tagMode=mode;
   loadExplore();
 };
 window.setExploreSort=s=>{_exploreState.sort=s;loadExplore();};
@@ -4773,7 +4939,7 @@ function eDetail(){
         <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 아이언 번호</div>
         <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
       </div>
-      ${ironSetUI(e.ironSet||[])}
+      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[])}
     </div>`:'';
   const tagsH = `
     <div style="margin-bottom:.9rem">
@@ -4812,13 +4978,42 @@ function eDetail(){
   </div>
   <div class="sec-label">태그</div>
   ${tagsH}
-  ${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem;margin-bottom:.9rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--wing2)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}
+  ${e.status==='owned'?`
+  <!-- 구매 정보 (인라인 편집) -->
+  <div class="sec-box" style="margin-bottom:.9rem;display:flex;gap:1rem;flex-wrap:wrap">
+    <div style="flex:1;min-width:120px">
+      <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.3rem">구매가</div>
+      <div style="display:flex;align-items:center;gap:.3rem">
+        <input class="inp" id="e-buy-price-${e.id}" value="${e.buyPrice||''}" placeholder="구매가 (원)"
+          style="font-weight:600;color:var(--wing2);padding:.3rem .5rem;font-size:.88rem"
+          type="number" onblur="saveEquipPurchase('${e.id}')">
+        <span style="font-size:.75rem;color:var(--muted)">원</span>
+      </div>
+    </div>
+    <div style="flex:1;min-width:120px">
+      <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.3rem">구매일</div>
+      <input class="inp" id="e-buy-date-${e.id}" value="${e.buyDate||''}" type="date"
+        style="padding:.3rem .5rem;font-size:.88rem" onblur="saveEquipPurchase('${e.id}')">
+    </div>
+  </div>`:''}
   <div class="sec-label">메모</div>
   <div style="margin-bottom:.9rem">
     <textarea class="ta" id="ememo-${e.id}" style="min-height:72px;font-size:.88rem;line-height:1.7" placeholder="메모를 입력하세요..." onblur="saveEMemo('${e.id}',this.value)">${ea(e.memo||'')}</textarea>
   </div>
 
-  <div class="divider"></div>
+  <!-- 기념 사진 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+    <div class="sec-label" style="margin-bottom:0">📸 기념 사진</div>
+    <button onclick="addEquipMemoryPhoto('${e.id}')" style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">+ 추가</button>
+  </div>
+  <input type="file" id="equip-memory-input-${e.id}" accept="image/*" multiple style="display:none" onchange="uploadEquipMemoryPhotos('${e.id}',this)">
+  <div id="equip-memory-gallery-${e.id}" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.9rem">
+    ${(e.tags?.photos||[]).map((url,i)=>`<div style="position:relative;width:80px;height:80px">
+      <img src="${ea(url)}" style="width:80px;height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--border);cursor:pointer" onclick="viewEquipPhoto('${ea(url)}')" alt="">
+      <button onclick="delEquipMemoryPhoto('${e.id}',${i})" style="position:absolute;top:-5px;right:-5px;background:rgba(13,17,23,.85);border:1px solid rgba(193,123,106,.4);color:var(--red);width:18px;height:18px;border-radius:50%;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+    </div>`).join('')}
+    ${!(e.tags?.photos?.length)?`<div style="color:var(--muted);font-size:.75rem;padding:.3rem 0">사진을 추가해보세요</div>`:''}
+  </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
     <div class="sec-label" style="margin-bottom:0">AI 장비 분석</div>
     <button class="btn-analyze" id="btn-equip-analyze-${e.id}" onclick="analyzeEquip('${e.id}')">
@@ -5101,10 +5296,15 @@ window.saveEMemo=async(id,val)=>{
 window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
-  const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)?{...e.tags,iron_set:selected}:{iron_set:selected};
+  const wedges=readWedgeSet();
+  const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)
+    ?{...e.tags,...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})}
+    :{...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})};
   sync('busy');const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
   if(error){toast('저장 실패');sync('err');return}
-  e.ironSet=selected;e.tags=newTags;sync('ok');toast(`아이언 세트 저장됨 (${selected.join(', ')||'없음'})`);
+  e.ironSet=selected;e.tags=newTags;sync('ok');
+  const parts=[...(selected.length?[selected.join(', ')]:[]),(wedges.length?['웨지: '+wedges.join(', ')]:[])[0]].filter(Boolean);
+  toast(`클럽 세트 저장됨 (${parts.join(' / ')||'없음'})`);
 };
 
 // ── AI 장비 분석 ─────────────────────────────────────
@@ -5260,6 +5460,75 @@ ${overallStats}
   btn.disabled = false;
 };
 // 장비명 저장
+window.saveEquipPurchase = async (id) => {
+  const e = D.equip.find(x=>x.id===id); if(!e) return;
+  const price = $(`e-buy-price-${id}`)?.value;
+  const date = $(`e-buy-date-${id}`)?.value;
+  const newPrice = price ? Number(price) : null;
+  const newDate = date || null;
+  if(newPrice===e.buyPrice && newDate===e.buyDate) return;
+  const {error} = await sb.from('equipment').update({
+    purchase_price: newPrice, purchase_date: newDate
+  }).eq('id',id).eq('user_id',user.id);
+  if(error){ toast('저장 실패: '+error.message); return; }
+  e.buyPrice=newPrice; e.buyDate=newDate;
+  sync('ok'); toast('구매 정보 저장됨');
+};
+
+window.addEquipMemoryPhoto = (id) => {
+  const inp = $(`equip-memory-input-${id}`);
+  if(inp) inp.click();
+};
+
+window.uploadEquipMemoryPhotos = async (id, input) => {
+  const files = [...input.files];
+  if(!files.length) return;
+  const e = D.equip.find(x=>x.id===id); if(!e) return;
+  toast('📸 업로드 중...');
+  try{
+    const urls = [];
+    for(const file of files.slice(0,5)){ // 최대 5장
+      const ext = (file.name?.split('.').pop()||'jpg').toLowerCase();
+      const path = `${user.id}/equip_mem_${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType:file.type||'image/jpeg'});
+      if(ue) throw ue;
+      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
+      if(sd?.publicUrl) urls.push(sd.publicUrl);
+    }
+    const existing = e.tags?.photos||[];
+    const newPhotos = [...existing, ...urls].slice(0,10); // 최대 10장
+    const newTags = typeof e.tags==='object'&&!Array.isArray(e.tags)
+      ? {...e.tags, photos:newPhotos} : {photos:newPhotos};
+    const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+    if(error) throw error;
+    e.tags=newTags;
+    toast(`✓ ${urls.length}장 추가됨`);
+    render();
+  }catch(err){
+    toast('업로드 실패: '+err.message);
+  }
+  input.value='';
+};
+
+window.delEquipMemoryPhoto = async (id, idx) => {
+  const e = D.equip.find(x=>x.id===id); if(!e) return;
+  const photos = [...(e.tags?.photos||[])];
+  photos.splice(idx,1);
+  const newTags = typeof e.tags==='object'&&!Array.isArray(e.tags)
+    ? {...e.tags, photos} : {photos};
+  const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+  if(error){ toast('삭제 실패'); return; }
+  e.tags=newTags; toast('사진 삭제됨'); render();
+};
+
+window.viewEquipPhoto = (url) => {
+  const ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:5000;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  ov.innerHTML=`<img src="${url}" style="max-width:95vw;max-height:95vh;object-fit:contain;border-radius:4px">`;
+  ov.addEventListener('click',()=>ov.remove());
+  document.body.appendChild(ov);
+};
+
 window.saveEName=async(id,val)=>{
   const e=D.equip.find(x=>x.id===id);if(!e||!val.trim()||val.trim()===e.name)return;
   sync('busy');const{error}=await sb.from('equipment').update({name:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.name=val.trim();sync('ok');toast('장비명 저장됨');
@@ -5394,11 +5663,30 @@ window.genEquipMemo = async () => {
     const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:1000,
-        prompt:`골프 장비 전문가로서 아래 골프 장비에 대해 간결하게 정리해주세요.\n장비명: ${name}${cat?'\n분류: '+cat:''}${gameType?'\n사용자 게임 타입: '+gameType:''}\n\n아래 형식으로 3~5줄:\n• 주요 사양/특징\n• 난이도: (입문자용/중급자용/상급자용)\n• 추천 대상: 한 줄 설명\n한국어로 간결하게`})
+      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:1500,useSearch:true,
+        prompt:`골프 장비 전문가로서 아래 골프 장비의 스펙을 조사해서 정리해주세요.
+
+장비명: ${name}${cat?'\n분류: '+cat:''}${gameType?'\n사용자 게임 타입: '+gameType:''}
+
+아래 양식으로 작성하세요 (해당하는 항목만, 없는 항목은 생략):
+
+[기본정보] 분류/성별/손잡이/출시연도/세트구성(개수)
+
+[헤드스펙] 구성번호/주요 로프트(°)/난이도/공법(단조/주조)/헤드타입(캐비티백/머슬백 등)
+
+[샤프트스펙] 강도/중량/토크/소재
+
+[특징] 한 줄 설명
+
+규칙:
+- 각 줄은 [섹션명] 으로 시작
+- 항목 구분은 /로 연결
+- 확실하지 않은 정보는 생략 (추측 금지)
+- 한국어로 작성`})
     });
     const data = await resp.json();
-    const text = data.result||data.text||'';
+    if(data.error) throw new Error(data.error);
+    const text = data.result||data.text||data.content?.[0]?.text||'';
     if(!text) throw new Error('응답 없음');
     const em=$('em'); if(em){ em.value=text.trim(); }
     if(status){ status.textContent='✓ 완료'; status.style.color='var(--turf)'; }
@@ -5426,7 +5714,8 @@ window.saveEquip=async()=>{
   const priceH = firstPrice ? [{date:today(), price:firstPrice.price}] : [];
 
   const ironSet=cat==='아이언'?readIronSet():[];
-  const tagsData=ironSet.length?{iron_set:ironSet}:null;
+  const wedgeSet=cat==='웨지'?readWedgeSet():[];
+  const tagsData=(ironSet.length||wedgeSet.length)?{...(ironSet.length?{iron_set:ironSet}:{}),  ...(wedgeSet.length?{wedge_set:wedgeSet}:{})}:null;
   const photoUrl=$('eadd-photo-url')?.value||'';
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
@@ -5445,7 +5734,7 @@ function eAdd(){
       <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
       <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
     </div>
-    <div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div>
+    <div id="iron-set-wrap" style="display:none">${ironSetUI([],[])}</div>
 
     <div class="fg"><label class="fl-label">상태</label>
       <div style="display:flex;gap:.75rem">
@@ -6069,7 +6358,7 @@ function _refreshGamePhotoPreview(){
 window.applyPlayerScores = (playerIdx) => {
   applyScorecardToForm(playerIdx);
 };
-window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
+window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=(v==='아이언'||v==='웨지')?'block':'none'};
 const ss=s=>{
   const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
   const carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');
