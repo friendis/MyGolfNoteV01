@@ -4978,13 +4978,42 @@ function eDetail(){
   </div>
   <div class="sec-label">태그</div>
   ${tagsH}
-  ${e.status==='owned'&&e.buyDate?`<div class="sec-box" style="display:flex;gap:1.5rem;margin-bottom:.9rem"><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매가</div><div style="font-weight:700;color:var(--wing2)">${fmtP(e.buyPrice)}</div></div><div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px">구매일</div><div style="font-weight:700">${e.buyDate}</div></div></div>`:''}
+  ${e.status==='owned'?`
+  <!-- 구매 정보 (인라인 편집) -->
+  <div class="sec-box" style="margin-bottom:.9rem;display:flex;gap:1rem;flex-wrap:wrap">
+    <div style="flex:1;min-width:120px">
+      <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.3rem">구매가</div>
+      <div style="display:flex;align-items:center;gap:.3rem">
+        <input class="inp" id="e-buy-price-${e.id}" value="${e.buyPrice||''}" placeholder="구매가 (원)"
+          style="font-weight:600;color:var(--wing2);padding:.3rem .5rem;font-size:.88rem"
+          type="number" onblur="saveEquipPurchase('${e.id}')">
+        <span style="font-size:.75rem;color:var(--muted)">원</span>
+      </div>
+    </div>
+    <div style="flex:1;min-width:120px">
+      <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.3rem">구매일</div>
+      <input class="inp" id="e-buy-date-${e.id}" value="${e.buyDate||''}" type="date"
+        style="padding:.3rem .5rem;font-size:.88rem" onblur="saveEquipPurchase('${e.id}')">
+    </div>
+  </div>`:''}
   <div class="sec-label">메모</div>
   <div style="margin-bottom:.9rem">
     <textarea class="ta" id="ememo-${e.id}" style="min-height:72px;font-size:.88rem;line-height:1.7" placeholder="메모를 입력하세요..." onblur="saveEMemo('${e.id}',this.value)">${ea(e.memo||'')}</textarea>
   </div>
 
-  <div class="divider"></div>
+  <!-- 기념 사진 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+    <div class="sec-label" style="margin-bottom:0">📸 기념 사진</div>
+    <button onclick="addEquipMemoryPhoto('${e.id}')" style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:var(--wing2);padding:3px 10px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">+ 추가</button>
+  </div>
+  <input type="file" id="equip-memory-input-${e.id}" accept="image/*" multiple style="display:none" onchange="uploadEquipMemoryPhotos('${e.id}',this)">
+  <div id="equip-memory-gallery-${e.id}" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.9rem">
+    ${(e.tags?.photos||[]).map((url,i)=>`<div style="position:relative;width:80px;height:80px">
+      <img src="${ea(url)}" style="width:80px;height:80px;object-fit:cover;border-radius:3px;border:1px solid var(--border);cursor:pointer" onclick="viewEquipPhoto('${ea(url)}')" alt="">
+      <button onclick="delEquipMemoryPhoto('${e.id}',${i})" style="position:absolute;top:-5px;right:-5px;background:rgba(13,17,23,.85);border:1px solid rgba(193,123,106,.4);color:var(--red);width:18px;height:18px;border-radius:50%;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+    </div>`).join('')}
+    ${!(e.tags?.photos?.length)?`<div style="color:var(--muted);font-size:.75rem;padding:.3rem 0">사진을 추가해보세요</div>`:''}
+  </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
     <div class="sec-label" style="margin-bottom:0">AI 장비 분석</div>
     <button class="btn-analyze" id="btn-equip-analyze-${e.id}" onclick="analyzeEquip('${e.id}')">
@@ -5431,6 +5460,75 @@ ${overallStats}
   btn.disabled = false;
 };
 // 장비명 저장
+window.saveEquipPurchase = async (id) => {
+  const e = D.equip.find(x=>x.id===id); if(!e) return;
+  const price = $(`e-buy-price-${id}`)?.value;
+  const date = $(`e-buy-date-${id}`)?.value;
+  const newPrice = price ? Number(price) : null;
+  const newDate = date || null;
+  if(newPrice===e.buyPrice && newDate===e.buyDate) return;
+  const {error} = await sb.from('equipment').update({
+    purchase_price: newPrice, purchase_date: newDate
+  }).eq('id',id).eq('user_id',user.id);
+  if(error){ toast('저장 실패: '+error.message); return; }
+  e.buyPrice=newPrice; e.buyDate=newDate;
+  sync('ok'); toast('구매 정보 저장됨');
+};
+
+window.addEquipMemoryPhoto = (id) => {
+  const inp = $(`equip-memory-input-${id}`);
+  if(inp) inp.click();
+};
+
+window.uploadEquipMemoryPhotos = async (id, input) => {
+  const files = [...input.files];
+  if(!files.length) return;
+  const e = D.equip.find(x=>x.id===id); if(!e) return;
+  toast('📸 업로드 중...');
+  try{
+    const urls = [];
+    for(const file of files.slice(0,5)){ // 최대 5장
+      const ext = (file.name?.split('.').pop()||'jpg').toLowerCase();
+      const path = `${user.id}/equip_mem_${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType:file.type||'image/jpeg'});
+      if(ue) throw ue;
+      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
+      if(sd?.publicUrl) urls.push(sd.publicUrl);
+    }
+    const existing = e.tags?.photos||[];
+    const newPhotos = [...existing, ...urls].slice(0,10); // 최대 10장
+    const newTags = typeof e.tags==='object'&&!Array.isArray(e.tags)
+      ? {...e.tags, photos:newPhotos} : {photos:newPhotos};
+    const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+    if(error) throw error;
+    e.tags=newTags;
+    toast(`✓ ${urls.length}장 추가됨`);
+    render();
+  }catch(err){
+    toast('업로드 실패: '+err.message);
+  }
+  input.value='';
+};
+
+window.delEquipMemoryPhoto = async (id, idx) => {
+  const e = D.equip.find(x=>x.id===id); if(!e) return;
+  const photos = [...(e.tags?.photos||[])];
+  photos.splice(idx,1);
+  const newTags = typeof e.tags==='object'&&!Array.isArray(e.tags)
+    ? {...e.tags, photos} : {photos};
+  const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
+  if(error){ toast('삭제 실패'); return; }
+  e.tags=newTags; toast('사진 삭제됨'); render();
+};
+
+window.viewEquipPhoto = (url) => {
+  const ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:5000;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  ov.innerHTML=`<img src="${url}" style="max-width:95vw;max-height:95vh;object-fit:contain;border-radius:4px">`;
+  ov.addEventListener('click',()=>ov.remove());
+  document.body.appendChild(ov);
+};
+
 window.saveEName=async(id,val)=>{
   const e=D.equip.find(x=>x.id===id);if(!e||!val.trim()||val.trim()===e.name)return;
   sync('busy');const{error}=await sb.from('equipment').update({name:val.trim()}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.name=val.trim();sync('ok');toast('장비명 저장됨');
