@@ -3428,7 +3428,7 @@ function vList(){
 window.setVSub=t=>{vSub=t;render();if(t==='explore')setTimeout(loadExplore,50);};
 
 // 탐색 탭 현재 상태
-let _exploreState={tags:[],notes:[],activeTag:'',query:'',sort:'popular',loading:false,page:0};
+let _exploreState={tags:[],notes:[],activeTag:'',tagMode:'exact',query:'',sort:'popular',loading:false,page:0};
 
 function exploreView(vtabs){
   const s=_exploreState;
@@ -3439,9 +3439,14 @@ function exploreView(vtabs){
     </button>`).join('');
 
   const sortBar=`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap">
-    ${s.activeTag?`<div style="display:flex;align-items:center;gap:.3rem;padding:3px 10px;border-radius:14px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.75rem">
-      🏷 ${esc(s.activeTag)}
-      <button onclick="setExploreTag('')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.8rem;padding:0;line-height:1;margin-left:2px">✕</button>
+    ${s.activeTag?`<div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.3rem;padding:3px 10px;border-radius:14px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.75rem">
+        🏷 ${esc(s.activeTag)}
+        <button onclick="setExploreTag('')" style="background:none;border:none;color:var(--wing2);cursor:pointer;font-size:.8rem;padding:0;line-height:1;margin-left:2px">✕</button>
+      </div>
+      <button onclick="setExploreTagMode('exact')" style="padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${s.tagMode==='exact'?'rgba(200,137,58,.4)':'rgba(240,237,230,.15)'};background:${s.tagMode==='exact'?'rgba(200,137,58,.12)':'none'};color:${s.tagMode==='exact'?'var(--wing2)':'var(--muted)'};font-size:.7rem">동일 태그</button>
+      <button onclick="setExploreTagMode('similar')" style="padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);border:1px solid ${s.tagMode==='similar'?'rgba(74,143,168,.4)':'rgba(240,237,230,.15)'};background:${s.tagMode==='similar'?'rgba(74,143,168,.1)':'none'};color:${s.tagMode==='similar'?'var(--sky2)':'var(--muted)'};font-size:.7rem">유사 태그</button>
+      <span style="font-size:.7rem;color:var(--muted)">${s.notes.length}개</span>
     </div>`:''}
     <div style="margin-left:auto;display:flex;gap:.3rem">
       <button onclick="setExploreSort('popular')" style="padding:3px 9px;border-radius:3px;border:1px solid ${s.sort==='popular'?'rgba(200,137,58,.4)':'var(--border)'};background:${s.sort==='popular'?'rgba(200,137,58,.1)':'none'};color:${s.sort==='popular'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">인기순</button>
@@ -3526,16 +3531,30 @@ async function loadExplore(reset=true){
     }
 
     // 노트 쿼리
-    const {activeTag,query,sort,page}=_exploreState;
+    const {activeTag,tagMode,query,sort,page}=_exploreState;
     const from=page*20, to=from+19;
     let q=sb.from('videos').select('id,url,title,keywords,memo,like_count,added_at,user_id')
       .eq('is_public',true).neq('user_id',user?.id||'00000000-0000-0000-0000-000000000000')
       .range(from,to);
     if(sort==='popular') q=q.order('like_count',{ascending:false});
     else q=q.order('added_at',{ascending:false});
-    if(activeTag) q=q.contains('keywords',[activeTag]);
+    if(activeTag){
+      if(tagMode==='similar'){
+        // 유사 태그: 더 넓게 가져온 후 클라이언트 필터
+        q=q.range(0, 99); // 더 많이 가져와서 필터링
+      } else {
+        q=q.contains('keywords',[activeTag]);
+      }
+    }
     if(query) q=q.or(`title.ilike.%${query}%,keywords.cs.{${query}}`);
-    const{data:notes}=await q;
+    let {data:notes}=await q;
+    // 유사 태그 클라이언트 필터
+    if(activeTag && tagMode==='similar' && notes){
+      const kl=activeTag.toLowerCase();
+      notes=notes.filter(n=>(n.keywords||[]).some(k=>
+        k.toLowerCase().includes(kl)||kl.includes(k.toLowerCase())
+      ));
+    }
 
     // 닉네임 조회
     const uids=[...new Set((notes||[]).map(n=>n.user_id))];
@@ -3558,6 +3577,11 @@ async function loadExplore(reset=true){
 
 window.setExploreTag=tag=>{
   _exploreState.activeTag=_exploreState.activeTag===tag?'':tag;
+  _exploreState.tagMode='exact'; // 태그 클릭 시 exact 모드로 초기화
+  loadExplore();
+};
+window.setExploreTagMode=mode=>{
+  _exploreState.tagMode=mode;
   loadExplore();
 };
 window.setExploreSort=s=>{_exploreState.sort=s;loadExplore();};
