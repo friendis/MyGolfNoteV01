@@ -492,7 +492,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 
 <div id="app">
   <!-- 얼리액세스 배너 -->
-  <div id="early-access-banner" style="background:linear-gradient(90deg,rgba(200,137,58,.18),rgba(200,137,58,.1),rgba(200,137,58,.18));border-bottom:1px solid rgba(200,137,58,.2);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap">
+  <div id="early-access-banner" style="background:linear-gradient(90deg,rgba(200,137,58,.18),rgba(200,137,58,.1),rgba(200,137,58,.18));border-bottom:1px solid rgba(200,137,58,.2);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap;position:sticky;top:0;z-index:101">
     <span style="font-size:.65rem;font-weight:700;letter-spacing:.12em;color:var(--wing2);text-transform:uppercase">Early Access</span>
     <span style="font-size:.68rem;color:var(--dim)">— 모든 기능 무료 이용 중 🎉</span>
     <button onclick="renderPublicProfile('friendis')" style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.68rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);flex-shrink:0">🏌️ 개발자 계정 구경가기</button>
@@ -717,7 +717,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 <script>
 function adjustStickyPositions(){
   const banner = document.getElementById('early-access-banner');
-  const bannerH = (banner && banner.offsetParent !== null && banner.style.display !== 'none') ? banner.offsetHeight : 0;
+  const bannerH = (banner && banner.style.display !== 'none') ? banner.offsetHeight : 0;
   document.documentElement.style.setProperty('--banner-h', bannerH + 'px');
 }
 document.addEventListener('DOMContentLoaded', () => {
@@ -725,7 +725,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const banner = document.getElementById('early-access-banner');
   if(banner){
     new ResizeObserver(adjustStickyPositions).observe(banner);
-    // ✕ 닫기 후 재조정
     const closeBtn = banner.querySelector('button');
     if(closeBtn){
       const orig = closeBtn.onclick;
