@@ -64,7 +64,7 @@ body{font-family:var(--sans);background:var(--night);color:var(--text);min-heigh
 .agree-row a{color:var(--wing2);text-decoration:underline;cursor:pointer}
 
 /* APP */
-:root{--banner-h:32px}
+:root{--banner-h:0px}
 #app{display:none;flex-direction:column;min-height:100vh}
 
 /* HEADER */
@@ -5565,10 +5565,12 @@ window.viewEquipPhoto = (url) => {
   ov.id = 'equip-photo-viewer';
   ov.style.cssText = 'position:fixed;inset:0;background:#000;z-index:999999;display:flex;flex-direction:column;touch-action:none';
 
-  // DEV 배너 높이만큼 상단 여백 확보
-  const devBar = document.getElementById('dev-bar') || document.querySelector('[style*="z-index:99999"]');
+  // 최상단에 보이는 고정 배너 높이만큼 아래에서 시작
+  const topBarH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--banner-h'))||0;
+  const devBar = document.querySelector('[style*="z-index:99999"]');
   const devBarH = devBar ? devBar.offsetHeight : 0;
-  if(devBarH > 0) ov.style.top = devBarH + 'px';
+  const totalTopH = topBarH + devBarH;
+  if(totalTopH > 0) ov.style.top = totalTopH + 'px';
 
   ov.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:rgba(0,0,0,.8);flex-shrink:0;z-index:1">
