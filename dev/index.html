@@ -521,6 +521,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
         <div class="acct-panel" id="acct-panel">
           <div class="acct-email" id="panel-email"></div>
           <button class="acct-btn" id="apanel-settings" onclick="openModal('settings-modal');closeAcctPanel()">🔑 API 키 설정</button>
+          <button class="acct-btn" onclick="openInstallGuide();closeAcctPanel()">📱 홈 화면에 추가하기</button>
           <button class="acct-btn" onclick="openFeedback();closeAcctPanel()">📣 피드백 / 버그 신고</button>
           <button class="acct-btn" onclick="renderPublicProfile('friendis');closeAcctPanel()" style="color:var(--wing2)">🏌️ 개발자 계정 구경하기</button>
           <button class="acct-btn" onclick="openModal('privacy-modal');closeAcctPanel()">📄 개인정보 처리방침</button>
@@ -1058,6 +1059,136 @@ function guestBanner() {
   </div>`;
 }
 window.closeModal=id=>{$(id).classList.remove('on');document.body.style.overflow=''};
+
+window.openInstallGuide = () => {
+  const existing = document.getElementById('install-guide-overlay');
+  if(existing) existing.remove();
+
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  // 기기 감지로 기본 탭 설정
+  const defaultTab = isIOS ? 'ios' : 'android';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'install-guide-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:4000;display:flex;align-items:flex-end;justify-content:center';
+
+  overlay.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px 10px 0 0;width:min(520px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-family:var(--serif);font-size:.95rem;font-weight:700;color:var(--chalk)">📱 홈 화면에 추가하기</div>
+      <button onclick="document.getElementById('install-guide-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+    </div>
+    <!-- 탭 -->
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button id="install-tab-ios" onclick="switchInstallTab('ios')"
+        style="flex:1;padding:.55rem;font-size:.8rem;font-family:var(--sans);border:none;cursor:pointer;background:none;border-bottom:2px solid ${defaultTab==='ios'?'var(--wing2)':'transparent'};color:${defaultTab==='ios'?'var(--wing2)':'var(--muted)'}">
+         iPhone / iPad
+      </button>
+      <button id="install-tab-android" onclick="switchInstallTab('android')"
+        style="flex:1;padding:.55rem;font-size:.8rem;font-family:var(--sans);border:none;cursor:pointer;background:none;border-bottom:2px solid ${defaultTab==='android'?'var(--wing2)':'transparent'};color:${defaultTab==='android'?'var(--wing2)':'var(--muted)'}">
+        🤖 Android
+      </button>
+    </div>
+    <!-- iOS 안내 -->
+    <div id="install-content-ios" style="overflow-y:auto;padding:1rem;display:${defaultTab==='ios'?'block':'none'}">
+      <div style="font-size:.8rem;color:var(--dim);line-height:1.8">
+        <div style="background:rgba(74,143,168,.08);border:1px solid rgba(74,143,168,.2);border-radius:4px;padding:.6rem .85rem;margin-bottom:.85rem;font-size:.75rem;color:var(--sky2)">
+          Safari 브라우저에서만 홈 화면 추가가 가능합니다
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">Safari로 열기</div>
+              <div style="font-size:.75rem;color:var(--muted)">Chrome이나 다른 브라우저를 사용 중이라면 Safari로 <strong style="color:var(--wing2)">birdyard.app</strong> 을 열어주세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">공유 버튼 탭</div>
+              <div style="font-size:.75rem;color:var(--muted)">하단 가운데의 <span style="font-size:1rem">⎙</span> 공유 버튼을 탭하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">"홈 화면에 추가" 선택</div>
+              <div style="font-size:.75rem;color:var(--muted)">스크롤을 내려 <strong style="color:var(--chalk)">홈 화면에 추가</strong> 항목을 탭하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">추가 탭</div>
+              <div style="font-size:.75rem;color:var(--muted)">이름을 확인하고 오른쪽 위 <strong style="color:var(--chalk)">추가</strong>를 탭하세요</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:.85rem;background:rgba(240,237,230,.04);border-radius:4px;padding:.55rem .75rem;font-size:.73rem;color:var(--muted)">
+          ✓ 홈 화면에서 앱처럼 전체화면으로 실행됩니다<br>
+          ✓ 로그인 상태가 유지됩니다
+        </div>
+      </div>
+    </div>
+    <!-- Android 안내 -->
+    <div id="install-content-android" style="overflow-y:auto;padding:1rem;display:${defaultTab==='android'?'block':'none'}">
+      <div style="font-size:.8rem;color:var(--dim);line-height:1.8">
+        <div style="background:rgba(61,158,116,.08);border:1px solid rgba(61,158,116,.2);border-radius:4px;padding:.6rem .85rem;margin-bottom:.85rem;font-size:.75rem;color:#3D9E74">
+          Chrome 브라우저에서 가장 쉽게 설치할 수 있습니다
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">Chrome으로 열기</div>
+              <div style="font-size:.75rem;color:var(--muted)">Chrome 주소창에 <strong style="color:var(--wing2)">birdyard.app</strong> 을 입력하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">설치 배너 탭 (자동 표시)</div>
+              <div style="font-size:.75rem;color:var(--muted)">하단에 <strong style="color:var(--chalk)">"Birdyard 앱 설치"</strong> 배너가 자동으로 나타나면 탭하세요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">배너가 없는 경우 — 수동 설치</div>
+              <div style="font-size:.75rem;color:var(--muted)">우측 상단 <strong style="color:var(--chalk)">⋮ 메뉴</strong> → <strong style="color:var(--chalk)">앱 설치</strong> 또는 <strong style="color:var(--chalk)">홈 화면에 추가</strong></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <span style="background:var(--wing2);color:#000;font-weight:700;font-size:.72rem;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</span>
+            <div>
+              <div style="font-weight:600;color:var(--chalk);margin-bottom:2px">설치 탭</div>
+              <div style="font-size:.75rem;color:var(--muted)">팝업에서 <strong style="color:var(--chalk)">설치</strong>를 탭하면 홈 화면에 아이콘이 추가됩니다</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:.85rem;background:rgba(240,237,230,.04);border-radius:4px;padding:.55rem .75rem;font-size:.73rem;color:var(--muted)">
+          ✓ 알림 수신이 가능해집니다<br>
+          ✓ 앱처럼 전체화면으로 실행됩니다<br>
+          ✓ 로그인 상태가 유지됩니다
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+};
+
+window.switchInstallTab = (tab) => {
+  ['ios','android'].forEach(t => {
+    const btn = document.getElementById(`install-tab-${t}`);
+    const content = document.getElementById(`install-content-${t}`);
+    const active = t === tab;
+    if(btn){ btn.style.borderBottomColor = active ? 'var(--wing2)' : 'transparent'; btn.style.color = active ? 'var(--wing2)' : 'var(--muted)'; }
+    if(content) content.style.display = active ? 'block' : 'none';
+  });
+};
 
 window.openFeedback = () => {
   const existing = document.getElementById('feedback-overlay');
