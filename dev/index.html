@@ -943,12 +943,19 @@ function clubLabel(club){
   return club;
 }
 // 아이언 세트 체크박스 HTML
-function ironSetUI(selected=[], disabled=false){
+function ironSetUI(selectedIrons=[], selectedWedges=[], disabled=false){
+  const wedgeNums=['PW','AW/GW','SW','LW'];
   return`<div style="margin-top:.5rem">
     <div class="fl-label">보유 아이언 번호</div>
     <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selected.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
-        <input type="checkbox" value="${n}" name="iron_set"${selected.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
+      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedIrons.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selectedIrons.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
+        <input type="checkbox" value="${n}" name="iron_set"${selectedIrons.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
+      </label>`).join('')}
+    </div>
+    <div class="fl-label" style="margin-top:.5rem">보유 웨지</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${wedgeNums.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedWedges.includes(n)?'rgba(74,143,168,.5)':'var(--border)'};background:${selectedWedges.includes(n)?'rgba(74,143,168,.1)':'transparent'};transition:all .15s">
+        <input type="checkbox" value="${n}" name="wedge_set"${selectedWedges.includes(n)?' checked':''} style="accent-color:var(--sky2)"> ${n}
       </label>`).join('')}
     </div>
   </div>`;
@@ -956,6 +963,10 @@ function ironSetUI(selected=[], disabled=false){
 // 선택된 아이언 번호 읽기
 function readIronSet(){
   return [...document.querySelectorAll('input[name="iron_set"]:checked')].map(el=>el.value);
+}
+// 선택된 웨지 읽기
+function readWedgeSet(){
+  return [...document.querySelectorAll('input[name="wedge_set"]:checked')].map(el=>el.value);
 }
 // 보유 장비 클럽 옵션 HTML 생성
 function ownedClubOptions(currentVal=''){
@@ -4928,7 +4939,7 @@ function eDetail(){
         <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 아이언 번호</div>
         <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
       </div>
-      ${ironSetUI(e.ironSet||[])}
+      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[])}
     </div>`:'';
   const tagsH = `
     <div style="margin-bottom:.9rem">
@@ -5256,10 +5267,15 @@ window.saveEMemo=async(id,val)=>{
 window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
-  const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)?{...e.tags,iron_set:selected}:{iron_set:selected};
+  const wedges=readWedgeSet();
+  const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)
+    ?{...e.tags,...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})}
+    :{...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})};
   sync('busy');const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
   if(error){toast('저장 실패');sync('err');return}
-  e.ironSet=selected;e.tags=newTags;sync('ok');toast(`아이언 세트 저장됨 (${selected.join(', ')||'없음'})`);
+  e.ironSet=selected;e.tags=newTags;sync('ok');
+  const parts=[...(selected.length?[selected.join(', ')]:[]),(wedges.length?['웨지: '+wedges.join(', ')]:[])[0]].filter(Boolean);
+  toast(`클럽 세트 저장됨 (${parts.join(' / ')||'없음'})`);
 };
 
 // ── AI 장비 분석 ─────────────────────────────────────
@@ -5553,7 +5569,8 @@ window.genEquipMemo = async () => {
         prompt:`골프 장비 전문가로서 아래 골프 장비에 대해 간결하게 정리해주세요.\n장비명: ${name}${cat?'\n분류: '+cat:''}${gameType?'\n사용자 게임 타입: '+gameType:''}\n\n아래 형식으로 3~5줄:\n• 주요 사양/특징\n• 난이도: (입문자용/중급자용/상급자용)\n• 추천 대상: 한 줄 설명\n한국어로 간결하게`})
     });
     const data = await resp.json();
-    const text = data.result||data.text||'';
+    if(data.error) throw new Error(data.error);
+    const text = data.result||data.text||data.content?.[0]?.text||'';
     if(!text) throw new Error('응답 없음');
     const em=$('em'); if(em){ em.value=text.trim(); }
     if(status){ status.textContent='✓ 완료'; status.style.color='var(--turf)'; }
@@ -5581,7 +5598,8 @@ window.saveEquip=async()=>{
   const priceH = firstPrice ? [{date:today(), price:firstPrice.price}] : [];
 
   const ironSet=cat==='아이언'?readIronSet():[];
-  const tagsData=ironSet.length?{iron_set:ironSet}:null;
+  const wedgeSet=cat==='웨지'?readWedgeSet():[];
+  const tagsData=(ironSet.length||wedgeSet.length)?{...(ironSet.length?{iron_set:ironSet}:{}),  ...(wedgeSet.length?{wedge_set:wedgeSet}:{})}:null;
   const photoUrl=$('eadd-photo-url')?.value||'';
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
@@ -5600,7 +5618,7 @@ function eAdd(){
       <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
       <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
     </div>
-    <div id="iron-set-wrap" style="display:none">${ironSetUI([])}</div>
+    <div id="iron-set-wrap" style="display:none">${ironSetUI([],[])}</div>
 
     <div class="fg"><label class="fl-label">상태</label>
       <div style="display:flex;gap:.75rem">
@@ -6224,7 +6242,7 @@ function _refreshGamePhotoPreview(){
 window.applyPlayerScores = (playerIdx) => {
   applyScorecardToForm(playerIdx);
 };
-window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=v==='아이언'?'block':'none'};
+window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=(v==='아이언'||v==='웨지')?'block':'none'};
 const ss=s=>{
   const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
   const carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');
