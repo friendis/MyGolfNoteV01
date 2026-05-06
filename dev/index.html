@@ -951,11 +951,13 @@ const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7
 // 장비 분류 → 대표 클럽 매핑
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
-const WOOD_NUMS=['1W','3W','4W','5W','7W','9W'];
+const WOOD_NUMS_COMMON=['3W','5W','7W'];
+const WOOD_NUMS_RARE=['4W','9W','2W','6W','8W','11W'];
 const UTIL_NUMS=['2UT','3UT','4UT','5UT','6UT'];
+const WOOD_NUMS=[...WOOD_NUMS_COMMON,...WOOD_NUMS_RARE];
 
 // 클럽별 기본 로프트 참고값
-const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'7W':22,'9W':26,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
+const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
 
 // 아이언/웨지/우드/유틸 세트 체크박스 HTML
 function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, disabled=false){
@@ -6660,7 +6662,14 @@ function clubSpecUI(cat){
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(74,143,168,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">보유 우드 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${WOOD_NUMS.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        ${WOOD_NUMS_COMMON.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        <!-- 드문 번호 토글 버튼 -->
+        <button type="button" id="wood-rare-toggle" onclick="toggleWoodRare()"
+          style="font-size:.72rem;padding:3px 9px;border-radius:2px;border:1px solid rgba(240,237,230,.15);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">＋ 기타 번호</button>
+        <!-- 드문 번호 (기본 숨김) -->
+        <div id="wood-rare-wrap" style="display:none;display:contents">
+          ${WOOD_NUMS_RARE.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        </div>
       </div>
     </div>`;
 
@@ -6696,6 +6705,15 @@ function clubSpecUI(cat){
 
   return '';
 }
+
+window.toggleWoodRare = () => {
+  const wrap = $('wood-rare-wrap');
+  const btn = $('wood-rare-toggle');
+  if(!wrap) return;
+  const showing = wrap.style.display !== 'none';
+  wrap.style.display = showing ? 'none' : 'contents';
+  if(btn) btn.textContent = showing ? '＋ 기타 번호' : '－ 기타 번호';
+};
 
 window.toggleClubSpecItem = (n, label) => {
   const chk = label.querySelector('input[type="checkbox"]');
