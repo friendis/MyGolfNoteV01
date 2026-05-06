@@ -6601,11 +6601,29 @@ function clubSpecUI(cat){
     </div>`;
 
   const mkChkSpec=(n,namePfx,color,loftDefault='')=>`
-    <div style="margin-bottom:2px">
-      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid var(--border);background:transparent;display:inline-flex" onclick="toggleClubSpecItem('${n}',this)">
+    <div style="display:contents">
+      <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;padding:3px 9px;border-radius:2px;border:1px solid var(--border);background:transparent" onclick="toggleClubSpecItem('${n}',this)">
         <input type="checkbox" value="${n}" name="${namePfx}" style="accent-color:${color}"> ${n}
       </label>
-      <div id="spec-item-${n.replace(/\//g,'-')}" style="display:none">${specInput(n,loftDefault).replace(/<div class="club-spec-item"[^>]*>/,'').replace(/<\/div>$/,'')}</div>
+    </div>
+    <div id="spec-item-${n.replace(/\//g,'-')}" style="display:none;width:100%;flex-basis:100%">
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;padding:.4rem .6rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px;margin-top:.2rem">
+        <span style="font-size:.75rem;color:var(--chalk);font-weight:600;min-width:44px">${n}</span>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted)">로프트</label>
+          <input type="number" name="spec_loft_${n.replace(/\//g,'_')}" placeholder="${loftDefault}" step="0.5"
+            style="width:50px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+          <span style="font-size:.68rem;color:var(--muted)">°</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted)">샤프트</label>
+          <select name="spec_flex_${n.replace(/\//g,'_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+            <option value="">-</option>${['L','A','R','SR','S','X'].map(f=>`<option>${f}</option>`).join('')}
+          </select>
+        </div>
+        <input type="text" name="spec_note_${n.replace(/\//g,'_')}" placeholder="중량, 토크 등"
+          style="flex:1;min-width:100px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+      </div>
     </div>`;
 
   if(cat==='드라이버') return`
@@ -6640,14 +6658,18 @@ function clubSpecUI(cat){
 
   if(cat==='우드') return`
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(74,143,168,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
-      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">보유 우드 <span style="font-weight:400;opacity:.6">(해당 번호 선택 후 로프트 입력 옵션)</span></div>
-      ${WOOD_NUMS.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">보유 우드 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${WOOD_NUMS.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
     </div>`;
 
   if(cat==='하이브리드') return`
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(167,139,250,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">보유 하이브리드 번호 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
-      ${UTIL_NUMS.map(n=>mkChkSpec(n,'util_set','rgba(167,139,250,.9)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${UTIL_NUMS.map(n=>mkChkSpec(n,'util_set','rgba(167,139,250,.9)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
     </div>`;
 
   if(cat==='아이언') return`
@@ -6659,13 +6681,17 @@ function clubSpecUI(cat){
         </label>`).join('')}
       </div>
       <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem;margin-top:.4rem">웨지 포함</div>
-      ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
     </div>`;
 
   if(cat==='웨지') return`
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(61,158,116,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">웨지 번호 선택 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
-      ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
     </div>`;
 
   return '';
