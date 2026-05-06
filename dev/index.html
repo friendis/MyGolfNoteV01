@@ -950,6 +950,76 @@ const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7
 // 장비 분류 → 대표 클럽 매핑
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
+const WOOD_NUMS=['1W','3W','4W','5W','7W','9W'];
+const UTIL_NUMS=['2UT','3UT','4UT','5UT','6UT'];
+
+// 클럽별 기본 로프트 참고값
+const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'7W':22,'9W':26,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
+
+// 아이언/웨지/우드/유틸 세트 체크박스 HTML
+function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, disabled=false){
+  const wedgeNums=['PW','AW/GW','SW','LW'];
+
+  const specRow=(n,color)=>{
+    const loft=clubSpecs[n]?.loft||'';
+    const flex=clubSpecs[n]?.flex||'';
+    const note=clubSpecs[n]?.note||'';
+    return`<div class="club-spec-row" id="spec-row-${n.replace('/','_')}" style="display:none;margin-top:.35rem;padding:.4rem .6rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px">
+      <div style="font-size:.7rem;color:${color};font-weight:600;margin-bottom:.3rem">${n} 사양</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted);white-space:nowrap">로프트</label>
+          <input type="number" name="spec_loft_${n.replace('/','_')}" value="${loft}" placeholder="${CLUB_DEFAULT_LOFT[n]||''}" step="0.5"
+            style="width:52px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+          <span style="font-size:.68rem;color:var(--muted)">°</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted);white-space:nowrap">샤프트</label>
+          <select name="spec_flex_${n.replace('/','_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+            <option value="">-</option>
+            ${['L','A','R','SR','S','X'].map(f=>`<option value="${f}"${flex===f?' selected':''}>${f}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem;flex:1;min-width:120px">
+          <label style="font-size:.68rem;color:var(--muted);white-space:nowrap">메모</label>
+          <input type="text" name="spec_note_${n.replace('/','_')}" value="${note}" placeholder="중량, 토크 등"
+            style="flex:1;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+        </div>
+      </div>
+    </div>`;
+  };
+
+  const mkChk=(n,selected,namePfx,color)=>`
+    <label onclick="toggleSpecRow('${n}')" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected?`${color}80`:'var(--border)'};background:${selected?`${color}1a`:'transparent'};transition:all .15s">
+      <input type="checkbox" value="${n}" name="${namePfx}"${selected?' checked':''} style="accent-color:${color}"> ${n}
+    </label>`;
+
+  return`<div style="margin-top:.5rem">
+    <div class="fl-label">보유 우드</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${WOOD_NUMS.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','#4A8FA8')).join('')}
+    </div>
+    ${WOOD_NUMS.map(n=>specRow(n,'var(--sky2)')).join('')}
+
+    <div class="fl-label" style="margin-top:.5rem">보유 유틸리티</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${UTIL_NUMS.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','#7C6A9E')).join('')}
+    </div>
+    ${UTIL_NUMS.map(n=>specRow(n,'rgba(167,139,250,.9)')).join('')}
+
+    <div class="fl-label" style="margin-top:.5rem">보유 아이언 번호</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${IRON_NUMS.map(n=>mkChk(n,selectedIrons.includes(n),'iron_set','#C8893A')).join('')}
+    </div>
+    ${IRON_NUMS.map(n=>specRow(n,'var(--wing2)')).join('')}
+
+    <div class="fl-label" style="margin-top:.5rem">보유 웨지</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
+      ${wedgeNums.map(n=>mkChk(n,selectedWedges.includes(n),'wedge_set','#4A9E74')).join('')}
+    </div>
+    ${wedgeNums.map(n=>specRow(n,'#3D9E74')).join('')}
+  </div>`;
+}
 // 클럽값에서 통계용 정규 클럽 번호 추출 ("JP921 아이언 — 7I" → "7I")
 function normalizeClub(club){
   if(!club)return'';
@@ -964,32 +1034,36 @@ function clubLabel(club){
   if(club.includes(' — '))return club; // 이미 "장비명 — 번호" 형식
   return club;
 }
-// 아이언 세트 체크박스 HTML
-function ironSetUI(selectedIrons=[], selectedWedges=[], disabled=false){
-  const wedgeNums=['PW','AW/GW','SW','LW'];
-  return`<div style="margin-top:.5rem">
-    <div class="fl-label">보유 아이언 번호</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedIrons.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selectedIrons.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
-        <input type="checkbox" value="${n}" name="iron_set"${selectedIrons.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
-      </label>`).join('')}
-    </div>
-    <div class="fl-label" style="margin-top:.5rem">보유 웨지</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${wedgeNums.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedWedges.includes(n)?'rgba(74,143,168,.5)':'var(--border)'};background:${selectedWedges.includes(n)?'rgba(74,143,168,.1)':'transparent'};transition:all .15s">
-        <input type="checkbox" value="${n}" name="wedge_set"${selectedWedges.includes(n)?' checked':''} style="accent-color:var(--sky2)"> ${n}
-      </label>`).join('')}
-    </div>
-  </div>`;
-}
 // 선택된 아이언 번호 읽기
 function readIronSet(){
   return [...document.querySelectorAll('input[name="iron_set"]:checked')].map(el=>el.value);
 }
-// 선택된 웨지 읽기
 function readWedgeSet(){
   return [...document.querySelectorAll('input[name="wedge_set"]:checked')].map(el=>el.value);
 }
+function readWoodSet(){
+  return [...document.querySelectorAll('input[name="wood_set"]:checked')].map(el=>el.value);
+}
+function readUtilSet(){
+  return [...document.querySelectorAll('input[name="util_set"]:checked')].map(el=>el.value);
+}
+function readClubSpecs(){
+  const specs={};
+  document.querySelectorAll('[name^="spec_loft_"],[name^="spec_flex_"],[name^="spec_note_"]').forEach(el=>{
+    const m=el.name.match(/^spec_(loft|flex|note)_(.+)$/);
+    if(!m||!el.value) return;
+    const club=m[2].replace('_','/');
+    if(!specs[club]) specs[club]={};
+    specs[club][m[1]]=el.value;
+  });
+  return specs;
+}
+window.toggleSpecRow=(n)=>{
+  const id='spec-row-'+n.replace('/','_');
+  const row=document.getElementById(id);
+  const chk=document.querySelector(`input[name$="_set"][value="${n}"]`);
+  if(row) row.style.display=(chk?.checked)?'block':'none';
+};
 // 보유 장비 클럽 옵션 HTML 생성
 function ownedClubOptions(currentVal=''){
   const owned=D.equip.filter(e=>e.status==='owned');
@@ -4964,13 +5038,13 @@ function eDetail(){
 
   // 태그 (category + 커스텀 tags)
   const tags = Array.isArray(e.tags)?e.tags:[];
-  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지')?`
+  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지'||e.cat==='우드/유틸리티')?`
     <div style="margin-bottom:.9rem;padding:.7rem;background:rgba(13,17,23,.4);border:1px solid var(--border);border-radius:2px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
         <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 클럽 번호</div>
         <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
       </div>
-      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[])}
+      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[], e.tags?.wood_set||[], e.tags?.util_set||[], e.tags?.club_specs||{})}
     </div>`:'';
   const tagsH = `
     <div style="margin-bottom:.9rem">
@@ -5328,14 +5402,31 @@ window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
   const wedges=readWedgeSet();
+  const woods=readWoodSet();
+  const utils=readUtilSet();
+  const specs=readClubSpecs();
   const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)
-    ?{...e.tags,...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})}
-    :{...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})};
+    ?{...e.tags,
+       ...(selected.length?{iron_set:selected}:{}),
+       ...(wedges.length?{wedge_set:wedges}:{}),
+       ...(woods.length?{wood_set:woods}:{}),
+       ...(utils.length?{util_set:utils}:{}),
+       ...(Object.keys(specs).length?{club_specs:specs}:{})}
+    :{...(selected.length?{iron_set:selected}:{}),
+       ...(wedges.length?{wedge_set:wedges}:{}),
+       ...(woods.length?{wood_set:woods}:{}),
+       ...(utils.length?{util_set:utils}:{}),
+       ...(Object.keys(specs).length?{club_specs:specs}:{})};
   sync('busy');const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
-  if(error){toast('저장 실패');sync('err');return}
+  if(error){toast('저장 실패');sync('err');return;}
   e.ironSet=selected;e.tags=newTags;sync('ok');
-  const parts=[...(selected.length?[selected.join(', ')]:[]),(wedges.length?['웨지: '+wedges.join(', ')]:[])[0]].filter(Boolean);
-  toast(`클럽 세트 저장됨 (${parts.join(' / ')||'없음'})`);
+  const parts=[
+    selected.length?`아이언: ${selected.join(', ')}`:null,
+    wedges.length?`웨지: ${wedges.join(', ')}`:null,
+    woods.length?`우드: ${woods.join(', ')}`:null,
+    utils.length?`유틸: ${utils.join(', ')}`:null,
+  ].filter(Boolean);
+  toast(`클럽 세트 저장됨${parts.length?' ('+parts.join(' / ')+')':''}`);
 };
 
 // ── AI 장비 분석 ─────────────────────────────────────
@@ -5821,8 +5912,17 @@ window.saveEquip=async()=>{
   const priceH = firstPrice ? [{date:today(), price:firstPrice.price}] : [];
 
   const ironSet=cat==='아이언'?readIronSet():[];
-  const wedgeSet=cat==='웨지'?readWedgeSet():[];
-  const tagsData=(ironSet.length||wedgeSet.length)?{...(ironSet.length?{iron_set:ironSet}:{}),  ...(wedgeSet.length?{wedge_set:wedgeSet}:{})}:null;
+  const wedgeSet=(cat==='웨지'||cat==='아이언')?readWedgeSet():[];
+  const woodSet=cat==='우드/유틸리티'?readWoodSet():[];
+  const utilSet=cat==='우드/유틸리티'?readUtilSet():[];
+  const clubSpecs=readClubSpecs();
+  const tagsData=(ironSet.length||wedgeSet.length||woodSet.length||utilSet.length||Object.keys(clubSpecs).length)
+    ?{...(ironSet.length?{iron_set:ironSet}:{}),
+       ...(wedgeSet.length?{wedge_set:wedgeSet}:{}),
+       ...(woodSet.length?{wood_set:woodSet}:{}),
+       ...(utilSet.length?{util_set:utilSet}:{}),
+       ...(Object.keys(clubSpecs).length?{club_specs:clubSpecs}:{})}
+    :null;
   const photoUrl=$('eadd-photo-url')?.value||'';
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
@@ -5841,7 +5941,7 @@ function eAdd(){
       <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
       <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
     </div>
-    <div id="iron-set-wrap" style="display:none">${ironSetUI([],[])}</div>
+    <div id="iron-set-wrap" style="display:none">${ironSetUI([],[],[],[],{})}</div>
 
     <div class="fg"><label class="fl-label">상태</label>
       <div style="display:flex;gap:.75rem">
@@ -6465,7 +6565,7 @@ function _refreshGamePhotoPreview(){
 window.applyPlayerScores = (playerIdx) => {
   applyScorecardToForm(playerIdx);
 };
-window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=(v==='아이언'||v==='웨지')?'block':'none'};
+window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=(v==='아이언'||v==='웨지'||v==='우드/유틸리티')?'block':'none'};
 const ss=s=>{
   const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
   const carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');
