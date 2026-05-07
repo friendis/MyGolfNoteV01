@@ -6813,7 +6813,7 @@ window.aiAutoFillSpecs = async () => {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
       body:JSON.stringify({
-        type:'swing', model:GEMINI_MODEL, maxOutputTokens:600, useSearch:true,
+        type:'swing', model:GEMINI_MODEL, maxOutputTokens:1500, useSearch:true,
         prompt:`"${name}" ${cat||'골프 클럽'} 스펙 검색 후 JSON만 출력:
 {"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":""}
 - id: 7I 8I 9I PW SW LW AW/GW 3W 5W 3UT 등
@@ -6832,9 +6832,25 @@ window.aiAutoFillSpecs = async () => {
 
     // JSON 정제
     let s = text.replace(/```json\s*/gi,'').replace(/```/g,'').trim();
-    const si=s.indexOf('{'), ei=s.lastIndexOf('}');
+    const si=s.indexOf('{');
     if(si===-1) throw new Error('JSON 없음: '+s.slice(0,80));
-    s = s.slice(si,ei+1).replace(/,\s*([}\]])/g,'$1');
+    s = s.slice(si);
+    // 후행 쉼표 제거
+    s = s.replace(/,\s*([}\]])/g,'$1');
+    // MAX_TOKENS로 잘린 경우 열린 괄호 닫기
+    const openC=(s.match(/\{/g)||[]).length-(s.match(/\}/g)||[]).length;
+    const openS=(s.match(/\[/g)||[]).length-(s.match(/\]/g)||[]).length;
+    // 마지막 완전한 객체까지만 잘라내기
+    if(openC>0||openS>0){
+      // 마지막 완전한 }까지만 사용
+      const lastValid=s.lastIndexOf('}');
+      if(lastValid>0) s=s.slice(0,lastValid+1);
+      // 그래도 열린 게 있으면 강제로 닫기
+      const oc=(s.match(/\{/g)||[]).length-(s.match(/\}/g)||[]).length;
+      const os=(s.match(/\[/g)||[]).length-(s.match(/\]/g)||[]).length;
+      if(os>0) s+=']'.repeat(os);
+      if(oc>0) s+='}' .repeat(oc);
+    }
 
     const parsed = JSON.parse(s);
 
