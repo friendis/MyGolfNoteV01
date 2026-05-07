@@ -6628,6 +6628,52 @@ function clubSpecUI(cat){
       </div>
     </div>`;
 
+  // ── 샤프트 일괄 적용 UI ────────────────────────────
+  const POPULAR_SHAFTS = {
+    '스탁': [
+      'Fujikura Speeder NX','Mitsubishi Tensei CK Orange','Mitsubishi Tensei AV Raw White',
+      'Aldila Rogue White','Project X HZRDUS Smoke','True Temper Dynamic Gold',
+      'KBS Tour','NS PRO Modus3 Tour 120','NS PRO 950GH','Nippon NS PRO 850GH',
+      'True Temper XP 95','Aerotech SteelFiber'
+    ],
+    '커스텀': [
+      'Fujikura Ventus Blue','Fujikura Ventus Black','Mitsubishi Diamana D+',
+      'Mitsubishi Diamana TB','Graphite Design Tour AD IZ','Graphite Design Tour AD DI',
+      'Oban Kiyoshi','Accra TZ','Matrix Ozik HD6','Aldila Quaranta',
+      'Aldila NV 2KXV','ATTAS King','ATTAS DA'
+    ]
+  };
+  const allShafts=[...POPULAR_SHAFTS['스탁'],...POPULAR_SHAFTS['커스텀']];
+
+  const shaftBulkUI = (cat!=='드라이버') ? `
+    <div style="background:rgba(74,101,128,.08);border:1px solid rgba(74,101,128,.2);border-radius:3px;padding:.6rem .85rem;margin-bottom:.65rem">
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">샤프트 일괄 적용</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;align-items:center;gap:.25rem;flex:1;min-width:160px">
+          <label style="font-size:.72rem;color:var(--muted);white-space:nowrap">샤프트명</label>
+          <input type="text" id="bulk-shaft-name" list="shaft-datalist" placeholder="예: NS PRO 950GH"
+            style="flex:1;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 7px;border-radius:2px;font-size:.8rem;font-family:var(--sans)">
+          <datalist id="shaft-datalist">
+            <optgroup label="스탁">${POPULAR_SHAFTS['스탁'].map(s=>`<option value="${s}">`).join('')}</optgroup>
+            <optgroup label="커스텀">${POPULAR_SHAFTS['커스텀'].map(s=>`<option value="${s}">`).join('')}</optgroup>
+          </datalist>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.72rem;color:var(--muted)">강도</label>
+          <select id="bulk-shaft-flex" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 5px;border-radius:2px;font-size:.8rem;font-family:var(--sans)">
+            <option value="">-</option>${['L','A','R','SR','S','X'].map(f=>`<option>${f}</option>`).join('')}
+          </select>
+        </div>
+        <button type="button" onclick="applyShaftBulk()" style="background:rgba(74,143,168,.12);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:3px 10px;border-radius:2px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">전체 적용</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.4rem">
+        <span style="font-size:.67rem;color:var(--muted)">빠른 선택:</span>
+        ${['NS PRO 950GH','KBS Tour','Modus3 Tour 120','Dynamic Gold','Ventus Blue','Tour AD IZ'].map(s=>`<button type="button" onclick="quickShaft('${s}')" style="font-size:.67rem;padding:1px 6px;border-radius:10px;border:1px solid rgba(240,237,230,.15);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">${s}</button>`).join('')}
+      </div>
+    </div>` : '';
+
+  const aiBtn = `<button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>`;
+
   if(cat==='드라이버') return`
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.55rem">
@@ -6662,6 +6708,7 @@ function clubSpecUI(cat){
     </div>`;
 
   if(cat==='우드') return`
+    ${shaftBulkUI}
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(74,143,168,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 우드 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
@@ -6680,6 +6727,7 @@ function clubSpecUI(cat){
     </div>`;
 
   if(cat==='하이브리드') return`
+    ${shaftBulkUI}
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(167,139,250,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 하이브리드 번호 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
@@ -6691,6 +6739,7 @@ function clubSpecUI(cat){
     </div>`;
 
   if(cat==='아이언') return`
+    ${shaftBulkUI}
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 아이언 번호</div>
@@ -6706,6 +6755,7 @@ function clubSpecUI(cat){
     </div>`;
 
   if(cat==='웨지') return`
+    ${shaftBulkUI}
     <div style="background:rgba(13,17,23,.35);border:1px solid rgba(61,158,116,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">웨지 번호 선택 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
@@ -6719,6 +6769,28 @@ function clubSpecUI(cat){
   return '';
 }
 
+window.applyShaftBulk = () => {
+  const name = $('bulk-shaft-name')?.value.trim();
+  const flex = $('bulk-shaft-flex')?.value;
+  if(!name && !flex){ toast('샤프트명 또는 강도를 입력해주세요'); return; }
+  let count = 0;
+  document.querySelectorAll('[name^="spec_flex_"]').forEach(el=>{
+    if(flex){ el.value=flex; count++; }
+  });
+  document.querySelectorAll('[name^="spec_note_"]').forEach(el=>{
+    if(name){
+      const existing=el.value.trim();
+      el.value=name+(existing?', '+existing:'');
+    }
+  });
+  const dFlex=document.querySelector('[name="driver_flex"]');
+  if(dFlex&&flex) dFlex.value=flex;
+  toast('✓ 샤프트 일괄 적용됨');
+};
+window.quickShaft = (name) => {
+  const inp=$('bulk-shaft-name');
+  if(inp){ inp.value=name; }
+};
 window.aiAutoFillSpecs = async () => {
   const name = $('en')?.value.trim();
   const cat = $('ec')?.value.trim();
