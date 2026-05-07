@@ -6814,10 +6814,14 @@ window.aiAutoFillSpecs = async () => {
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
       body:JSON.stringify({
         type:'swing', model:GEMINI_MODEL, maxOutputTokens:3000, useSearch:true,
-        prompt:`"${name}" ${cat||'골프 클럽'} 스펙 검색 후 JSON만 출력:
-{"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":""}
+        prompt:`"${name}" ${cat||'골프 클럽'}의 공식 스펙을 검색해서 정확한 값만 JSON으로 출력하세요.
+검색된 공식 자료(제조사 사이트, 공식 카탈로그)를 기준으로 작성하고, 확실하지 않은 값은 null로 표시하세요.
+
+{"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":"","source":"출처"}
 - id: 7I 8I 9I PW SW LW AW/GW 3W 5W 3UT 등
-- loft: 숫자만, flex: L A R SR S X 또는 null
+- loft: 공식 스펙 숫자만 (불확실하면 null)
+- flex: 기본 샤프트 강도 L A R SR S X (불확실하면 null)
+- source: 참고한 출처 URL 또는 사이트명
 - JSON만, 설명 금지`
       })
     });
@@ -6873,18 +6877,8 @@ window.aiAutoFillSpecs = async () => {
     }
     if(parsed.summary){ const vm=$('ememo'); if(vm&&!vm.value) vm.value=parsed.summary; }
 
-    setStatus(`✓ ${filled}개 클럽 사양 입력 완료. 내용을 확인해주세요.`, 'var(--turf)');
+    setStatus(`✓ ${filled}개 클럽 사양 입력 완료${parsed.source?` (출처: ${parsed.source})`:''}`, 'var(--turf)');
     toast(`✓ ${filled}개 클럽 자동 입력됨`);
-
-    // 검증 버튼 추가
-    if(statusEl){
-      const verifyBtn=document.createElement('button');
-      verifyBtn.type='button';
-      verifyBtn.textContent='🔍 최신 정보로 검증하기';
-      verifyBtn.style.cssText='margin-top:.4rem;display:block;background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:3px 10px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans)';
-      verifyBtn.onclick=()=>verifyEquipSpecs(name,cat,parsed);
-      statusEl.appendChild(verifyBtn);
-    }
 
   }catch(e){
     console.error('[ai-fill] 오류:', e);
@@ -6892,78 +6886,6 @@ window.aiAutoFillSpecs = async () => {
     toast('AI 자동 채우기 실패: '+e.message);
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent='✦ AI 자동 채우기';b.style.opacity='1';});
-  }
-};
-window.verifyEquipSpecs = async (name, cat, prevParsed) => {
-  const statusEl = $('ai-fill-status');
-  const setStatus = (msg, color='var(--muted)') => {
-    if(!statusEl) return;
-    statusEl.style.display='block';
-    // 기존 버튼 유지하면서 첫 줄만 교체
-    const existing=[...statusEl.childNodes].find(n=>n.nodeType===3||n.tagName==='SPAN');
-    if(existing) existing.textContent=msg;
-    else statusEl.prepend(Object.assign(document.createElement('span'),{textContent:msg,style:`color:${color}`}));
-  };
-  setStatus('🔍 공식 스펙 검증 중...', 'var(--muted)');
-
-  try{
-    // 현재 입력된 사양 수집
-    const currentSpecs=[];
-    document.querySelectorAll('input[name$="_set"]:checked').forEach(chk=>{
-      const n=chk.value;
-      const idSafe=n.replace(/\//g,'_');
-      const loftEl=document.querySelector(`[name="spec_loft_${idSafe}"]`);
-      const flexEl=document.querySelector(`[name="spec_flex_${idSafe}"]`);
-      currentSpecs.push(`${n}: 로프트${loftEl?.value||'?'}° 샤프트강도${flexEl?.value||'?'}`);
-    });
-
-    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({
-        type:'swing', model:GEMINI_MODEL, maxOutputTokens:1500, useSearch:true,
-        prompt:`"${name}" ${cat||'골프 클럽'}의 공식 스펙을 검색해서 아래 입력된 사양과 비교 검증해주세요.
-
-[현재 입력된 사양]
-${currentSpecs.join('\n')||'없음'}
-
-검증 결과를 아래 형식으로만 답하세요:
-✅ 정확한 항목: ...
-⚠️ 수정 필요: 클럽명 로프트 XX° → 실제 YY°
-❌ 오류: ...
-📌 누락된 정보: ...
-출처: 공식 사이트 또는 제품 페이지명
-
-3~8줄로 간결하게, 한국어로`
-      })
-    });
-    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
-    const data=await resp.json();
-    const text=data.content?.[0]?.text||data.result||data.text||'';
-    if(!text) throw new Error('검증 응답 없음');
-
-    // 결과를 모달로 표시
-    const ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:flex-end;justify-content:center';
-    ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;width:min(520px,100%);max-height:70vh;overflow-y:auto;padding:1rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-        <div style="font-size:.85rem;font-weight:600;color:var(--chalk)">🔍 스펙 검증 결과</div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
-      </div>
-      <div style="font-size:.8rem;color:var(--dim);line-height:1.9;white-space:pre-wrap">${esc(text)}</div>
-      <div style="margin-top:.75rem;display:flex;gap:.4rem">
-        <button onclick="applyVerifiedSpecs(${JSON.stringify(text).replace(/</g,'&lt;')});this.closest('[style*=fixed]').remove()"
-          style="flex:1;background:rgba(61,158,116,.1);border:1px solid rgba(61,158,116,.3);color:#3D9E74;padding:.4rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">수정사항 적용</button>
-        <button onclick="this.closest('[style*=fixed]').remove()"
-          style="flex:1;background:rgba(240,237,230,.05);border:1px solid var(--border);color:var(--muted);padding:.4rem;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">닫기</button>
-      </div>
-    </div>`;
-    ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
-    document.body.appendChild(ov);
-    setStatus('✅ 검증 완료 — 결과를 확인해주세요', 'var(--turf)');
-
-  }catch(e){
-    setStatus(`검증 실패: ${e.message}`, 'var(--red)');
   }
 };
 
