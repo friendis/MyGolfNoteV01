@@ -6821,12 +6821,14 @@ window.aiAutoFillSpecs = async () => {
 - 주석 없이 JSON만`})
     });
     const data = await resp.json();
+    console.log('[ai-fill] 응답 keys:', Object.keys(data), '/ content[0]:', data.content?.[0]);
     let text = data.result||data.text||data.content?.[0]?.text||'';
     if(data.error) throw new Error(data.error);
     if(!text) throw new Error('AI 응답이 비어있습니다');
 
     // 원문 로그
     console.log('[ai-fill] 원문:', JSON.stringify(text.slice(0,400)));
+    if(statusEl){ statusEl.style.display='block'; statusEl.textContent='📊 응답 분석 중...'; statusEl.style.color='var(--muted)'; }
 
     // 정리
     text = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
@@ -6861,6 +6863,7 @@ window.aiAutoFillSpecs = async () => {
         throw new Error(`JSON 파싱 실패: ${je.message} / 원문: ${jsonStr.slice(0,150)}`);
       }
     }
+    if(statusEl){ statusEl.textContent='✅ 파싱 완료, 입력 중...'; }
 
     // 드라이버 사양 자동 입력
     if(parsed.driver){
@@ -6899,7 +6902,10 @@ window.aiAutoFillSpecs = async () => {
     if(statusEl){ statusEl.textContent=`✓ ${filled}개 클럽 사양이 입력됐습니다. 내용을 확인해주세요.`; statusEl.style.color='var(--turf)'; }
   }catch(e){
     console.error('[ai-fill] 오류:', e);
-    if(statusEl){ statusEl.textContent=`분석 실패: ${e.message}`; statusEl.style.color='var(--red)'; }
+    if(statusEl){
+      statusEl.style.display='block';
+      statusEl.innerHTML=`<span style="color:var(--red)">분석 실패: ${esc(e.message)}</span>`;
+    }
     toast('AI 자동 채우기 실패: '+e.message);
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent='✦ AI 자동 채우기';b.style.opacity='1';});
