@@ -6821,13 +6821,11 @@ window.aiAutoFillSpecs = async () => {
 - 주석 없이 JSON만`})
     });
     const data = await resp.json();
-    console.log('[ai-fill] 응답 keys:', Object.keys(data), '/ content[0]:', data.content?.[0]);
-    let text = data.result||data.text||data.content?.[0]?.text||'';
+    console.log('[ai-fill] 응답 keys:', Object.keys(data));
+    let text = data.result||data.text||(data.content&&data.content[0]&&data.content[0].text)||'';
+    console.log('[ai-fill] text 앞300자:', JSON.stringify(text.slice(0,300)));
     if(data.error) throw new Error(data.error);
-    if(!text) throw new Error('AI 응답이 비어있습니다');
-
-    // 원문 로그
-    console.log('[ai-fill] 원문:', JSON.stringify(text.slice(0,400)));
+    if(!text) throw new Error(`AI 응답 비어있음. finishReason: ${data.finishReason||'?'} / debug: ${data.debug||''}`);
     if(statusEl){ statusEl.style.display='block'; statusEl.textContent='📊 응답 분석 중...'; statusEl.style.color='var(--muted)'; }
 
     // 정리
