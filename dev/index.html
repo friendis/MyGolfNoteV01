@@ -6670,6 +6670,7 @@ function clubSpecUI(cat){
         <span style="font-size:.67rem;color:var(--muted)">빠른 선택:</span>
         ${['NS PRO 950GH','KBS Tour','Modus3 Tour 120','Dynamic Gold','Ventus Blue','Tour AD IZ'].map(s=>`<button type="button" onclick="quickShaft('${s}')" style="font-size:.67rem;padding:1px 6px;border-radius:10px;border:1px solid rgba(240,237,230,.15);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">${s}</button>`).join('')}
       </div>
+      <div id="ai-fill-status" style="display:none;font-size:.72rem;padding:.3rem .1rem;margin-top:.25rem"></div>
     </div>` : '';
 
   const aiBtn = `<button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>`;
@@ -6795,24 +6796,29 @@ window.aiAutoFillSpecs = async () => {
   const name = $('en')?.value.trim();
   const cat = $('ec')?.value.trim();
   if(!name){ toast('장비명을 먼저 입력해주세요'); return; }
+
+  // 로딩 표시
   const btns = document.querySelectorAll('[onclick="aiAutoFillSpecs()"]');
-  btns.forEach(b=>{b.disabled=true;b.textContent='✦ 검색 중...';});
+  const statusEl = document.getElementById('ai-fill-status');
+  btns.forEach(b=>{b.disabled=true;b.textContent='✦ 검색 중...';b.style.opacity='.6';});
+  if(statusEl){ statusEl.style.display='block'; statusEl.textContent='🔍 AI가 장비 정보를 검색하고 있습니다...'; statusEl.style.color='var(--muted)'; }
+
   try{
     const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:800,useSearch:true,
-        prompt:`"${name}" ${cat||'골프 클럽'} 스펙을 검색해서 아래 JSON만 출력하세요. 다른 텍스트 없이 JSON만.
+      body:JSON.stringify({type:'swing',model:GEMINI_MODEL,maxOutputTokens:600,useSearch:true,
+        prompt:`"${name}" ${cat||'골프 클럽'} 스펙을 검색해서 아래 JSON만 출력하세요.
 
-{"clubs":[{"id":"7I","loft":35,"flex":"S","note":""},{"id":"8I","loft":39,"flex":"S","note":""}],"driver":null,"summary":""}
+{"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":""}
 
 규칙:
-- id: 7I 8I 9I PW SW LW 3W 5W 3UT 등 표준 코드
+- id: 7I 8I 9I PW SW LW 3W 5W 3UT 등 표준 코드만
 - loft: 숫자만 (단위 없이)
 - flex: L A R SR S X 중 하나 또는 null
-- note: 짧은 메모 또는 빈 문자열
+- note 필드 없이 위 3개 필드만 사용
 - 모르면 null
-- JSON만 출력 (설명 금지)`})
+- 주석 없이 JSON만`})
     });
     const data = await resp.json();
     let text = data.result||data.text||data.content?.[0]?.text||'';
@@ -6878,10 +6884,13 @@ window.aiAutoFillSpecs = async () => {
     }
 
     toast(`✓ ${filled}개 클럽 사양 자동 입력됨`);
+    if(statusEl){ statusEl.textContent=`✓ ${filled}개 클럽 사양이 입력됐습니다. 내용을 확인해주세요.`; statusEl.style.color='var(--turf)'; }
   }catch(e){
+    console.error('[ai-fill] 오류:', e);
+    if(statusEl){ statusEl.textContent=`분석 실패: ${e.message}`; statusEl.style.color='var(--red)'; }
     toast('AI 자동 채우기 실패: '+e.message);
   }finally{
-    btns.forEach(b=>{b.disabled=false;b.textContent='✦ AI 자동 채우기';});
+    btns.forEach(b=>{b.disabled=false;b.textContent='✦ AI 자동 채우기';b.style.opacity='1';});
   }
 };
 
