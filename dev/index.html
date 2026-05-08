@@ -40,7 +40,13 @@
   --mono:'DM Mono','Courier New',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* 모바일 가독성을 위한 기본 폰트 크기 조정 */
+html{font-size:17px}
 body{font-family:var(--sans);background:var(--night);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+/* 매우 작은 폰트(.67rem~.72rem)를 최소 .75rem 수준으로 보정 */
+.fl-label,.card-meta,.note,.stat-l,
+.badge,.kw-pill,.tag-chip{font-size:max(.75rem,1em) !important}
+.badge{font-size:.75rem !important}
 
 /* LOADING */
 #loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
@@ -7651,11 +7657,12 @@ function initCharts(){
               data:gameScores.map(s=>s.score),
               borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.08)',
               borderWidth:2,fill:true,tension:.3,
-              pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#3D9E74':'#C8893A'),
-              pointBorderColor:'#0D1117',pointBorderWidth:1.5,
+              pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#FFD700':'#C8893A'),
+              pointBorderColor:gameScores.map(s=>s.score===bestScore?'#fff':'#0D1117'),
+              pointBorderWidth:gameScores.map(s=>s.score===bestScore?2.5:1.5),
               pointStyle:hasMultiSet?pointStyles:gameScores.map(s=>s.score===bestScore?'star':'circle'),
-              pointRadius:gameScores.map(s=>s.score===bestScore?8:4),
-              pointHoverRadius:gameScores.map(s=>s.score===bestScore?10:6),
+              pointRadius:gameScores.map(s=>s.score===bestScore?10:4),
+              pointHoverRadius:gameScores.map(s=>s.score===bestScore?12:6),
             },{
               data:gameScores.map(()=>avgSc),
               borderColor:'rgba(200,137,58,.3)',borderWidth:1,borderDash:[4,4],
