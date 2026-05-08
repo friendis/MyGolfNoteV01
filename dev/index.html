@@ -5420,18 +5420,17 @@ window.saveEMemo=async(id,val)=>{
   e.memo=val;sync('ok');toast('메모 저장됨');
 };
 window.toggleEquipExpertMode = async (on) => {
-  // DB에 저장 (기기 동기화)
-  try{
-    const cache = loadAiCache();
-    cache['equip_expert_mode'] = on ? '1' : '0';
-    if(D.profile){
-      D.profile.ai_cache = cache;
-      await sb.from('user_profiles').update({ai_cache:cache}).eq('user_id',user.id);
-    }
-  }catch(e){ console.warn('expert mode 저장 실패:', e); }
-  window._rerender();
-};
+  // 메모리 캐시 즉시 업데이트 후 렌더링
+  const cache = loadAiCache();
+  cache['equip_expert_mode'] = on ? '1' : '0';
+  if(D.profile) D.profile.ai_cache = cache;
+  window._rerender();  // 즉시 렌더링 (DB 저장 전에)
 
+  // DB 백그라운드 저장
+  try{
+    await sb.from('user_profiles').update({ai_cache:cache}).eq('user_id',user.id);
+  }catch(e){ console.warn('expert mode 저장 실패:', e); }
+};
 window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
