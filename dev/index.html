@@ -960,69 +960,86 @@ const WOOD_NUMS=[...WOOD_NUMS_COMMON,...WOOD_NUMS_RARE];
 const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
 
 // 아이언/웨지/우드/유틸 세트 체크박스 HTML
-function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, disabled=false){
+function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, cat='', expertMode=false){
   const wedgeNums=['PW','AW/GW','SW','LW'];
 
+  // 전문가 모드 토글 버튼
+  const modeToggle=`<div style="display:flex;justify-content:flex-end;margin-bottom:.4rem">
+    <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none">
+      <span>상세 사양</span>
+      <input type="checkbox" id="equip-expert-mode" ${expertMode?'checked':''} onchange="toggleEquipExpertMode(this.checked)" style="accent-color:var(--wing2)">
+    </label>
+  </div>`;
+
   const specRow=(n,color)=>{
+    if(!expertMode) return '';
     const loft=clubSpecs[n]?.loft||'';
     const flex=clubSpecs[n]?.flex||'';
     const note=clubSpecs[n]?.note||'';
-    return`<div class="club-spec-row" id="spec-row-${n.replace('/','_')}" style="display:none;margin-top:.35rem;padding:.4rem .6rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px">
-      <div style="font-size:.7rem;color:${color};font-weight:600;margin-bottom:.3rem">${n} 사양</div>
-      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:.25rem">
-          <label style="font-size:.68rem;color:var(--muted);white-space:nowrap">로프트</label>
-          <input type="number" name="spec_loft_${n.replace('/','_')}" value="${loft}" placeholder="${CLUB_DEFAULT_LOFT[n]||''}" step="0.5"
-            style="width:52px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
-          <span style="font-size:.68rem;color:var(--muted)">°</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:.25rem">
-          <label style="font-size:.68rem;color:var(--muted);white-space:nowrap">샤프트</label>
-          <select name="spec_flex_${n.replace('/','_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
-            <option value="">-</option>
-            ${['L','A','R','SR','S','X'].map(f=>`<option value="${f}"${flex===f?' selected':''}>${f}</option>`).join('')}
-          </select>
-        </div>
-        <div style="display:flex;align-items:center;gap:.25rem;flex:1;min-width:120px">
-          <label style="font-size:.68rem;color:var(--muted);white-space:nowrap">메모</label>
-          <input type="text" name="spec_note_${n.replace('/','_')}" value="${note}" placeholder="중량, 토크 등"
-            style="flex:1;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
-        </div>
+    return`<div style="margin-top:.3rem;padding:.35rem .55rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center">
+      <span style="font-size:.7rem;color:${color};font-weight:600;min-width:36px">${n}</span>
+      <div style="display:flex;align-items:center;gap:.2rem">
+        <label style="font-size:.65rem;color:var(--muted)">로프트</label>
+        <input type="number" name="spec_loft_${n.replace(/\//g,'_')}" value="${loft}" placeholder="${CLUB_DEFAULT_LOFT[n]||''}" step="0.5"
+          style="width:48px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.75rem;font-family:var(--sans)">
+        <span style="font-size:.65rem;color:var(--muted)">°</span>
       </div>
+      <div style="display:flex;align-items:center;gap:.2rem">
+        <label style="font-size:.65rem;color:var(--muted)">샤프트</label>
+        <select name="spec_flex_${n.replace(/\//g,'_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 3px;border-radius:2px;font-size:.75rem;font-family:var(--sans)">
+          <option value="">-</option>
+          ${['L','A','R','SR','S','X'].map(f=>`<option value="${f}"${flex===f?' selected':''}>${f}</option>`).join('')}
+        </select>
+      </div>
+      <input type="text" name="spec_note_${n.replace(/\//g,'_')}" value="${note}" placeholder="메모"
+        style="flex:1;min-width:80px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.75rem;font-family:var(--sans)">
     </div>`;
   };
 
   const mkChk=(n,selected,namePfx,color)=>`
-    <label onclick="toggleSpecRow('${n}')" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected?`${color}80`:'var(--border)'};background:${selected?`${color}1a`:'transparent'};transition:all .15s">
-      <input type="checkbox" value="${n}" name="${namePfx}"${selected?' checked':''} style="accent-color:${color}"> ${n}
+    <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected?`rgba(${color},.5)`:'var(--border)'};background:${selected?`rgba(${color},.1)`:'transparent'};transition:all .15s">
+      <input type="checkbox" value="${n}" name="${namePfx}"${selected?' checked':''} style="accent-color:var(--wing2)"> ${n}
     </label>`;
 
-  return`<div style="margin-top:.5rem">
-    <div class="fl-label">보유 우드</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${WOOD_NUMS.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','#4A8FA8')).join('')}
-    </div>
-    ${WOOD_NUMS.map(n=>specRow(n,'var(--sky2)')).join('')}
+  // 카테고리별 표시
+  const catKey = cat||'all';
 
-    <div class="fl-label" style="margin-top:.5rem">보유 유틸리티</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${UTIL_NUMS.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','#7C6A9E')).join('')}
+  // 우드
+  if(catKey==='우드') return`${modeToggle}
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${WOOD_NUMS_COMMON.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','200,137,58')).join('')}
+      ${WOOD_NUMS_RARE.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','200,137,58')).join('')}
     </div>
-    ${UTIL_NUMS.map(n=>specRow(n,'rgba(167,139,250,.9)')).join('')}
+    ${expertMode?WOOD_NUMS.filter(n=>selectedWoods.includes(n)).map(n=>specRow(n,'var(--sky2)')).join(''):''}`;
 
-    <div class="fl-label" style="margin-top:.5rem">보유 아이언 번호</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${IRON_NUMS.map(n=>mkChk(n,selectedIrons.includes(n),'iron_set','#C8893A')).join('')}
+  // 하이브리드
+  if(catKey==='하이브리드') return`${modeToggle}
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${UTIL_NUMS.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','167,139,250')).join('')}
     </div>
-    ${IRON_NUMS.map(n=>specRow(n,'var(--wing2)')).join('')}
+    ${expertMode?UTIL_NUMS.filter(n=>selectedUtils.includes(n)).map(n=>specRow(n,'rgba(167,139,250,.9)')).join(''):''}`;
 
-    <div class="fl-label" style="margin-top:.5rem">보유 웨지</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${wedgeNums.map(n=>mkChk(n,selectedWedges.includes(n),'wedge_set','#4A9E74')).join('')}
+  // 웨지
+  if(catKey==='웨지') return`${modeToggle}
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${wedgeNums.map(n=>mkChk(n,selectedWedges.includes(n),'wedge_set','61,158,116')).join('')}
     </div>
-    ${wedgeNums.map(n=>specRow(n,'#3D9E74')).join('')}
-  </div>`;
+    ${expertMode?wedgeNums.filter(n=>selectedWedges.includes(n)).map(n=>specRow(n,'#3D9E74')).join(''):''}`;
+
+  // 아이언 (아이언+웨지)
+  return`${modeToggle}
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:.3rem">아이언</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${IRON_NUMS.map(n=>mkChk(n,selectedIrons.includes(n),'iron_set','200,137,58')).join('')}
+    </div>
+    ${expertMode?IRON_NUMS.filter(n=>selectedIrons.includes(n)).map(n=>specRow(n,'var(--wing2)')).join(''):''}
+    <div style="font-size:.68rem;color:var(--muted);margin:'.5rem 0 .3rem">웨지</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${wedgeNums.map(n=>mkChk(n,selectedWedges.includes(n),'wedge_set','61,158,116')).join('')}
+    </div>
+    ${expertMode?wedgeNums.filter(n=>selectedWedges.includes(n)).map(n=>specRow(n,'#3D9E74')).join(''):''}`;
 }
+
 // 클럽값에서 통계용 정규 클럽 번호 추출 ("JP921 아이언 — 7I" → "7I")
 function normalizeClub(club){
   if(!club)return'';
@@ -5041,13 +5058,14 @@ function eDetail(){
 
   // 태그 (category + 커스텀 tags)
   const tags = Array.isArray(e.tags)?e.tags:[];
-  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지'||e.cat==='우드/유틸리티')?`
+  const expertMode = (loadAiCache()['equip_expert_mode']||'0') === '1';
+  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지'||e.cat==='우드'||e.cat==='하이브리드')?`
     <div style="margin-bottom:.9rem;padding:.7rem;background:rgba(13,17,23,.4);border:1px solid var(--border);border-radius:2px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
         <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 클럽 번호</div>
         <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
       </div>
-      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[], e.tags?.wood_set||[], e.tags?.util_set||[], e.tags?.club_specs||{})}
+      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[], e.tags?.wood_set||[], e.tags?.util_set||[], e.tags?.club_specs||{}, e.cat, expertMode)}
     </div>`:'';
   const tagsH = `
     <div style="margin-bottom:.9rem">
@@ -5401,6 +5419,19 @@ window.saveEMemo=async(id,val)=>{
   if(error){toast('저장 실패');sync('err');return}
   e.memo=val;sync('ok');toast('메모 저장됨');
 };
+window.toggleEquipExpertMode = async (on) => {
+  // DB에 저장 (기기 동기화)
+  try{
+    const cache = loadAiCache();
+    cache['equip_expert_mode'] = on ? '1' : '0';
+    if(D.profile){
+      D.profile.ai_cache = cache;
+      await sb.from('user_profiles').update({ai_cache:cache}).eq('user_id',user.id);
+    }
+  }catch(e){ console.warn('expert mode 저장 실패:', e); }
+  window._rerender();
+};
+
 window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
