@@ -40,7 +40,13 @@
   --mono:'DM Mono','Courier New',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* 모바일 가독성을 위한 기본 폰트 크기 조정 */
+html{font-size:17px}
 body{font-family:var(--sans);background:var(--night);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+/* 매우 작은 폰트(.67rem~.72rem)를 최소 .75rem 수준으로 보정 */
+.fl-label,.card-meta,.note,.stat-l,
+.badge,.kw-pill,.tag-chip{font-size:max(.75rem,1em) !important}
+.badge{font-size:.75rem !important}
 
 /* LOADING */
 #loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
@@ -492,7 +498,7 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
 
 <div id="app">
   <!-- 얼리액세스 배너 -->
-  <div id="early-access-banner" style="background:linear-gradient(90deg,rgba(200,137,58,.18),rgba(200,137,58,.1),rgba(200,137,58,.18));border-bottom:1px solid rgba(200,137,58,.2);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap;position:sticky;top:0;z-index:101">
+  <div id="early-access-banner" style="background:#1c1205;border-bottom:1px solid rgba(200,137,58,.4);padding:5px 1rem;display:flex;align-items:center;justify-content:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap;position:sticky;top:0;z-index:101">
     <span style="font-size:.65rem;font-weight:700;letter-spacing:.12em;color:var(--wing2);text-transform:uppercase">Early Access</span>
     <span style="font-size:.68rem;color:var(--dim)">— 모든 기능 무료 이용 중 🎉</span>
     <button onclick="renderPublicProfile('friendis')" style="background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.3);color:var(--wing2);font-size:.68rem;padding:2px 8px;border-radius:10px;cursor:pointer;font-family:var(--sans);flex-shrink:0">🏌️ 개발자 계정 구경가기</button>
@@ -945,11 +951,101 @@ const CLUB_BENCH={
   'LW':{carry:[{l:'프로',min:65,max:88,c:'rgba(228,168,85,.07)'},{l:'상급',min:50,max:65,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:50,c:'rgba(167,139,250,.05)'},{l:'초급',min:22,max:36,c:'rgba(138,155,170,.04)'}]},
 };
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
-const ECATS=['드라이버','우드/유틸리티','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
+const ECATS=['드라이버','우드','하이브리드','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
+const CLUB_CATS=new Set(['드라이버','우드','하이브리드','아이언','웨지']);
 const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
-const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드/유틸리티':['3W','5W','유틸리티'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
+const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
+const WOOD_NUMS_COMMON=['3W','5W','7W'];
+const WOOD_NUMS_RARE=['4W','9W','2W','6W','8W','11W'];
+const UTIL_NUMS=['2UT','3UT','4UT','5UT','6UT'];
+const WOOD_NUMS=[...WOOD_NUMS_COMMON,...WOOD_NUMS_RARE];
+
+// 클럽별 기본 로프트 참고값
+const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
+
+// 아이언/웨지/우드/유틸 세트 체크박스 HTML
+function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, cat='', expertMode=false){
+  const wedgeNums=['PW','AW/GW','SW','LW'];
+
+  // 전문가 모드 토글 버튼
+  const modeToggle=`<div style="display:flex;justify-content:flex-end;margin-bottom:.4rem">
+    <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none">
+      <span>상세 사양</span>
+      <input type="checkbox" id="equip-expert-mode" ${expertMode?'checked':''} onchange="toggleEquipExpertMode(this.checked)" style="accent-color:var(--wing2)">
+    </label>
+  </div>`;
+
+  const specRow=(n,color)=>{
+    if(!expertMode) return '';
+    const loft=clubSpecs[n]?.loft||'';
+    const flex=clubSpecs[n]?.flex||'';
+    const note=clubSpecs[n]?.note||'';
+    return`<div style="margin-top:.3rem;padding:.35rem .55rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center">
+      <span style="font-size:.7rem;color:${color};font-weight:600;min-width:36px">${n}</span>
+      <div style="display:flex;align-items:center;gap:.2rem">
+        <label style="font-size:.65rem;color:var(--muted)">로프트</label>
+        <input type="number" name="spec_loft_${n.replace(/\//g,'_')}" value="${loft}" placeholder="${CLUB_DEFAULT_LOFT[n]||''}" step="0.5"
+          style="width:48px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.75rem;font-family:var(--sans)">
+        <span style="font-size:.65rem;color:var(--muted)">°</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.2rem">
+        <label style="font-size:.65rem;color:var(--muted)">샤프트</label>
+        <select name="spec_flex_${n.replace(/\//g,'_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 3px;border-radius:2px;font-size:.75rem;font-family:var(--sans)">
+          <option value="">-</option>
+          ${['L','A','R','SR','S','X'].map(f=>`<option value="${f}"${flex===f?' selected':''}>${f}</option>`).join('')}
+        </select>
+      </div>
+      <input type="text" name="spec_note_${n.replace(/\//g,'_')}" value="${note}" placeholder="메모"
+        style="flex:1;min-width:80px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.75rem;font-family:var(--sans)">
+    </div>`;
+  };
+
+  const mkChk=(n,selected,namePfx,color)=>`
+    <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selected?`rgba(${color},.5)`:'var(--border)'};background:${selected?`rgba(${color},.1)`:'transparent'};transition:all .15s">
+      <input type="checkbox" value="${n}" name="${namePfx}"${selected?' checked':''} style="accent-color:var(--wing2)"> ${n}
+    </label>`;
+
+  // 카테고리별 표시
+  const catKey = cat||'all';
+
+  // 우드
+  if(catKey==='우드') return`${modeToggle}
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${WOOD_NUMS_COMMON.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','200,137,58')).join('')}
+      ${WOOD_NUMS_RARE.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','200,137,58')).join('')}
+    </div>
+    ${expertMode?WOOD_NUMS.filter(n=>selectedWoods.includes(n)).map(n=>specRow(n,'var(--sky2)')).join(''):''}`;
+
+  // 하이브리드
+  if(catKey==='하이브리드') return`${modeToggle}
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${UTIL_NUMS.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','167,139,250')).join('')}
+    </div>
+    ${expertMode?UTIL_NUMS.filter(n=>selectedUtils.includes(n)).map(n=>specRow(n,'rgba(167,139,250,.9)')).join(''):''}`;
+
+  // 웨지
+  if(catKey==='웨지') return`${modeToggle}
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${wedgeNums.map(n=>mkChk(n,selectedWedges.includes(n),'wedge_set','61,158,116')).join('')}
+    </div>
+    ${expertMode?wedgeNums.filter(n=>selectedWedges.includes(n)).map(n=>specRow(n,'#3D9E74')).join(''):''}`;
+
+  // 아이언 (아이언+웨지)
+  return`${modeToggle}
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:.3rem">아이언</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${IRON_NUMS.map(n=>mkChk(n,selectedIrons.includes(n),'iron_set','200,137,58')).join('')}
+    </div>
+    ${expertMode?IRON_NUMS.filter(n=>selectedIrons.includes(n)).map(n=>specRow(n,'var(--wing2)')).join(''):''}
+    <div style="font-size:.68rem;color:var(--muted);margin:'.5rem 0 .3rem">웨지</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${wedgeNums.map(n=>mkChk(n,selectedWedges.includes(n),'wedge_set','61,158,116')).join('')}
+    </div>
+    ${expertMode?wedgeNums.filter(n=>selectedWedges.includes(n)).map(n=>specRow(n,'#3D9E74')).join(''):''}`;
+}
+
 // 클럽값에서 통계용 정규 클럽 번호 추출 ("JP921 아이언 — 7I" → "7I")
 function normalizeClub(club){
   if(!club)return'';
@@ -964,32 +1060,36 @@ function clubLabel(club){
   if(club.includes(' — '))return club; // 이미 "장비명 — 번호" 형식
   return club;
 }
-// 아이언 세트 체크박스 HTML
-function ironSetUI(selectedIrons=[], selectedWedges=[], disabled=false){
-  const wedgeNums=['PW','AW/GW','SW','LW'];
-  return`<div style="margin-top:.5rem">
-    <div class="fl-label">보유 아이언 번호</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${IRON_NUMS.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedIrons.includes(n)?'rgba(200,137,58,.5)':'var(--border)'};background:${selectedIrons.includes(n)?'rgba(200,137,58,.1)':'transparent'};transition:all .15s">
-        <input type="checkbox" value="${n}" name="iron_set"${selectedIrons.includes(n)?' checked':''} style="accent-color:var(--wing2)"> ${n}
-      </label>`).join('')}
-    </div>
-    <div class="fl-label" style="margin-top:.5rem">보유 웨지</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.35rem">
-      ${wedgeNums.map(n=>`<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;padding:3px 8px;border-radius:2px;border:1px solid ${selectedWedges.includes(n)?'rgba(74,143,168,.5)':'var(--border)'};background:${selectedWedges.includes(n)?'rgba(74,143,168,.1)':'transparent'};transition:all .15s">
-        <input type="checkbox" value="${n}" name="wedge_set"${selectedWedges.includes(n)?' checked':''} style="accent-color:var(--sky2)"> ${n}
-      </label>`).join('')}
-    </div>
-  </div>`;
-}
 // 선택된 아이언 번호 읽기
 function readIronSet(){
   return [...document.querySelectorAll('input[name="iron_set"]:checked')].map(el=>el.value);
 }
-// 선택된 웨지 읽기
 function readWedgeSet(){
   return [...document.querySelectorAll('input[name="wedge_set"]:checked')].map(el=>el.value);
 }
+function readWoodSet(){
+  return [...document.querySelectorAll('input[name="wood_set"]:checked')].map(el=>el.value);
+}
+function readUtilSet(){
+  return [...document.querySelectorAll('input[name="util_set"]:checked')].map(el=>el.value);
+}
+function readClubSpecs(){
+  const specs={};
+  document.querySelectorAll('[name^="spec_loft_"],[name^="spec_flex_"],[name^="spec_note_"]').forEach(el=>{
+    const m=el.name.match(/^spec_(loft|flex|note)_(.+)$/);
+    if(!m||!el.value) return;
+    const club=m[2].replace('_','/');
+    if(!specs[club]) specs[club]={};
+    specs[club][m[1]]=el.value;
+  });
+  return specs;
+}
+window.toggleSpecRow=(n)=>{
+  const id='spec-row-'+n.replace('/','_');
+  const row=document.getElementById(id);
+  const chk=document.querySelector(`input[name$="_set"][value="${n}"]`);
+  if(row) row.style.display=(chk?.checked)?'block':'none';
+};
 // 보유 장비 클럽 옵션 HTML 생성
 function ownedClubOptions(currentVal=''){
   const owned=D.equip.filter(e=>e.status==='owned');
@@ -997,8 +1097,33 @@ function ownedClubOptions(currentVal=''){
   const items=[];
   owned.forEach(e=>{
     if(e.cat==='아이언'){
+      // 아이언 번호
       const irons=e.ironSet&&e.ironSet.length?e.ironSet:CAT_TO_CLUBS['아이언'];
       irons.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+      // 아이언 세트에 포함된 웨지
+      const wedges=e.tags?.wedge_set||[];
+      wedges.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+    } else if(e.cat==='웨지'){
+      const wedges=e.tags?.wedge_set&&e.tags.wedge_set.length?e.tags.wedge_set:CAT_TO_CLUBS['웨지']||[];
+      wedges.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+    } else if(e.cat==='우드'){
+      const woods=e.tags?.wood_set&&e.tags.wood_set.length?e.tags.wood_set:CAT_TO_CLUBS['우드']||[];
+      woods.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+    } else if(e.cat==='하이브리드'){
+      const utils=e.tags?.util_set&&e.tags.util_set.length?e.tags.util_set:CAT_TO_CLUBS['하이브리드']||[];
+      utils.forEach(n=>{
         const val=`${e.name} — ${n}`;
         items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
       });
@@ -1007,8 +1132,7 @@ function ownedClubOptions(currentVal=''){
       const clubNum=clubs[0]||'';
       if(!clubNum)return;
       const val=`${e.name} — ${clubNum}`;
-      const label=`${e.name} — ${clubNum}`;
-      items.push({val,label,selected:currentVal===val||currentVal===clubNum});
+      items.push({val,label:val,selected:currentVal===val||currentVal===clubNum});
     }
   });
   if(!items.length)return'';
@@ -4871,9 +4995,18 @@ function eList(){
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{
     const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;
-    // tags가 객체(jsonb)이므로 커스텀 태그는 별도 필드에서 읽음
     const customTags=Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string'):(e.tags?.custom||[]);
-    return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}<div style="font-size:.68rem;color:var(--muted);margin-top:3px">${e.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`;
+    // 클럽 번호 뱃지 (아이언/웨지/우드/하이브리드)
+    const allClubNums=[
+      ...(e.ironSet||[]),
+      ...(e.tags?.wedge_set||[]),
+      ...(e.tags?.wood_set||[]),
+      ...(e.tags?.util_set||[]),
+    ];
+    const clubNumBadges=allClubNums.length
+      ?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px">${allClubNums.map(n=>`<span style="font-size:.65rem;padding:1px 5px;border-radius:2px;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.2)">${esc(n)}</span>`).join('')}</div>`
+      :'';
+    return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${clubNumBadges}${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}<div style="font-size:.68rem;color:var(--muted);margin-top:3px">${e.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`;
   }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
 
   // 태그 칩: 커스텀 태그 + 분류(cat) 모두 수집
@@ -4964,13 +5097,14 @@ function eDetail(){
 
   // 태그 (category + 커스텀 tags)
   const tags = Array.isArray(e.tags)?e.tags:[];
-  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지')?`
+  const expertMode = (loadAiCache()['equip_expert_mode']||'0') === '1';
+  const ironSetSection = (e.cat==='아이언'||e.cat==='웨지'||e.cat==='우드'||e.cat==='하이브리드')?`
     <div style="margin-bottom:.9rem;padding:.7rem;background:rgba(13,17,23,.4);border:1px solid var(--border);border-radius:2px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
         <div style="font-size:.68rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 클럽 번호</div>
         <button class="btn btn-s btn-sm" style="padding:1px 8px;font-size:.7rem" onclick="saveIronSet('${e.id}')">저장</button>
       </div>
-      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[])}
+      ${ironSetUI(e.ironSet||[], e.tags?.wedge_set||[], e.tags?.wood_set||[], e.tags?.util_set||[], e.tags?.club_specs||{}, e.cat, expertMode)}
     </div>`:'';
   const tagsH = `
     <div style="margin-bottom:.9rem">
@@ -5324,18 +5458,45 @@ window.saveEMemo=async(id,val)=>{
   if(error){toast('저장 실패');sync('err');return}
   e.memo=val;sync('ok');toast('메모 저장됨');
 };
+window.toggleEquipExpertMode = async (on) => {
+  const cache = loadAiCache();
+  cache['equip_expert_mode'] = on ? '1' : '0';
+  if(D.profile) D.profile.ai_cache = cache; // 메모리 즉시 반영
+  window._rerender(); // DB 저장 전에 즉시 렌더링
+  try{
+    await sb.from('user_profiles').update({ai_cache:cache}).eq('user_id',user.id);
+  }catch(e){ console.warn('expert mode 저장 실패:', e); }
+};
+
 window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
   const wedges=readWedgeSet();
+  const woods=readWoodSet();
+  const utils=readUtilSet();
+  const specs=readClubSpecs();
   const newTags=typeof e.tags==='object'&&!Array.isArray(e.tags)
-    ?{...e.tags,...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})}
-    :{...(selected.length?{iron_set:selected}:{}),...(wedges.length?{wedge_set:wedges}:{})};
+    ?{...e.tags,
+       ...(selected.length?{iron_set:selected}:{}),
+       ...(wedges.length?{wedge_set:wedges}:{}),
+       ...(woods.length?{wood_set:woods}:{}),
+       ...(utils.length?{util_set:utils}:{}),
+       ...(Object.keys(specs).length?{club_specs:specs}:{})}
+    :{...(selected.length?{iron_set:selected}:{}),
+       ...(wedges.length?{wedge_set:wedges}:{}),
+       ...(woods.length?{wood_set:woods}:{}),
+       ...(utils.length?{util_set:utils}:{}),
+       ...(Object.keys(specs).length?{club_specs:specs}:{})};
   sync('busy');const{error}=await sb.from('equipment').update({tags:newTags}).eq('id',id).eq('user_id',user.id);
-  if(error){toast('저장 실패');sync('err');return}
+  if(error){toast('저장 실패');sync('err');return;}
   e.ironSet=selected;e.tags=newTags;sync('ok');
-  const parts=[...(selected.length?[selected.join(', ')]:[]),(wedges.length?['웨지: '+wedges.join(', ')]:[])[0]].filter(Boolean);
-  toast(`클럽 세트 저장됨 (${parts.join(' / ')||'없음'})`);
+  const parts=[
+    selected.length?`아이언: ${selected.join(', ')}`:null,
+    wedges.length?`웨지: ${wedges.join(', ')}`:null,
+    woods.length?`우드: ${woods.join(', ')}`:null,
+    utils.length?`유틸: ${utils.join(', ')}`:null,
+  ].filter(Boolean);
+  toast(`클럽 세트 저장됨${parts.length?' ('+parts.join(' / ')+')':''}`);
 };
 
 // ── AI 장비 분석 ─────────────────────────────────────
@@ -5820,9 +5981,20 @@ window.saveEquip=async()=>{
   const firstPrice = links.find(l=>l.price);
   const priceH = firstPrice ? [{date:today(), price:firstPrice.price}] : [];
 
-  const ironSet=cat==='아이언'?readIronSet():[];
-  const wedgeSet=cat==='웨지'?readWedgeSet():[];
-  const tagsData=(ironSet.length||wedgeSet.length)?{...(ironSet.length?{iron_set:ironSet}:{}),  ...(wedgeSet.length?{wedge_set:wedgeSet}:{})}:null;
+  const ironSet=(cat==='아이언')?readIronSet():[];
+  const wedgeSet=(cat==='웨지'||cat==='아이언')?readWedgeSet():[];
+  const woodSet=(cat==='우드')?readWoodSet():[];
+  const utilSet=(cat==='하이브리드')?readUtilSet():[];
+  const clubSpecs=readClubSpecs();
+  const driverSpecs=cat==='드라이버'?readDriverSpecs():null;
+  const tagsData=(ironSet.length||wedgeSet.length||woodSet.length||utilSet.length||Object.keys(clubSpecs).length||driverSpecs)
+    ?{...(ironSet.length?{iron_set:ironSet}:{}),
+       ...(wedgeSet.length?{wedge_set:wedgeSet}:{}),
+       ...(woodSet.length?{wood_set:woodSet}:{}),
+       ...(utilSet.length?{util_set:utilSet}:{}),
+       ...(Object.keys(clubSpecs).length?{club_specs:clubSpecs}:{}),
+       ...(driverSpecs?{driver_specs:driverSpecs}:{})}
+    :null;
   const photoUrl=$('eadd-photo-url')?.value||'';
   const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
   sync('busy');
@@ -5839,9 +6011,10 @@ function eAdd(){
 
     <div class="frow">
       <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
-      <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="toggleIronSet(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+      <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="onClubCatChange(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
     </div>
-    <div id="iron-set-wrap" style="display:none">${ironSetUI([],[])}</div>
+    <!-- 분류별 클럽 상세 UI -->
+    <div id="club-spec-wrap" style="display:none"></div>
 
     <div class="fg"><label class="fl-label">상태</label>
       <div style="display:flex;gap:.75rem">
@@ -6465,7 +6638,373 @@ function _refreshGamePhotoPreview(){
 window.applyPlayerScores = (playerIdx) => {
   applyScorecardToForm(playerIdx);
 };
-window.toggleIronSet=v=>{const w=$('iron-set-wrap');if(w)w.style.display=(v==='아이언'||v==='웨지')?'block':'none'};
+window.onClubCatChange = (cat) => {
+  const wrap = $('club-spec-wrap');
+  if(!wrap) return;
+  if(!CLUB_CATS.has(cat)){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = clubSpecUI(cat);
+};
+
+// 분류별 클럽 사양 입력 UI
+function clubSpecUI(cat){
+  const specInput=(n,loftDefault='')=>`
+    <div class="club-spec-item" id="spec-item-${n.replace(/\//g,'-')}">
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;padding:.4rem .6rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px;margin-top:.3rem">
+        <span style="font-size:.78rem;color:var(--chalk);font-weight:600;min-width:40px">${n}</span>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted)">로프트</label>
+          <input type="number" name="spec_loft_${n.replace(/\//g,'_')}" placeholder="${loftDefault}" step="0.5"
+            style="width:50px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+          <span style="font-size:.68rem;color:var(--muted)">°</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted)">샤프트</label>
+          <select name="spec_flex_${n.replace(/\//g,'_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+            <option value="">-</option>${['L','A','R','SR','S','X'].map(f=>`<option>${f}</option>`).join('')}
+          </select>
+        </div>
+        <input type="text" name="spec_note_${n.replace(/\//g,'_')}" placeholder="중량, 토크 등"
+          style="flex:1;min-width:100px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+      </div>
+    </div>`;
+
+  const mkChkSpec=(n,namePfx,color,loftDefault='')=>`
+    <div style="display:contents">
+      <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;padding:3px 9px;border-radius:2px;border:1px solid var(--border);background:transparent" onclick="toggleClubSpecItem('${n}',this)">
+        <input type="checkbox" value="${n}" name="${namePfx}" style="accent-color:${color}"> ${n}
+      </label>
+    </div>
+    <div id="spec-item-${n.replace(/\//g,'-')}" style="display:none;width:100%;flex-basis:100%">
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;padding:.4rem .6rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px;margin-top:.2rem">
+        <span style="font-size:.75rem;color:var(--chalk);font-weight:600;min-width:44px">${n}</span>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted)">로프트</label>
+          <input type="number" name="spec_loft_${n.replace(/\//g,'_')}" placeholder="${loftDefault}" step="0.5"
+            style="width:50px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+          <span style="font-size:.68rem;color:var(--muted)">°</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.68rem;color:var(--muted)">샤프트</label>
+          <select name="spec_flex_${n.replace(/\//g,'_')}" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 4px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+            <option value="">-</option>${['L','A','R','SR','S','X'].map(f=>`<option>${f}</option>`).join('')}
+          </select>
+        </div>
+        <input type="text" name="spec_note_${n.replace(/\//g,'_')}" placeholder="중량, 토크 등"
+          style="flex:1;min-width:100px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:2px 5px;border-radius:2px;font-size:.78rem;font-family:var(--sans)">
+      </div>
+    </div>`;
+
+  // ── 샤프트 일괄 적용 UI ────────────────────────────
+  const POPULAR_SHAFTS = {
+    '스탁': [
+      'Fujikura Speeder NX','Mitsubishi Tensei CK Orange','Mitsubishi Tensei AV Raw White',
+      'Aldila Rogue White','Project X HZRDUS Smoke','True Temper Dynamic Gold',
+      'KBS Tour','NS PRO Modus3 Tour 120','NS PRO 950GH','Nippon NS PRO 850GH',
+      'True Temper XP 95','Aerotech SteelFiber'
+    ],
+    '커스텀': [
+      'Fujikura Ventus Blue','Fujikura Ventus Black','Mitsubishi Diamana D+',
+      'Mitsubishi Diamana TB','Graphite Design Tour AD IZ','Graphite Design Tour AD DI',
+      'Oban Kiyoshi','Accra TZ','Matrix Ozik HD6','Aldila Quaranta',
+      'Aldila NV 2KXV','ATTAS King','ATTAS DA'
+    ]
+  };
+  const allShafts=[...POPULAR_SHAFTS['스탁'],...POPULAR_SHAFTS['커스텀']];
+
+  const shaftBulkUI = (cat!=='드라이버') ? `
+    <div style="background:rgba(74,101,128,.08);border:1px solid rgba(74,101,128,.2);border-radius:3px;padding:.6rem .85rem;margin-bottom:.65rem">
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem">샤프트 일괄 적용</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;align-items:center;gap:.25rem;flex:1;min-width:160px">
+          <label style="font-size:.72rem;color:var(--muted);white-space:nowrap">샤프트명</label>
+          <input type="text" id="bulk-shaft-name" list="shaft-datalist" placeholder="예: NS PRO 950GH"
+            style="flex:1;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 7px;border-radius:2px;font-size:.8rem;font-family:var(--sans)">
+          <datalist id="shaft-datalist">
+            <optgroup label="스탁">${POPULAR_SHAFTS['스탁'].map(s=>`<option value="${s}">`).join('')}</optgroup>
+            <optgroup label="커스텀">${POPULAR_SHAFTS['커스텀'].map(s=>`<option value="${s}">`).join('')}</optgroup>
+          </datalist>
+        </div>
+        <div style="display:flex;align-items:center;gap:.25rem">
+          <label style="font-size:.72rem;color:var(--muted)">강도</label>
+          <select id="bulk-shaft-flex" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 5px;border-radius:2px;font-size:.8rem;font-family:var(--sans)">
+            <option value="">-</option>${['L','A','R','SR','S','X'].map(f=>`<option>${f}</option>`).join('')}
+          </select>
+        </div>
+        <button type="button" onclick="applyShaftBulk()" style="background:rgba(74,143,168,.12);border:1px solid rgba(74,143,168,.3);color:var(--sky2);padding:3px 10px;border-radius:2px;font-size:.75rem;cursor:pointer;font-family:var(--sans);white-space:nowrap">전체 적용</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.4rem">
+        <span style="font-size:.67rem;color:var(--muted)">빠른 선택:</span>
+        ${['NS PRO 950GH','KBS Tour','Modus3 Tour 120','Dynamic Gold','Ventus Blue','Tour AD IZ'].map(s=>`<button type="button" onclick="quickShaft('${s}')" style="font-size:.67rem;padding:1px 6px;border-radius:10px;border:1px solid rgba(240,237,230,.15);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">${s}</button>`).join('')}
+      </div>
+      <div id="ai-fill-status" style="display:none;font-size:.72rem;padding:.3rem .1rem;margin-top:.25rem"></div>
+    </div>` : '';
+
+  const aiBtn = `<button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>`;
+
+  if(cat==='드라이버') return`
+    <div style="background:rgba(13,17,23,.35);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.55rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">드라이버 핵심 사양</div>
+        <button type="button" id="equip-ai-fill" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <label style="font-size:.75rem;color:var(--dim);white-space:nowrap">로프트</label>
+          <input type="number" name="driver_loft" placeholder="9.5" step="0.5"
+            style="width:55px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 6px;border-radius:2px;font-size:.82rem;font-family:var(--sans)">
+          <span style="font-size:.72rem;color:var(--muted)">°</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <label style="font-size:.75rem;color:var(--dim);white-space:nowrap">샤프트 강도</label>
+          <select name="driver_flex" style="background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 5px;border-radius:2px;font-size:.82rem;font-family:var(--sans)">
+            <option value="">-</option>${['L','A','R','SR','S','X'].map(f=>`<option>${f}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <label style="font-size:.75rem;color:var(--dim);white-space:nowrap">샤프트 중량</label>
+          <input type="text" name="driver_shaft_weight" placeholder="60g"
+            style="width:60px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 6px;border-radius:2px;font-size:.82rem;font-family:var(--sans)">
+        </div>
+        <div style="display:flex;align-items:center;gap:.3rem">
+          <label style="font-size:.75rem;color:var(--dim);white-space:nowrap">헤드 체적</label>
+          <input type="number" name="driver_volume" placeholder="460"
+            style="width:60px;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:3px 6px;border-radius:2px;font-size:.82rem;font-family:var(--sans)">
+          <span style="font-size:.72rem;color:var(--muted)">cc</span>
+        </div>
+      </div>
+    </div>`;
+
+  if(cat==='우드') return`
+    ${shaftBulkUI}
+    <div style="background:rgba(13,17,23,.35);border:1px solid rgba(74,143,168,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 우드 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
+        <button type="button" id="equip-ai-fill" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${WOOD_NUMS_COMMON.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        <button type="button" id="wood-rare-toggle" onclick="toggleWoodRare()"
+          style="font-size:.72rem;padding:3px 9px;border-radius:2px;border:1px solid rgba(240,237,230,.15);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">＋ 기타 번호</button>
+        <div id="wood-rare-wrap" style="display:none;width:100%;flex-basis:100%">
+          <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.2rem">
+            ${WOOD_NUMS_RARE.map(n=>mkChkSpec(n,'wood_set','var(--sky2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  if(cat==='하이브리드') return`
+    ${shaftBulkUI}
+    <div style="background:rgba(13,17,23,.35);border:1px solid rgba(167,139,250,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 하이브리드 번호 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
+        <button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${UTIL_NUMS.map(n=>mkChkSpec(n,'util_set','rgba(167,139,250,.9)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
+    </div>`;
+
+  if(cat==='아이언') return`
+    ${shaftBulkUI}
+    <div style="background:rgba(13,17,23,.35);border:1px solid rgba(200,137,58,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">보유 아이언 번호</div>
+        <button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${IRON_NUMS.map(n=>mkChkSpec(n,'iron_set','var(--wing2)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem;margin-top:.6rem">웨지 포함</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
+    </div>`;
+
+  if(cat==='웨지') return`
+    ${shaftBulkUI}
+    <div style="background:rgba(13,17,23,.35);border:1px solid rgba(61,158,116,.15);border-radius:3px;padding:.7rem .85rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem">
+        <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">웨지 번호 선택 <span style="font-weight:400;opacity:.6">(로프트 입력 옵션)</span></div>
+        <button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+      </div>
+    </div>`;
+
+  return '';
+}
+
+window.applyShaftBulk = () => {
+  const name = $('bulk-shaft-name')?.value.trim();
+  const flex = $('bulk-shaft-flex')?.value;
+  if(!name && !flex){ toast('샤프트명 또는 강도를 입력해주세요'); return; }
+  let count = 0;
+  document.querySelectorAll('[name^="spec_flex_"]').forEach(el=>{
+    if(flex){ el.value=flex; count++; }
+  });
+  document.querySelectorAll('[name^="spec_note_"]').forEach(el=>{
+    if(name){
+      const existing=el.value.trim();
+      el.value=name+(existing?', '+existing:'');
+    }
+  });
+  const dFlex=document.querySelector('[name="driver_flex"]');
+  if(dFlex&&flex) dFlex.value=flex;
+  toast('✓ 샤프트 일괄 적용됨');
+};
+window.quickShaft = (name) => {
+  const inp=$('bulk-shaft-name');
+  if(inp){ inp.value=name; }
+};
+window.aiAutoFillSpecs = async () => {
+  const name = $('en')?.value.trim();
+  const cat  = $('ec')?.value.trim();
+  if(!name){ toast('장비명을 먼저 입력해주세요'); return; }
+
+  const btns = document.querySelectorAll('[onclick="aiAutoFillSpecs()"]');
+  const statusEl = $('ai-fill-status');
+  const setStatus = (msg, color='var(--muted)') => {
+    if(!statusEl) return;
+    statusEl.style.display='block';
+    statusEl.textContent=msg;
+    statusEl.style.color=color;
+  };
+  btns.forEach(b=>{b.disabled=true;b.textContent='✦ 검색 중...';b.style.opacity='.6';});
+  setStatus('🔍 AI가 장비 정보를 검색하고 있습니다...');
+
+  try{
+    const resp = await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({
+        type:'swing', model:GEMINI_MODEL, maxOutputTokens:3000, useSearch:true,
+        prompt:`"${name}" ${cat||'골프 클럽'}의 공식 스펙을 검색해서 정확한 값만 JSON으로 출력하세요.
+검색된 공식 자료(제조사 사이트, 공식 카탈로그)를 기준으로 작성하고, 확실하지 않은 값은 null로 표시하세요.
+
+{"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":"","source":"출처"}
+- id: 7I 8I 9I PW SW LW AW/GW 3W 5W 3UT 등
+- loft: 공식 스펙 숫자만 (불확실하면 null)
+- flex: 기본 샤프트 강도 L A R SR S X (불확실하면 null)
+- source: 참고한 출처 URL 또는 사이트명
+- JSON만, 설명 금지`
+      })
+    });
+    if(!resp.ok) throw new Error(`서버 오류 (${resp.status})`);
+    const data = await resp.json();
+    console.log('[ai-fill]', JSON.stringify(data).slice(0,300));
+    if(data.error) throw new Error(data.error);
+
+    // text 추출 (swing 타입은 content[0].text)
+    const text = data.content?.[0]?.text || data.result || data.text || '';
+    if(!text) throw new Error(`응답 없음 (finishReason: ${data.finishReason||'?'})`);
+
+    // JSON 정제
+    let s = text.replace(/```json\s*/gi,'').replace(/```/g,'').trim();
+    const si=s.indexOf('{');
+    if(si===-1) throw new Error('JSON 없음: '+s.slice(0,80));
+    s = s.slice(si);
+    // 후행 쉼표 제거
+    s = s.replace(/,\s*([}\]])/g,'$1');
+    // MAX_TOKENS로 잘린 경우 열린 괄호 닫기
+    const openC=(s.match(/\{/g)||[]).length-(s.match(/\}/g)||[]).length;
+    const openS=(s.match(/\[/g)||[]).length-(s.match(/\]/g)||[]).length;
+    // 마지막 완전한 }까지만 잘라내기
+    if(openC>0||openS>0){
+      // 마지막 완전한 }까지만 사용
+      const lastValid=s.lastIndexOf('}');
+      if(lastValid>0) s=s.slice(0,lastValid+1);
+      // 그래도 열린 게 있으면 강제로 닫기
+      const oc=(s.match(/\{/g)||[]).length-(s.match(/\}/g)||[]).length;
+      const os=(s.match(/\[/g)||[]).length-(s.match(/\]/g)||[]).length;
+      if(os>0) s+=']'.repeat(os);
+      if(oc>0) s+='}' .repeat(oc);
+    }
+
+    const parsed = JSON.parse(s);
+
+    // 클럽 체크박스 + 사양 자동 입력
+    let filled=0;
+    for(const club of (parsed.clubs||[])){
+      const n=club.id; if(!n) continue;
+      const chk=document.querySelector(`input[name$="_set"][value="${n}"]`);
+      if(chk&&!chk.checked){ chk.checked=true; const label=chk.closest('label'); if(label) toggleClubSpecItem(n,label); }
+      const idSafe=n.replace(/\//g,'_');
+      if(club.loft!=null){ const el=document.querySelector(`[name="spec_loft_${idSafe}"]`); if(el) el.value=club.loft; }
+      if(club.flex){ const el=document.querySelector(`[name="spec_flex_${idSafe}"]`); if(el) el.value=club.flex; }
+      filled++;
+    }
+    if(parsed.driver){
+      const d=parsed.driver;
+      if(d.loft){ const el=document.querySelector('[name="driver_loft"]'); if(el) el.value=d.loft; }
+      if(d.flex){ const el=document.querySelector('[name="driver_flex"]'); if(el) el.value=d.flex; }
+      if(d.shaft_weight){ const el=document.querySelector('[name="driver_shaft_weight"]'); if(el) el.value=d.shaft_weight; }
+    }
+    if(parsed.summary){ const vm=$('ememo'); if(vm&&!vm.value) vm.value=parsed.summary; }
+
+    setStatus(`✓ ${filled}개 클럽 사양 입력 완료${parsed.source?` (출처: ${parsed.source})`:''}`, 'var(--turf)');
+    toast(`✓ ${filled}개 클럽 자동 입력됨`);
+
+  }catch(e){
+    console.error('[ai-fill] 오류:', e);
+    setStatus(`분석 실패: ${e.message}`, 'var(--red)');
+    toast('AI 자동 채우기 실패: '+e.message);
+  }finally{
+    btns.forEach(b=>{b.disabled=false;b.textContent='✦ AI 자동 채우기';b.style.opacity='1';});
+  }
+};
+
+window.applyVerifiedSpecs = (verifyText) => {
+  // "수정 필요: 7I 로프트 34° → 실제 35°" 형태 파싱
+  const fixes=[...verifyText.matchAll(/([234-9]I|PW|SW|LW|AW|GW|AW\/GW|[3579]W|[2-6]UT)\s*로프트\s*[\d.]+°?\s*→\s*(?:실제\s*)?([\d.]+)°?/g)];
+  let count=0;
+  fixes.forEach(m=>{
+    const club=m[1], loft=m[2];
+    const idSafe=club.replace(/\//g,'_');
+    const el=document.querySelector(`[name="spec_loft_${idSafe}"]`);
+    if(el){ el.value=loft; el.style.background='rgba(61,158,116,.15)'; count++; }
+  });
+  if(count>0) toast(`✓ ${count}개 로프트 수정 적용됨`);
+  else toast('자동 적용할 수정사항이 없습니다. 직접 수정해주세요.');
+};
+
+window.toggleWoodRare = () => {
+  const wrap = $('wood-rare-wrap');
+  const btn = $('wood-rare-toggle');
+  if(!wrap) return;
+  const showing = wrap.style.display !== 'none';
+  wrap.style.display = showing ? 'none' : 'block';
+  if(btn) btn.textContent = showing ? '＋ 기타 번호' : '－ 기타 번호';
+};
+
+window.toggleClubSpecItem = (n, label) => {
+  const chk = label.querySelector('input[type="checkbox"]');
+  const item = document.getElementById('spec-item-'+n.replace(/\//g,'-'));
+  if(item) item.style.display = chk?.checked ? 'block' : 'none';
+  // 라벨 스타일 업데이트
+  const color = chk?.checked ? 'rgba(200,137,58,.12)' : 'transparent';
+  const border = chk?.checked ? 'rgba(200,137,58,.4)' : 'var(--border)';
+  label.style.background = color;
+  label.style.borderColor = border;
+};
+
+// AI 사양 자동 채우기 (장비명 기반 웹검색)
+function readDriverSpecs(){
+  const loft = document.querySelector('[name="driver_loft"]')?.value;
+  const flex = document.querySelector('[name="driver_flex"]')?.value;
+  const weight = document.querySelector('[name="driver_shaft_weight"]')?.value;
+  const volume = document.querySelector('[name="driver_volume"]')?.value;
+  const specs = {};
+  if(loft) specs.loft = loft;
+  if(flex) specs.flex = flex;
+  if(weight) specs.shaft_weight = weight;
+  if(volume) specs.volume = volume;
+  return Object.keys(specs).length ? specs : null;
+}
+
+window.toggleIronSet=v=>{}; // 하위 호환
 const ss=s=>{
   const shots=s.shots||[],f=(k,pos=true)=>shots.map(x=>x[k]).filter(v=>pos?v>0:v!=null);
   const carries=f('carry'),totals=f('total'),hs=f('headSpeed'),bs=f('ballSpeed'),sf=f('smashFactor');
@@ -6608,7 +7147,11 @@ function pList(){
     <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1.1rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">📊 클럽별 비거리</div>
-        <div style="display:flex;gap:.3rem">
+        <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+          <button id="dist-filter-all" onclick="setDistFilter('all')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='all'?'rgba(200,137,58,.4)':'var(--border)'};background:${(window._distFilter||'all')==='all'?'rgba(200,137,58,.12)':'none'};color:${(window._distFilter||'all')==='all'?'var(--wing2)':'var(--muted)'};cursor:pointer;font-family:var(--sans)">전체</button>
+          <button id="dist-filter-owned" onclick="setDistFilter('owned')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='owned'?'rgba(74,143,168,.4)':'var(--border)'};background:${(window._distFilter||'all')==='owned'?'rgba(74,143,168,.1)':'none'};color:${(window._distFilter||'all')==='owned'?'var(--sky2)':'var(--muted)'};cursor:pointer;font-family:var(--sans)">보유 세트</button>
           <button id="dist-btn-carry" onclick="setDistMode('carry')"
             style="font-size:.7rem;padding:2px 9px;border-radius:2px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);cursor:pointer;font-family:var(--sans)">캐리</button>
           <button id="dist-btn-total" onclick="setDistMode('total')"
@@ -7050,6 +7593,12 @@ function clubColor(club) {
   return CLUB_COLORS[club] || {line:'#8A9BAA', bg:'rgba(138,155,170,.15)'};
 }
 
+window.setDistFilter = (filter) => {
+  window._distFilter = filter;
+  if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
+  requestAnimationFrame(initCharts);
+};
+
 window.setDistMode = (mode) => {
   window._distMode = mode;
   // 버튼 스타일 토글
@@ -7082,6 +7631,24 @@ function initCharts(){
         if(charts['game-score-chart']){try{charts['game-score-chart'].destroy()}catch(e){}}
         const avgSc=Math.round(gameScores.reduce((a,s)=>a+s.score,0)/gameScores.length);
         const bestScore=Math.min(...gameScores.map(x=>x.score));
+
+        // 사용 클럽 세트별 심볼 구분 (club 필드에 세트명이 있는 경우)
+        const setNames=[...new Set(gameScores.map(s=>{
+          const m=s.club?.match(/^🎒\s*(.+)/);
+          return m?m[1].trim():(s.club||'');
+        }))].filter(Boolean);
+        const GAME_POINT_STYLES=['circle','triangle','rect','rectRot','star'];
+        const setStyleMap={};
+        setNames.forEach((n,i)=>{ setStyleMap[n]=GAME_POINT_STYLES[i%GAME_POINT_STYLES.length]; });
+        const hasMultiSet=setNames.length>1;
+
+        const pointStyles=gameScores.map(s=>{
+          if(s.score===bestScore) return 'star'; // 베스트 스코어는 항상 별
+          const m=s.club?.match(/^🎒\s*(.+)/);
+          const setName=m?m[1].trim():(s.club||'');
+          return hasMultiSet&&setStyleMap[setName]?setStyleMap[setName]:'circle';
+        });
+
         charts['game-score-chart']=new Chart(gameScoreEl,{
           type:'line',
           data:{
@@ -7090,9 +7657,12 @@ function initCharts(){
               data:gameScores.map(s=>s.score),
               borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.08)',
               borderWidth:2,fill:true,tension:.3,
-              pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#3D9E74':'#C8893A'),
-              pointRadius:gameScores.map(s=>s.score===bestScore?6:4),
-              pointHoverRadius:gameScores.map(s=>s.score===bestScore?8:6),
+              pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#FFD700':'#C8893A'),
+              pointBorderColor:gameScores.map(s=>s.score===bestScore?'#fff':'#0D1117'),
+              pointBorderWidth:gameScores.map(s=>s.score===bestScore?2.5:1.5),
+              pointStyle:hasMultiSet?pointStyles:gameScores.map(s=>s.score===bestScore?'star':'circle'),
+              pointRadius:gameScores.map(s=>s.score===bestScore?10:4),
+              pointHoverRadius:gameScores.map(s=>s.score===bestScore?12:6),
             },{
               data:gameScores.map(()=>avgSc),
               borderColor:'rgba(200,137,58,.3)',borderWidth:1,borderDash:[4,4],
@@ -7103,7 +7673,11 @@ function initCharts(){
             responsive:true,maintainAspectRatio:false,
             plugins:{
               legend:false,
-              tooltip:{callbacks:{label:c=>`${c.raw}타`}}
+              tooltip:{callbacks:{label:c=>{
+                const s=gameScores[c.dataIndex];
+                const setLabel=s?.club?.match(/^🎒\s*(.+)/)?` | ${s.club.replace('🎒','').trim()}`:'';
+                return`${c.raw}타${setLabel}${s?.score===bestScore?' ⭐ 베스트':''}`;
+              }}}
             },
             scales:{
               x:{ticks:{font:{size:10},color:'rgba(240,237,230,.4)'},grid:{color:'rgba(240,237,230,.05)'}},
@@ -7130,18 +7704,42 @@ function initCharts(){
     try{
       if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){}}
       const distClubOrder=[...CLUBS].reverse();
+      const RECENT_N=5; // 최근 N세션 평균
+      const distFilter=window._distFilter||'all';
+      // 보유 세트 클럽 목록 (filter='owned'일 때)
+      const ownedClubNums=new Set();
+      if(distFilter==='owned'){
+        D.equip.filter(e=>e.status==='owned').forEach(e=>{
+          (e.ironSet||[]).forEach(n=>ownedClubNums.add(n));
+          (e.tags?.wedge_set||[]).forEach(n=>ownedClubNums.add(n));
+          (e.tags?.wood_set||[]).forEach(n=>ownedClubNums.add(n));
+          (e.tags?.util_set||[]).forEach(n=>ownedClubNums.add(n));
+          if(e.cat==='드라이버') ownedClubNums.add('드라이버');
+          if(e.cat==='퍼터') ownedClubNums.add('퍼터');
+        });
+      }
       const cm2={};
       sessions.forEach(s=>{
         const nc=normalizeClub(s.club); if(!nc)return;
-        if(!cm2[nc])cm2[nc]={c:[],tot:[]};
-        const st=ss(s);
-        if(st.avgCarry)cm2[nc].c.push(st.avgCarry);
-        if(st.avgTotal)cm2[nc].tot.push(st.avgTotal);
+        // 보유 세트 필터
+        if(distFilter==='owned'&&ownedClubNums.size>0&&!ownedClubNums.has(nc)) return;
+        if(!cm2[nc])cm2[nc]={sessions:[]};
+        cm2[nc].sessions.push(s);
+      });
+      // 최근 N개만 사용
+      Object.keys(cm2).forEach(c=>{
+        const recent=cm2[c].sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,RECENT_N);
+        const carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
+        const totals=recent.map(s=>ss(s).avgTotal).filter(Boolean);
+        cm2[c].c=carries;
+        cm2[c].tot=totals;
+        cm2[c].n=recent.length;
       });
       const mode=window._distMode||'carry';
       const labels=distClubOrder.filter(c=>cm2[c]?.c.length||cm2[c]?.tot.length);
       const carryVals=labels.map(c=>cm2[c]?.c.length?Math.round(avg(cm2[c].c)):null);
       const totalVals=labels.map(c=>cm2[c]?.tot.length?Math.round(avg(cm2[c].tot)):null);
+      const nVals=labels.map(c=>cm2[c]?.n||0);
       const showTotal=mode==='total';
       const vals=showTotal?totalVals:carryVals;
       const maxVal=Math.max(...vals.filter(Boolean),50);
@@ -7172,7 +7770,10 @@ function initCharts(){
             legend:false,
             tooltip:{
               callbacks:{
-                label:ctx=>`${ctx.raw||'-'}m`,
+                label:ctx=>{
+                  const n=nVals[ctx.dataIndex];
+                  return`${ctx.raw||'-'}m (최근 ${n}세션 평균)`;
+                },
                 afterLabel:ctx=>{
                   const club=labels[ctx.dataIndex];
                   const c=carryVals[ctx.dataIndex],t=totalVals[ctx.dataIndex];
@@ -7184,15 +7785,8 @@ function initCharts(){
             }
           },
           scales:{
-            x:{
-              ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},
-              grid:{display:false}
-            },
-            y:{
-              min:0,
-              ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},
-              grid:{color:'rgba(240,237,230,.06)'}
-            }
+            x:{ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},grid:{display:false}},
+            y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
           }
         }
       });
@@ -7267,10 +7861,23 @@ function initCharts(){
     });
   };
 
+  // 포인트 심볼 목록 (장비별 구분)
+  const POINT_STYLES=['circle','triangle','rect','rectRot','star','cross','crossRot'];
+
   clubs.forEach(club=>{
     const clubSessions=sessions.filter(s=>normalizeClub(s.club)===club);
     const dates=clubSessions.map(s=>s.date).sort();
     const labels=dates.map(d=>d.slice(5));
+
+    // 장비명별 심볼 매핑
+    const equipNames=[...new Set(clubSessions.map(s=>{
+      // "장비명 — 클럽번호" 형식에서 장비명 추출, 없으면 빈 문자열
+      const m=s.club?.match(/^(.+)\s*—\s*/);
+      return m?m[1].trim():'';
+    }))].filter(Boolean);
+    const equipStyleMap={};
+    equipNames.forEach((n,i)=>{ equipStyleMap[n]=POINT_STYLES[i%POINT_STYLES.length]; });
+
     const clickHandler=(evt,elements)=>{
       if(!elements.length)return;
       const date=dates[elements[0].index];
@@ -7295,8 +7902,54 @@ function initCharts(){
       const canvasId=`chart-${cd.key}-${club}`;
       if(!$(canvasId)) return;
       const def=chartDataMap[cd.key];
-      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);return s?def.get(s):null;});
-      mkChart(canvasId,labels,{label:club,vals},def.color,def.yOpts,def.zones,clickHandler);
+      const sortedSessions=dates.map(d=>clubSessions.find(x=>x.date===d));
+      const vals=sortedSessions.map(s=>s?def.get(s):null);
+
+      // 포인트별 심볼/크기 (장비가 다르면 다른 심볼)
+      const pointStyles=sortedSessions.map(s=>{
+        const m=s?.club?.match(/^(.+)\s*—\s*/);
+        const eName=m?m[1].trim():'';
+        return eName&&equipStyleMap[eName]?equipStyleMap[eName]:'circle';
+      });
+      const hasMultiEquip=new Set(pointStyles).size>1;
+
+      const c=$(canvasId); if(!c)return;
+      if(charts[canvasId]){try{charts[canvasId].destroy()}catch(e){}}
+      const lineCol=def.color||col.line;
+      charts[canvasId]=new Chart(c,{
+        type:'line',
+        data:{labels,datasets:[{
+          label:club,data:vals,
+          borderColor:lineCol,
+          backgroundColor:`${lineCol}22`,
+          borderWidth:2,
+          pointBackgroundColor:lineCol,
+          pointBorderColor:'#0D1117',
+          pointBorderWidth:hasMultiEquip?2:1.5,
+          pointStyle:hasMultiEquip?pointStyles:'circle',
+          pointRadius:6,pointHoverRadius:10,pointHitRadius:20,
+          spanGaps:true
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,onClick:clickHandler,
+          interaction:{mode:'nearest',axis:'x',intersect:false},
+          plugins:{legend:false,tooltip:{
+            enabled:true,
+            callbacks:{label:ctx=>{
+              const s=sortedSessions[ctx.dataIndex];
+              const m=s?.club?.match(/^(.+)\s*—\s*/);
+              const eName=m?m[1].trim():'';
+              return`${ctx.parsed.y}${def.yOpts.unit||''}${eName?' | '+eName:''} (탭하면 상세보기)`;
+            }},
+            backgroundColor:'rgba(13,17,23,.92)',
+            titleColor:'#C8D8E0',bodyColor:'#8AABBB',
+            padding:8,cornerRadius:3,
+          }},
+          scales:{
+            x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+            y:{...def.yOpts,ticks:{color:'#8AABBB',font:{size:9},...(def.yOpts.callback?{callback:def.yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.07)'},border:{color:'rgba(240,237,230,.1)'}},
+          }},
+        plugins:def.zones&&def.zones.length?[benchPlugin(def.zones)]:[]
+      });
     });
   });
 }
