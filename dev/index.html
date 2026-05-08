@@ -1091,8 +1091,33 @@ function ownedClubOptions(currentVal=''){
   const items=[];
   owned.forEach(e=>{
     if(e.cat==='아이언'){
+      // 아이언 번호
       const irons=e.ironSet&&e.ironSet.length?e.ironSet:CAT_TO_CLUBS['아이언'];
       irons.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+      // 아이언 세트에 포함된 웨지
+      const wedges=e.tags?.wedge_set||[];
+      wedges.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+    } else if(e.cat==='웨지'){
+      const wedges=e.tags?.wedge_set&&e.tags.wedge_set.length?e.tags.wedge_set:CAT_TO_CLUBS['웨지']||[];
+      wedges.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+    } else if(e.cat==='우드'){
+      const woods=e.tags?.wood_set&&e.tags.wood_set.length?e.tags.wood_set:CAT_TO_CLUBS['우드']||[];
+      woods.forEach(n=>{
+        const val=`${e.name} — ${n}`;
+        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
+      });
+    } else if(e.cat==='하이브리드'){
+      const utils=e.tags?.util_set&&e.tags.util_set.length?e.tags.util_set:CAT_TO_CLUBS['하이브리드']||[];
+      utils.forEach(n=>{
         const val=`${e.name} — ${n}`;
         items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
       });
@@ -1101,8 +1126,7 @@ function ownedClubOptions(currentVal=''){
       const clubNum=clubs[0]||'';
       if(!clubNum)return;
       const val=`${e.name} — ${clubNum}`;
-      const label=`${e.name} — ${clubNum}`;
-      items.push({val,label,selected:currentVal===val||currentVal===clubNum});
+      items.push({val,label:val,selected:currentVal===val||currentVal===clubNum});
     }
   });
   if(!items.length)return'';
