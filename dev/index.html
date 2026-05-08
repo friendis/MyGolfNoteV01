@@ -7639,18 +7639,27 @@ function initCharts(){
     try{
       if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){}}
       const distClubOrder=[...CLUBS].reverse();
+      const RECENT_N=5; // 최근 N세션 평균
       const cm2={};
       sessions.forEach(s=>{
         const nc=normalizeClub(s.club); if(!nc)return;
-        if(!cm2[nc])cm2[nc]={c:[],tot:[]};
-        const st=ss(s);
-        if(st.avgCarry)cm2[nc].c.push(st.avgCarry);
-        if(st.avgTotal)cm2[nc].tot.push(st.avgTotal);
+        if(!cm2[nc])cm2[nc]={sessions:[]};
+        cm2[nc].sessions.push(s);
+      });
+      // 최근 N개만 사용
+      Object.keys(cm2).forEach(c=>{
+        const recent=cm2[c].sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,RECENT_N);
+        const carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
+        const totals=recent.map(s=>ss(s).avgTotal).filter(Boolean);
+        cm2[c].c=carries;
+        cm2[c].tot=totals;
+        cm2[c].n=recent.length;
       });
       const mode=window._distMode||'carry';
       const labels=distClubOrder.filter(c=>cm2[c]?.c.length||cm2[c]?.tot.length);
       const carryVals=labels.map(c=>cm2[c]?.c.length?Math.round(avg(cm2[c].c)):null);
       const totalVals=labels.map(c=>cm2[c]?.tot.length?Math.round(avg(cm2[c].tot)):null);
+      const nVals=labels.map(c=>cm2[c]?.n||0);
       const showTotal=mode==='total';
       const vals=showTotal?totalVals:carryVals;
       const maxVal=Math.max(...vals.filter(Boolean),50);
@@ -7681,7 +7690,10 @@ function initCharts(){
             legend:false,
             tooltip:{
               callbacks:{
-                label:ctx=>`${ctx.raw||'-'}m`,
+                label:ctx=>{
+                  const n=nVals[ctx.dataIndex];
+                  return`${ctx.raw||'-'}m (최근 ${n}세션 평균)`;
+                },
                 afterLabel:ctx=>{
                   const club=labels[ctx.dataIndex];
                   const c=carryVals[ctx.dataIndex],t=totalVals[ctx.dataIndex];
@@ -7693,15 +7705,8 @@ function initCharts(){
             }
           },
           scales:{
-            x:{
-              ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},
-              grid:{display:false}
-            },
-            y:{
-              min:0,
-              ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},
-              grid:{color:'rgba(240,237,230,.06)'}
-            }
+            x:{ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},grid:{display:false}},
+            y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
           }
         }
       });
@@ -7776,10 +7781,23 @@ function initCharts(){
     });
   };
 
+  // 포인트 심볼 목록 (장비별 구분)
+  const POINT_STYLES=['circle','triangle','rect','rectRot','star','cross','crossRot'];
+
   clubs.forEach(club=>{
     const clubSessions=sessions.filter(s=>normalizeClub(s.club)===club);
     const dates=clubSessions.map(s=>s.date).sort();
     const labels=dates.map(d=>d.slice(5));
+
+    // 장비명별 심볼 매핑
+    const equipNames=[...new Set(clubSessions.map(s=>{
+      // "장비명 — 클럽번호" 형식에서 장비명 추출, 없으면 빈 문자열
+      const m=s.club?.match(/^(.+)\s*—\s*/);
+      return m?m[1].trim():'';
+    }))].filter(Boolean);
+    const equipStyleMap={};
+    equipNames.forEach((n,i)=>{ equipStyleMap[n]=POINT_STYLES[i%POINT_STYLES.length]; });
+
     const clickHandler=(evt,elements)=>{
       if(!elements.length)return;
       const date=dates[elements[0].index];
@@ -7804,8 +7822,54 @@ function initCharts(){
       const canvasId=`chart-${cd.key}-${club}`;
       if(!$(canvasId)) return;
       const def=chartDataMap[cd.key];
-      const vals=dates.map(d=>{const s=clubSessions.find(x=>x.date===d);return s?def.get(s):null;});
-      mkChart(canvasId,labels,{label:club,vals},def.color,def.yOpts,def.zones,clickHandler);
+      const sortedSessions=dates.map(d=>clubSessions.find(x=>x.date===d));
+      const vals=sortedSessions.map(s=>s?def.get(s):null);
+
+      // 포인트별 심볼/크기 (장비가 다르면 다른 심볼)
+      const pointStyles=sortedSessions.map(s=>{
+        const m=s?.club?.match(/^(.+)\s*—\s*/);
+        const eName=m?m[1].trim():'';
+        return eName&&equipStyleMap[eName]?equipStyleMap[eName]:'circle';
+      });
+      const hasMultiEquip=new Set(pointStyles).size>1;
+
+      const c=$(canvasId); if(!c)return;
+      if(charts[canvasId]){try{charts[canvasId].destroy()}catch(e){}}
+      const lineCol=def.color||col.line;
+      charts[canvasId]=new Chart(c,{
+        type:'line',
+        data:{labels,datasets:[{
+          label:club,data:vals,
+          borderColor:lineCol,
+          backgroundColor:`${lineCol}22`,
+          borderWidth:2,
+          pointBackgroundColor:lineCol,
+          pointBorderColor:'#0D1117',
+          pointBorderWidth:hasMultiEquip?2:1.5,
+          pointStyle:hasMultiEquip?pointStyles:'circle',
+          pointRadius:6,pointHoverRadius:10,pointHitRadius:20,
+          spanGaps:true
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,onClick:clickHandler,
+          interaction:{mode:'nearest',axis:'x',intersect:false},
+          plugins:{legend:false,tooltip:{
+            enabled:true,
+            callbacks:{label:ctx=>{
+              const s=sortedSessions[ctx.dataIndex];
+              const m=s?.club?.match(/^(.+)\s*—\s*/);
+              const eName=m?m[1].trim():'';
+              return`${ctx.parsed.y}${def.yOpts.unit||''}${eName?' | '+eName:''} (탭하면 상세보기)`;
+            }},
+            backgroundColor:'rgba(13,17,23,.92)',
+            titleColor:'#C8D8E0',bodyColor:'#8AABBB',
+            padding:8,cornerRadius:3,
+          }},
+          scales:{
+            x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+            y:{...def.yOpts,ticks:{color:'#8AABBB',font:{size:9},...(def.yOpts.callback?{callback:def.yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.07)'},border:{color:'rgba(240,237,230,.1)'}},
+          }},
+        plugins:def.zones&&def.zones.length?[benchPlugin(def.zones)]:[]
+      });
     });
   });
 }
