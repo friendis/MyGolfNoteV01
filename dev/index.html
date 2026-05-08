@@ -7141,7 +7141,11 @@ function pList(){
     <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1.1rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">📊 클럽별 비거리</div>
-        <div style="display:flex;gap:.3rem">
+        <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+          <button id="dist-filter-all" onclick="setDistFilter('all')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='all'?'rgba(200,137,58,.4)':'var(--border)'};background:${(window._distFilter||'all')==='all'?'rgba(200,137,58,.12)':'none'};color:${(window._distFilter||'all')==='all'?'var(--wing2)':'var(--muted)'};cursor:pointer;font-family:var(--sans)">전체</button>
+          <button id="dist-filter-owned" onclick="setDistFilter('owned')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='owned'?'rgba(74,143,168,.4)':'var(--border)'};background:${(window._distFilter||'all')==='owned'?'rgba(74,143,168,.1)':'none'};color:${(window._distFilter||'all')==='owned'?'var(--sky2)':'var(--muted)'};cursor:pointer;font-family:var(--sans)">보유 세트</button>
           <button id="dist-btn-carry" onclick="setDistMode('carry')"
             style="font-size:.7rem;padding:2px 9px;border-radius:2px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);cursor:pointer;font-family:var(--sans)">캐리</button>
           <button id="dist-btn-total" onclick="setDistMode('total')"
@@ -7583,6 +7587,12 @@ function clubColor(club) {
   return CLUB_COLORS[club] || {line:'#8A9BAA', bg:'rgba(138,155,170,.15)'};
 }
 
+window.setDistFilter = (filter) => {
+  window._distFilter = filter;
+  if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
+  requestAnimationFrame(initCharts);
+};
+
 window.setDistMode = (mode) => {
   window._distMode = mode;
   // 버튼 스타일 토글
@@ -7615,6 +7625,24 @@ function initCharts(){
         if(charts['game-score-chart']){try{charts['game-score-chart'].destroy()}catch(e){}}
         const avgSc=Math.round(gameScores.reduce((a,s)=>a+s.score,0)/gameScores.length);
         const bestScore=Math.min(...gameScores.map(x=>x.score));
+
+        // 사용 클럽 세트별 심볼 구분 (club 필드에 세트명이 있는 경우)
+        const setNames=[...new Set(gameScores.map(s=>{
+          const m=s.club?.match(/^🎒\s*(.+)/);
+          return m?m[1].trim():(s.club||'');
+        }))].filter(Boolean);
+        const GAME_POINT_STYLES=['circle','triangle','rect','rectRot','star'];
+        const setStyleMap={};
+        setNames.forEach((n,i)=>{ setStyleMap[n]=GAME_POINT_STYLES[i%GAME_POINT_STYLES.length]; });
+        const hasMultiSet=setNames.length>1;
+
+        const pointStyles=gameScores.map(s=>{
+          if(s.score===bestScore) return 'star'; // 베스트 스코어는 항상 별
+          const m=s.club?.match(/^🎒\s*(.+)/);
+          const setName=m?m[1].trim():(s.club||'');
+          return hasMultiSet&&setStyleMap[setName]?setStyleMap[setName]:'circle';
+        });
+
         charts['game-score-chart']=new Chart(gameScoreEl,{
           type:'line',
           data:{
@@ -7624,8 +7652,10 @@ function initCharts(){
               borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.08)',
               borderWidth:2,fill:true,tension:.3,
               pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#3D9E74':'#C8893A'),
-              pointRadius:gameScores.map(s=>s.score===bestScore?6:4),
-              pointHoverRadius:gameScores.map(s=>s.score===bestScore?8:6),
+              pointBorderColor:'#0D1117',pointBorderWidth:1.5,
+              pointStyle:hasMultiSet?pointStyles:gameScores.map(s=>s.score===bestScore?'star':'circle'),
+              pointRadius:gameScores.map(s=>s.score===bestScore?8:4),
+              pointHoverRadius:gameScores.map(s=>s.score===bestScore?10:6),
             },{
               data:gameScores.map(()=>avgSc),
               borderColor:'rgba(200,137,58,.3)',borderWidth:1,borderDash:[4,4],
@@ -7636,7 +7666,11 @@ function initCharts(){
             responsive:true,maintainAspectRatio:false,
             plugins:{
               legend:false,
-              tooltip:{callbacks:{label:c=>`${c.raw}타`}}
+              tooltip:{callbacks:{label:c=>{
+                const s=gameScores[c.dataIndex];
+                const setLabel=s?.club?.match(/^🎒\s*(.+)/)?` | ${s.club.replace('🎒','').trim()}`:'';
+                return`${c.raw}타${setLabel}${s?.score===bestScore?' ⭐ 베스트':''}`;
+              }}}
             },
             scales:{
               x:{ticks:{font:{size:10},color:'rgba(240,237,230,.4)'},grid:{color:'rgba(240,237,230,.05)'}},
@@ -7664,9 +7698,24 @@ function initCharts(){
       if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){}}
       const distClubOrder=[...CLUBS].reverse();
       const RECENT_N=5; // 최근 N세션 평균
+      const distFilter=window._distFilter||'all';
+      // 보유 세트 클럽 목록 (filter='owned'일 때)
+      const ownedClubNums=new Set();
+      if(distFilter==='owned'){
+        D.equip.filter(e=>e.status==='owned').forEach(e=>{
+          (e.ironSet||[]).forEach(n=>ownedClubNums.add(n));
+          (e.tags?.wedge_set||[]).forEach(n=>ownedClubNums.add(n));
+          (e.tags?.wood_set||[]).forEach(n=>ownedClubNums.add(n));
+          (e.tags?.util_set||[]).forEach(n=>ownedClubNums.add(n));
+          if(e.cat==='드라이버') ownedClubNums.add('드라이버');
+          if(e.cat==='퍼터') ownedClubNums.add('퍼터');
+        });
+      }
       const cm2={};
       sessions.forEach(s=>{
         const nc=normalizeClub(s.club); if(!nc)return;
+        // 보유 세트 필터
+        if(distFilter==='owned'&&ownedClubNums.size>0&&!ownedClubNums.has(nc)) return;
         if(!cm2[nc])cm2[nc]={sessions:[]};
         cm2[nc].sessions.push(s);
       });
