@@ -4965,9 +4965,18 @@ function eList(){
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{
     const lp=e.links.length?e.links[e.links.length-1].price:e.buyPrice;
-    // tags가 객체(jsonb)이므로 커스텀 태그는 별도 필드에서 읽음
     const customTags=Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string'):(e.tags?.custom||[]);
-    return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}<div style="font-size:.68rem;color:var(--muted);margin-top:3px">${e.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`;
+    // 클럽 번호 뱃지 (아이언/웨지/우드/하이브리드)
+    const allClubNums=[
+      ...(e.ironSet||[]),
+      ...(e.tags?.wedge_set||[]),
+      ...(e.tags?.wood_set||[]),
+      ...(e.tags?.util_set||[]),
+    ];
+    const clubNumBadges=allClubNums.length
+      ?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px">${allClubNums.map(n=>`<span style="font-size:.65rem;padding:1px 5px;border-radius:2px;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.2)">${esc(n)}</span>`).join('')}</div>`
+      :'';
+    return`<div class="card" onclick="goDetail('${e.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1;min-width:0"><div class="card-title">${esc(e.name)}</div><div style="margin:3px 0"><span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span><span class="badge b-blue">${esc(e.cat)}</span>${customTags.map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join('')}</div>${clubNumBadges}${e.memo?`<div class="card-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${esc(e.memo)}</div>`:''}<div style="font-size:.68rem;color:var(--muted);margin-top:3px">${e.isPublic?`<span style="color:var(--turf)">● 공개</span>`:`<span>○ 비공개</span>`}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0;margin-left:.7rem">${e.photoUrl?`<img src="${ea(e.photoUrl)}" style="width:48px;height:48px;object-fit:contain;border-radius:2px;border:1px solid var(--border);background:var(--dusk)" alt="">`:''}${lp?`<div class="link-price">${fmtP(lp)}</div>`:''}${pt(e)}</div></div></div>`;
   }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">🪶</div>등록된 장비가 없습니다.</div>`;
 
   // 태그 칩: 커스텀 태그 + 분류(cat) 모두 수집
@@ -5420,17 +5429,15 @@ window.saveEMemo=async(id,val)=>{
   e.memo=val;sync('ok');toast('메모 저장됨');
 };
 window.toggleEquipExpertMode = async (on) => {
-  // 메모리 캐시 즉시 업데이트 후 렌더링
   const cache = loadAiCache();
   cache['equip_expert_mode'] = on ? '1' : '0';
-  if(D.profile) D.profile.ai_cache = cache;
-  window._rerender();  // 즉시 렌더링 (DB 저장 전에)
-
-  // DB 백그라운드 저장
+  if(D.profile) D.profile.ai_cache = cache; // 메모리 즉시 반영
+  window._rerender(); // DB 저장 전에 즉시 렌더링
   try{
     await sb.from('user_profiles').update({ai_cache:cache}).eq('user_id',user.id);
   }catch(e){ console.warn('expert mode 저장 실패:', e); }
 };
+
 window.saveIronSet=async(id)=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
   const selected=readIronSet();
