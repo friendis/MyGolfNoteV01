@@ -7576,53 +7576,88 @@ function renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, analyz
 
 // ── 인스타그램 카드 생성 ─────────────────────────────
 window.openInstaCard = () => {
+  const existing=document.getElementById('insta-card-overlay');
+  if(existing)existing.remove();
   const ov=document.createElement('div');
   ov.id='insta-card-overlay';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;padding-top:2rem';
 
-  ov.innerHTML=`<div style="background:var(--dusk);border:1px solid var(--border2);border-radius:12px 12px 0 0;width:min(520px,100%);padding:1.25rem 1rem 2rem;max-height:90vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'1.91:1':{w:1080,h:566,label:'가로형'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
+  const HASHTAGS={dist:'#골프스윙 #비거리 #아이언 #골프연습 #골프데이터 #스윙분석 #골프향상',score:'#골프스코어 #라운드 #골프기록 #스크린골프 #필드골프 #파온 #버디',practice:'#골프연습 #골프훈련 #스윙연습 #골프레슨 #구질교정 #골프향상',equip:'#골프장비 #골프클럽 #아이언 #드라이버 #골프용품 #클럽피팅'};
+  const ownedEquip=D.equip.filter(e=>e.status==='owned');
+  const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,5);
+  const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
+  const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="renderInstaCanvas()" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
+
+  ov.innerHTML=`<div id="insta-panel" style="background:var(--dusk);border:1px solid var(--border2);border-radius:12px 12px 0 0;width:min(560px,100%);padding:1.25rem 1rem 2rem;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem">
       <div style="font-family:var(--serif);font-size:1rem;font-weight:700;color:var(--chalk)">📸 인스타그램 카드</div>
       <button onclick="document.getElementById('insta-card-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">✕</button>
     </div>
-    <!-- 카드 유형 선택 -->
-    <div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap">
-      <button id="ic-type-dist" onclick="selectInstaType('dist')"
-        style="flex:1;padding:.45rem;border-radius:6px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);font-size:.78rem;cursor:pointer;font-family:var(--sans)">📊 비거리</button>
-      <button id="ic-type-score" onclick="selectInstaType('score')"
-        style="flex:1;padding:.45rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.78rem;cursor:pointer;font-family:var(--sans)">⛳ 스코어</button>
-      <button id="ic-type-equip" onclick="selectInstaType('equip')"
-        style="flex:1;padding:.45rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.78rem;cursor:pointer;font-family:var(--sans)">🪶 장비</button>
+    <div style="display:flex;gap:.3rem;margin-bottom:.65rem;flex-wrap:wrap">
+      ${[["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"],["equip","🪶 장비"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:60px;padding:.4rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.75rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
     </div>
-    <!-- 테마 선택 -->
-    <div style="display:flex;gap:.35rem;margin-bottom:.85rem;align-items:center">
-      <span style="font-size:.72rem;color:var(--muted)">테마</span>
-      <button id="ic-theme-dark" onclick="selectInstaTheme('dark')"
-        style="padding:2px 10px;border-radius:10px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);font-size:.72rem;cursor:pointer;font-family:var(--sans)">다크</button>
-      <button id="ic-theme-light" onclick="selectInstaTheme('light')"
-        style="padding:2px 10px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.72rem;cursor:pointer;font-family:var(--sans)">라이트</button>
+    <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center;flex-wrap:wrap">
+      <span style="font-size:.7rem;color:var(--muted)">비율</span>
+      <button id="ic-ratio-4-5" onclick="selectInstaRatio('4:5')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2)">4:5 권장</button>
+      <button id="ic-ratio-1-1" onclick="selectInstaRatio('1:1')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">1:1</button>
+      <button id="ic-ratio-191-1" onclick="selectInstaRatio('1.91:1')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">가로</button>
+      <button id="ic-ratio-9-16" onclick="selectInstaRatio('9:16')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">스토리</button>
     </div>
-    <!-- 캔버스 미리보기 -->
-    <div style="display:flex;justify-content:center;margin-bottom:.85rem">
-      <canvas id="insta-canvas" width="1080" height="1080" style="width:100%;max-width:360px;height:auto;border-radius:6px;border:1px solid var(--border)"></canvas>
+    <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center">
+      <span style="font-size:.7rem;color:var(--muted)">테마</span>
+      <button id="ic-theme-dark" onclick="selectInstaTheme('dark')" style="padding:2px 10px;border-radius:10px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);font-size:.7rem;cursor:pointer;font-family:var(--sans)">다크</button>
+      <button id="ic-theme-light" onclick="selectInstaTheme('light')" style="padding:2px 10px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.7rem;cursor:pointer;font-family:var(--sans)">라이트</button>
     </div>
-    <!-- 다운로드 -->
-    <button onclick="downloadInstaCard()" style="width:100%;padding:.6rem;border-radius:6px;border:none;background:linear-gradient(135deg,#C8893A,#A78BFA);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--sans)">
-      ⬇ PNG 다운로드
-    </button>
-    <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.4rem">다운로드 후 인스타그램에서 업로드하세요</div>
+    <div id="ic-options-practice" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">연습 세션 선택</div>
+      <select id="ic-session1" onchange="renderInstaCanvas()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.3rem"><option value="">클럽 1 선택...</option>${sessionOpts}</select>
+      <select id="ic-session2" onchange="renderInstaCanvas()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans)"><option value="">클럽 2 선택 (선택사항)...</option>${sessionOpts}</select>
+    </div>
+    <div id="ic-options-equip" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">게시할 장비 선택</div>
+      <div id="ic-equip-list" style="max-height:150px;overflow-y:auto">${equipOpts||'<div style="font-size:.78rem;color:var(--muted)">보유 장비 없음</div>'}</div>
+    </div>
+    <div style="display:flex;justify-content:center;margin-bottom:.7rem;background:rgba(0,0,0,.3);border-radius:6px;padding:.5rem">
+      <canvas id="insta-canvas" width="1080" height="1350" style="width:auto;max-width:100%;max-height:260px;border-radius:4px;border:1px solid var(--border)"></canvas>
+    </div>
+    <div style="margin-bottom:.65rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">해시태그 (수정 가능)</div>
+      <textarea id="ic-hashtags" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--dim);padding:.4rem .6rem;border-radius:4px;font-size:.75rem;font-family:var(--sans);resize:vertical;min-height:50px;line-height:1.6" oninput="renderInstaCanvas()">${HASHTAGS.dist}</textarea>
+    </div>
+    <button onclick="downloadInstaCard()" style="width:100%;padding:.6rem;border-radius:6px;border:none;background:linear-gradient(135deg,#C8893A,#A78BFA);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--sans)">⬇ PNG 다운로드</button>
+    <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.35rem">다운로드 후 인스타그램에서 업로드하세요</div>
   </div>`;
 
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
-  window._instaType='dist';
-  window._instaTheme='dark';
+  window._instaType='dist'; window._instaTheme='dark'; window._instaRatio='4:5';
+  window._instaRatios=RATIOS; window._instaHashtags=HASHTAGS;
+  window._instaRecentSessions=recentSessions; window._instaOwnedEquip=ownedEquip;
+  renderInstaCanvas();
+};
+
+window.selectInstaRatio = (ratio) => {
+  window._instaRatio=ratio;
+  const idMap={'4:5':'4-5','1:1':'1-1','1.91:1':'191-1','9:16':'9-16'};
+  Object.keys(idMap).forEach(k=>{
+    const btn=document.getElementById(`ic-ratio-${idMap[k]}`);
+    if(!btn)return;
+    const active=k===ratio;
+    btn.style.border=active?'1px solid rgba(200,137,58,.4)':'1px solid rgba(240,237,230,.08)';
+    btn.style.background=active?'rgba(200,137,58,.12)':'none';
+    btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
+  });
+  // 캔버스 크기 변경
+  const r=window._instaRatios?.[ratio]||{w:1080,h:1350};
+  const canvas=document.getElementById('insta-canvas');
+  if(canvas){canvas.width=r.w;canvas.height=r.h;}
   renderInstaCanvas();
 };
 
 window.selectInstaType = (type) => {
   window._instaType=type;
-  ['dist','score','equip'].forEach(t=>{
+  ['dist','score','practice','equip'].forEach(t=>{
     const btn=document.getElementById(`ic-type-${t}`);
     if(!btn)return;
     const active=t===type;
@@ -7630,6 +7665,14 @@ window.selectInstaType = (type) => {
     btn.style.background=active?'rgba(200,137,58,.12)':'none';
     btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
   });
+  // 유형별 옵션 패널 표시
+  ['practice','equip'].forEach(t=>{
+    const panel=document.getElementById(`ic-options-${t}`);
+    if(panel) panel.style.display=type===t?'block':'none';
+  });
+  // 해시태그 업데이트
+  const hashEl=document.getElementById('ic-hashtags');
+  if(hashEl&&window._instaHashtags?.[type]) hashEl.value=window._instaHashtags[type];
   renderInstaCanvas();
 };
 
@@ -7650,232 +7693,189 @@ function renderInstaCanvas(){
   const canvas=document.getElementById('insta-canvas');
   if(!canvas)return;
   const ctx=canvas.getContext('2d');
-  const W=1080,H=1080;
+  const r=window._instaRatios?.[window._instaRatio||'4:5']||{w:1080,h:1350};
+  const W=r.w, H=r.h;
+  canvas.width=W; canvas.height=H;
   const dark=window._instaTheme!=='light';
   const type=window._instaType||'dist';
+  const hashtags=document.getElementById('ic-hashtags')?.value||'#골프 #버드야드';
 
   // 배경
   ctx.fillStyle=dark?'#0D1117':'#F5F0E8';
   ctx.fillRect(0,0,W,H);
 
-  // 모서리 장식선
-  const accentColor='#C8893A';
-  ctx.strokeStyle=accentColor;
-  ctx.lineWidth=3;
-  [[0,0,80,0],[0,0,0,80],[W,0,W-80,0],[W,0,W,80],
-   [0,H,80,H],[0,H,0,H-80],[W,H,W-80,H],[W,H,W,H-80]
+  // 모서리 장식
+  ctx.strokeStyle='#C8893A'; ctx.lineWidth=Math.round(W/360);
+  const c=Math.round(W*0.074);
+  [[0,0,c,0],[0,0,0,c],[W,0,W-c,0],[W,0,W,c],
+   [0,H,c,H],[0,H,0,H-c],[W,H,W-c,H],[W,H,W,H-c]
   ].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
 
+  const pad=Math.round(W*0.05);
   // 로고
-  ctx.font=`700 48px Georgia,serif`;
-  ctx.fillStyle=accentColor;
-  ctx.textAlign='left';
-  ctx.fillText('BIRDYARD',54,80);
-  ctx.font=`400 22px system-ui,sans-serif`;
+  ctx.font=`700 ${Math.round(W*0.044)}px Georgia,serif`;
+  ctx.fillStyle='#C8893A'; ctx.textAlign='left';
+  ctx.fillText('BIRDYARD',pad,pad*1.5);
+  ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;
   ctx.fillStyle=dark?'rgba(240,237,230,.4)':'rgba(30,30,30,.4)';
-  ctx.fillText('GOLF NOTE & COMMUNITY',54,115);
+  ctx.fillText('GOLF NOTE & COMMUNITY',pad,pad*1.5+Math.round(W*0.028));
 
   // 날짜
-  ctx.font=`400 22px system-ui,sans-serif`;
+  ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;
   ctx.textAlign='right';
-  ctx.fillStyle=dark?'rgba(240,237,230,.45)':'rgba(30,30,30,.4)';
-  ctx.fillText(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}),W-54,80);
-
+  ctx.fillStyle=dark?'rgba(240,237,230,.4)':'rgba(30,30,30,.4)';
+  ctx.fillText(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}),W-pad,pad*1.5);
   ctx.textAlign='left';
 
-  if(type==='dist') drawDistCard(ctx,W,H,dark);
-  else if(type==='score') drawScoreCard(ctx,W,H,dark);
-  else if(type==='equip') drawEquipCard(ctx,W,H,dark);
+  const contentTop=Math.round(H*0.16);
+  const contentH=Math.round(H*0.75);
 
-  // 하단 워터마크
-  ctx.font=`400 22px system-ui,sans-serif`;
-  ctx.fillStyle=dark?'rgba(240,237,230,.3)':'rgba(30,30,30,.3)';
+  if(type==='dist') drawDistCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='score') drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='practice') drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='equip') drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH);
+
+  // 해시태그 (하단)
+  ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;
+  ctx.fillStyle=dark?'rgba(240,237,230,.35)':'rgba(30,30,30,.3)';
   ctx.textAlign='center';
-  ctx.fillText('birdyard.app  #버드야드 #골프 #BIRDYARD',W/2,H-45);
+  // 긴 해시태그 줄바꿈
+  const words=hashtags.split(' ');
+  let line='',lineY=H-Math.round(H*0.04);
+  words.forEach(w=>{
+    const test=line?line+' '+w:w;
+    if(ctx.measureText(test).width>W-pad*2&&line){
+      ctx.fillText(line,W/2,lineY);
+      line=w; lineY-=Math.round(W*0.025);
+    } else line=test;
+  });
+  if(line) ctx.fillText(line,W/2,lineY);
+  ctx.textAlign='left';
 }
 
-function drawDistCard(ctx,W,H,dark){
+function drawDistCard(ctx,W,H,dark,pad,contentTop,contentH){
   const chalk=dark?'#F0EDE6':'#1a1a1a';
   const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
-  ctx.font=`600 36px system-ui,sans-serif`;
-  ctx.fillStyle=muted;
-  ctx.fillText('📊 클럽별 비거리 (최근 5세션 평균)',54,175);
-
-  // 데이터 수집
-  const RECENT_N=5;
-  const cm={};
-  D.sessions.forEach(s=>{
-    const nc=normalizeClub(s.club);if(!nc)return;
-    if(!cm[nc])cm[nc]=[];
-    const c=ss(s).avgCarry;if(c)cm[nc].push(c);
-  });
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;
+  ctx.fillText('📊 클럽별 비거리 (최근 5세션 평균)',pad,contentTop);
+  const RECENT_N=5; const cm={};
+  D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!cm[nc])cm[nc]=[];const c=ss(s).avgCarry;if(c)cm[nc].push(c);});
   const clubOrder=[...CLUBS].reverse().filter(c=>cm[c]?.length);
-  if(!clubOrder.length){
-    ctx.font=`400 32px system-ui`; ctx.fillStyle=muted;
-    ctx.fillText('비거리 데이터가 없습니다',54,400); return;
-  }
+  if(!clubOrder.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('비거리 데이터가 없습니다',pad,contentTop+contentH/2);return;}
   const vals=clubOrder.map(c=>Math.round(avg(cm[c].slice(-RECENT_N))));
   const maxVal=Math.max(...vals);
-  const barAreaTop=220,barAreaH=680,barW=Math.min(80,Math.floor((W-108)/clubOrder.length)-10);
-  const barSpacing=(W-108)/clubOrder.length;
-
+  const barAreaTop=contentTop+Math.round(H*0.055);
+  const barAreaH=contentH-Math.round(H*0.11);
+  const barSpacing=(W-pad*2)/clubOrder.length;
+  const barW=Math.min(Math.round(barSpacing*0.6),Math.round(W*0.075));
   clubOrder.forEach((club,i)=>{
-    const v=vals[i]; if(!v)return;
-    const ratio=v/maxVal;
-    const bH=Math.round(barAreaH*ratio*0.82);
-    const x=54+i*barSpacing+barSpacing/2-barW/2;
-    const y=barAreaTop+barAreaH-bH;
-
-    // 막대 그라디언트
+    const v=vals[i];if(!v)return;
+    const ratio=v/maxVal;const bH=Math.round(barAreaH*ratio*0.85);
+    const x=pad+i*barSpacing+barSpacing/2-barW/2;const y=barAreaTop+barAreaH-bH;
     const g=ctx.createLinearGradient(x,y,x,y+bH);
     if(ratio>0.85){g.addColorStop(0,'#E4A855');g.addColorStop(1,'#C8893A');}
     else if(ratio>0.6){g.addColorStop(0,'#6AAFCC');g.addColorStop(1,'#4A8FA8');}
     else{g.addColorStop(0,'#A78BFA');g.addColorStop(1,'#7C5FC4');}
-
-    ctx.fillStyle=g;
-    ctx.beginPath();
-    ctx.roundRect(x,y,barW,bH,6);
-    ctx.fill();
-
-    const valFontSize=Math.max(22,Math.min(28,Math.floor(barSpacing*0.35)));
-    const labelFontSize=Math.max(20,Math.min(26,Math.floor(barSpacing*0.3)));
-
-    // 수치
-    ctx.font=`700 ${valFontSize}px system-ui`;
-    ctx.fillStyle=chalk;
-    ctx.textAlign='center';
-    ctx.fillText(`${v}m`,x+barW/2,y-14);
-
-    // 클럽명
-    ctx.font=`500 ${labelFontSize}px system-ui`;
-    ctx.fillStyle=muted;
-    ctx.fillText(club,x+barW/2,barAreaTop+barAreaH+40);
+    ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,y,barW,bH,4);ctx.fill();
+    const vfs=Math.max(16,Math.min(26,Math.round(barSpacing*0.3)));
+    ctx.font=`700 ${vfs}px system-ui`;ctx.fillStyle=chalk;ctx.textAlign='center';
+    ctx.fillText(`${v}m`,x+barW/2,y-Math.round(H*0.009));
+    const lfs=Math.max(14,Math.min(22,Math.round(barSpacing*0.25)));
+    ctx.font=`500 ${lfs}px system-ui`;ctx.fillStyle=muted;
+    ctx.fillText(club,x+barW/2,barAreaTop+barAreaH+Math.round(H*0.028));
   });
   ctx.textAlign='left';
 }
 
-function drawScoreCard(ctx,W,H,dark){
-  const chalk=dark?'#F0EDE6':'#1a1a1a';
-  const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
-  const gameScores=D.sessions.filter(s=>(s.gameType==='screen'||s.gameType==='field')&&s.score>0&&(s.holes||18)===18)
-    .sort((a,b)=>a.date>b.date?1:-1).slice(-10);
-
-  if(!gameScores.length){
-    ctx.font=`400 32px system-ui`;ctx.fillStyle=muted;
-    ctx.fillText('게임 기록이 없습니다',54,400);return;
-  }
-
-  ctx.font=`600 36px system-ui`;ctx.fillStyle=muted;
-  ctx.fillText('⛳ 최근 게임 스코어 추이',54,175);
-
+function drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  const gameScores=D.sessions.filter(s=>(s.gameType==='screen'||s.gameType==='field')&&s.score>0&&(s.holes||18)===18).sort((a,b)=>a.date>b.date?1:-1).slice(-10);
+  if(!gameScores.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('게임 기록이 없습니다',pad,contentTop+contentH/2);return;}
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('⛳ 최근 게임 스코어 추이',pad,contentTop);
   const scores=gameScores.map(s=>s.score);
   const best=Math.min(...scores),worst=Math.max(...scores);
   const avgSc=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
   const latest=scores[scores.length-1];
-
-  // 스탯 박스
-  const statData=[
-    {label:'베스트',val:`${best}타`,color:'#3D9E74'},
-    {label:'평균',val:`${avgSc}타`,color:'#C8893A'},
-    {label:'최근',val:`${latest}타`,color:'#6AAFCC'},
-  ];
+  const statData=[{label:'베스트',val:`${best}타`,color:'#3D9E74'},{label:'평균',val:`${avgSc}타`,color:'#C8893A'},{label:'최근',val:`${latest}타`,color:'#6AAFCC'}];
+  const sbH=Math.round(contentH*0.16);const sbY=contentTop+Math.round(H*0.04);const sbW=(W-pad*2-20)/3;
   statData.forEach((s,i)=>{
-    const x=54+i*320,y=220;
-    ctx.fillStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';
-    ctx.beginPath();ctx.roundRect(x,y,290,130,10);ctx.fill();
-    ctx.font=`700 52px system-ui`;ctx.fillStyle=s.color;ctx.textAlign='center';
-    ctx.fillText(s.val,x+145,y+78);
-    ctx.font=`400 26px system-ui`;ctx.fillStyle=muted;
-    ctx.fillText(s.label,x+145,y+118);
+    const x=pad+i*(sbW+10);
+    ctx.fillStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';ctx.beginPath();ctx.roundRect(x,sbY,sbW,sbH,8);ctx.fill();
+    ctx.font=`700 ${Math.round(W*0.047)}px system-ui`;ctx.fillStyle=s.color;ctx.textAlign='center';ctx.fillText(s.val,x+sbW/2,sbY+sbH*.68);
+    ctx.font=`400 ${Math.round(W*0.023)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(s.label,x+sbW/2,sbY+sbH*.93);
   });
-
-  // 라인 차트
-  const chartL=54,chartR=W-54,chartT=400,chartB=820;
-  const cW=chartR-chartL,cH=chartB-chartT;
-  const minV=best-5,maxV=worst+5,vRange=maxV-minV;
-  const pts=scores.map((v,i)=>({
-    x:chartL+(i/(scores.length-1||1))*cW,
-    y:chartB-(v-minV)/vRange*cH
-  }));
-
-  // 그리드
-  ctx.strokeStyle=dark?'rgba(240,237,230,.08)':'rgba(0,0,0,.08)';
-  ctx.lineWidth=1;
-  [0,.25,.5,.75,1].forEach(r=>{
-    const y=chartT+r*cH;
-    ctx.beginPath();ctx.moveTo(chartL,y);ctx.lineTo(chartR,y);ctx.stroke();
-    const v=Math.round(maxV-r*vRange);
-    ctx.font=`400 20px system-ui`;ctx.fillStyle=muted;ctx.textAlign='right';
-    ctx.fillText(`${v}`,chartL-12,y+7);
-  });
-
-  // 라인
-  ctx.beginPath();
-  pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-  ctx.strokeStyle='#C8893A';ctx.lineWidth=4;ctx.stroke();
-
-  // 영역
-  ctx.beginPath();
-  pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-  ctx.lineTo(pts[pts.length-1].x,chartB);ctx.lineTo(pts[0].x,chartB);ctx.closePath();
-  ctx.fillStyle='rgba(200,137,58,.12)';ctx.fill();
-
-  // 포인트
+  const chartT=sbY+sbH+Math.round(H*0.03);const chartB=contentTop+contentH-Math.round(H*0.04);
+  const cW=W-pad*2;const cH=chartB-chartT;
+  const minV=best-3,maxV=worst+3,vRange=maxV-minV;
+  const pts=scores.map((v,i)=>({x:pad+(i/(scores.length-1||1))*cW,y:chartB-(v-minV)/vRange*cH}));
+  ctx.strokeStyle=dark?'rgba(240,237,230,.07)':'rgba(0,0,0,.07)';ctx.lineWidth=1;
+  [0,.5,1].forEach(r=>{const y=chartT+r*cH;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(pad+cW,y);ctx.stroke();});
+  ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#C8893A';ctx.lineWidth=Math.round(W*0.004);ctx.stroke();
+  ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.lineTo(pts[pts.length-1].x,chartB);ctx.lineTo(pts[0].x,chartB);ctx.closePath();ctx.fillStyle='rgba(200,137,58,.12)';ctx.fill();
   pts.forEach((p,si)=>{
-    const isBest=scores[si]===best;
-    ctx.beginPath();ctx.arc(p.x,p.y,isBest?14:8,0,Math.PI*2);
-    ctx.fillStyle=isBest?'#FFD700':'#C8893A';ctx.fill();
-    if(isBest){ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();}
-    // 날짜 레이블
-    ctx.font=`400 18px system-ui`;ctx.fillStyle=muted;ctx.textAlign='center';
-    ctx.fillText(gameScores[si].date?.slice(5)||'',p.x,chartB+35);
+    const isBest=scores[si]===best;const r=isBest?Math.round(W*0.013):Math.round(W*0.007);
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=isBest?'#FFD700':'#C8893A';ctx.fill();
+    if(isBest){ctx.strokeStyle='#fff';ctx.lineWidth=Math.round(W*0.003);ctx.stroke();}
+    ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;ctx.fillStyle=muted;ctx.textAlign='center';
+    ctx.fillText(gameScores[si].date?.slice(5)||'',p.x,chartB+Math.round(H*0.025));
   });
   ctx.textAlign='left';
 }
 
-function drawEquipCard(ctx,W,H,dark){
-  const chalk=dark?'#F0EDE6':'#1a1a1a';
-  const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
-  const owned=D.equip.filter(e=>e.status==='owned').slice(0,8);
-
-  ctx.font=`600 36px system-ui`;ctx.fillStyle=muted;
-  ctx.fillText('🪶 MY GOLF SETUP',54,175);
-
-  if(!owned.length){
-    ctx.font=`400 32px system-ui`;ctx.fillStyle=muted;
-    ctx.fillText('보유 장비가 없습니다',54,400);return;
-  }
-
-  let y=230;
-  owned.forEach((e,i)=>{
-    const rowH=90;
-    // 번호
-    ctx.font=`700 28px system-ui`;ctx.fillStyle='#C8893A';
-    ctx.fillText(`${i+1}`,54,y+rowH*.65);
-    // 카테고리 뱃지
-    ctx.fillStyle=dark?'rgba(200,137,58,.15)':'rgba(200,137,58,.1)';
-    ctx.beginPath();ctx.roundRect(85,y+rowH*.2,120,40,6);ctx.fill();
-    ctx.font=`600 22px system-ui`;ctx.fillStyle='#C8893A';ctx.textAlign='center';
-    ctx.fillText(e.cat,145,y+rowH*.55);
-    // 이름
-    ctx.font=`600 30px system-ui`;ctx.fillStyle=chalk;ctx.textAlign='left';
-    ctx.fillText(e.name.slice(0,22),225,y+rowH*.55);
-    // 클럽 번호
-    const nums=[...(e.ironSet||[]),...(e.tags?.wedge_set||[]),...(e.tags?.wood_set||[])].slice(0,6);
-    if(nums.length){
-      ctx.font=`400 22px system-ui`;ctx.fillStyle=muted;
-      ctx.fillText(nums.join(' · '),225,y+rowH*.85);
-    }
-    // 구분선
-    if(i<owned.length-1){
-      ctx.strokeStyle=dark?'rgba(240,237,230,.07)':'rgba(0,0,0,.07)';
-      ctx.lineWidth=1;ctx.beginPath();
-      ctx.moveTo(54,y+rowH);ctx.lineTo(W-54,y+rowH);ctx.stroke();
-    }
-    y+=rowH;
+function drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🏋️ 오늘의 연습 결과',pad,contentTop);
+  const sessions=window._instaRecentSessions||[];
+  const idx1=parseInt(document.getElementById('ic-session1')?.value??'-1');
+  const idx2=parseInt(document.getElementById('ic-session2')?.value??'-1');
+  const sel=[idx1,idx2].filter(i=>i>=0&&sessions[i]).map(i=>sessions[i]);
+  if(!sel.length){ctx.font=`400 ${Math.round(W*0.025)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('연습 세션을 선택해주세요',pad,contentTop+contentH/2);return;}
+  let y=contentTop+Math.round(H*0.06);
+  sel.forEach((s,si)=>{
+    const st=ss(s);
+    const club=s.club||'?';
+    const boxH=Math.round(contentH/(sel.length)*0.85);
+    ctx.fillStyle=dark?'rgba(240,237,230,.04)':'rgba(0,0,0,.04)';ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,boxH,10);ctx.fill();
+    ctx.font=`700 ${Math.round(W*0.038)}px system-ui`;ctx.fillStyle='#C8893A';ctx.fillText(club,pad+Math.round(W*0.03),y+boxH*0.32);
+    ctx.font=`400 ${Math.round(W*0.022)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(s.date||'',pad+Math.round(W*0.03),y+boxH*0.54);
+    const stats=[];
+    if(st.avgCarry) stats.push({l:'캐리',v:`${Math.round(st.avgCarry)}m`,c:'#C8893A'});
+    if(st.avgBs) stats.push({l:'볼스피드',v:`${Math.round(st.avgBs*10)/10}`,c:'#6AAFCC'});
+    if(st.consistency) stats.push({l:'방향안정',v:`${st.consistency}점`,c:'#A78BFA'});
+    if(st.avgHs) stats.push({l:'헤드스피드',v:`${Math.round(st.avgHs*10)/10}`,c:'#3D9E74'});
+    const statW=(W-pad*2-Math.round(W*0.06))/Math.max(stats.length,3);
+    stats.slice(0,4).forEach((st2,i)=>{
+      const sx=pad+Math.round(W*0.03)+i*statW;
+      ctx.font=`700 ${Math.round(W*0.04)}px system-ui`;ctx.fillStyle=st2.c;ctx.textAlign='left';ctx.fillText(st2.v,sx,y+boxH*0.82);
+      ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(st2.l,sx,y+boxH*0.97);
+    });
+    ctx.textAlign='left';
+    y+=Math.round(contentH/sel.length);
   });
 }
 
+function drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🪶 MY GOLF SETUP',pad,contentTop);
+  const owned=window._instaOwnedEquip||D.equip.filter(e=>e.status==='owned');
+  // 선택된 장비만
+  const checked=[...document.querySelectorAll('[id^="ic-equip-"]:checked')].map(el=>parseInt(el.id.replace('ic-equip-','')));
+  const show=checked.length?checked.map(i=>owned[i]).filter(Boolean):owned.slice(0,6);
+  if(!show.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('장비를 선택해주세요',pad,contentTop+contentH/2);return;}
+  const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.1));
+  let y=contentTop+Math.round(H*0.04);
+  show.forEach((e,i)=>{
+    ctx.font=`700 ${Math.round(W*0.025)}px system-ui`;ctx.fillStyle='#C8893A';ctx.fillText(`${i+1}`,pad,y+rowH*0.65);
+    ctx.fillStyle=dark?'rgba(200,137,58,.12)':'rgba(200,137,58,.1)';ctx.beginPath();ctx.roundRect(pad+Math.round(W*0.04),y+rowH*0.15,Math.round(W*0.115),rowH*0.65,5);ctx.fill();
+    ctx.font=`600 ${Math.round(W*0.021)}px system-ui`;ctx.fillStyle='#C8893A';ctx.textAlign='center';ctx.fillText(e.cat,pad+Math.round(W*0.097),y+rowH*0.62);
+    ctx.font=`600 ${Math.round(W*0.028)}px system-ui`;ctx.fillStyle=chalk;ctx.textAlign='left';ctx.fillText(e.name.slice(0,20),pad+Math.round(W*0.175),y+rowH*0.62);
+    const nums=[...(e.ironSet||[]),...(e.tags?.wedge_set||[]),...(e.tags?.wood_set||[])].slice(0,7).join(' · ');
+    if(nums){ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(nums,pad+Math.round(W*0.175),y+rowH*0.9);}
+    if(i<show.length-1){ctx.strokeStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y+rowH);ctx.lineTo(W-pad,y+rowH);ctx.stroke();}
+    y+=rowH;
+  });
+  ctx.textAlign='left';
+}
 window.downloadInstaCard = () => {
   const canvas=document.getElementById('insta-canvas');
   if(!canvas)return;
