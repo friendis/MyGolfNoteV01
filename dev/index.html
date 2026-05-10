@@ -8247,39 +8247,51 @@ function initCharts(){
       };
       const getGroup=cl=>CLUB_COLORS[cl]?.group||'def';
 
-      // ── 연습 필요 클럽 감지
-      // 클럽별 최근 N세션 데이터를 분석해 문제 클럽 플래그
+      // ── 연습 부족 클럽 감지 (전체 세션 날짜 기준)
+      const allDatesSet=[...new Set(D.sessions.map(s=>s.date).filter(Boolean))].sort().reverse();
+      const recentDates=allDatesSet.slice(0,10); // 최근 10회 세션
+      const lackPractice=new Set();
+      // 전체 클럽 중 최근 10회 안에 등장하지 않은 클럽
+      const recentUsedClubs=new Set(
+        D.sessions.filter(s=>recentDates.includes(s.date)&&(!s.gameType||s.gameType==='gdr'))
+          .map(s=>normalizeClub(s.club)).filter(Boolean)
+      );
+      labels.forEach(cl=>{ if(!recentUsedClubs.has(cl)) lackPractice.add(cl); });
+
+      // ── 개선 필요 클럽 감지
       const needsWork={};
       labels.forEach(cl=>{
         const clData=cm2[cl];
         if(!clData||!clData.sessions.length)return;
         const recent=clData.sessions.slice(0,RECENT_N);
-        // 1) 방향성: 방향 편차 심한 클럽
+        // 1) 방향성
         const dirs=recent.flatMap(s=>(s.shots||[]).map(sh=>sh.direction).filter(v=>v!=null));
         const avgDirVal=dirs.length?dirs.reduce((a,b)=>a+b,0)/dirs.length:null;
         const dirStd=dirs.length>=3?(()=>{const m=avgDirVal;return Math.sqrt(dirs.reduce((a,b)=>a+(b-m)**2,0)/dirs.length);})():null;
-        // 2) 일관성: consistency 낮은 클럽
+        // 2) 일관성
         const cons=recent.map(s=>ss(s).consistency).filter(v=>v!=null);
         const avgCon=cons.length?cons.reduce((a,b)=>a+b,0)/cons.length:null;
-        // 3) 성장 정체: 최근 절반 vs 앞 절반 비거리 비교
+        // 3) 성장 정체
         const carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
         let stagnant=false;
         if(carries.length>=4){
           const half=Math.floor(carries.length/2);
           const oldAvg=carries.slice(half).reduce((a,b)=>a+b,0)/half;
           const newAvg=carries.slice(0,half).reduce((a,b)=>a+b,0)/half;
-          stagnant=(newAvg-oldAvg)<1; // 개선 없거나 퇴보
+          stagnant=(newAvg-oldAvg)<1;
         }
         const flags=[];
-        if(avgCon!=null&&avgCon<55) flags.push('⚡');           // 일관성 낮음
-        if(avgDirVal!=null&&Math.abs(avgDirVal)>8) flags.push('↗'); // 방향 편차
-        if(dirStd!=null&&dirStd>10) flags.push('↗');
-        if(stagnant&&carries.length>=4) flags.push('📈');         // 성장 정체
+        if(avgCon!=null&&avgCon<55) flags.push('⚡');
+        if((avgDirVal!=null&&Math.abs(avgDirVal)>8)||(dirStd!=null&&dirStd>10)) flags.push('↗');
+        if(stagnant&&carries.length>=4) flags.push('📈');
         if(flags.length) needsWork[cl]=[...new Set(flags)].join('');
       });
 
-      // ── 라벨에 심볼 추가
-      const displayLabels=labels.map(cl=>needsWork[cl]?cl+' '+needsWork[cl]:cl);
+      // ── 라벨에 심볼 추가 (연습 부족: 🔸, 개선 필요: 각 이모지)
+      const displayLabels=labels.map(cl=>{
+        const syms=(lackPractice.has(cl)?'🔸':'')+(needsWork[cl]||'');
+        return syms?cl+'\n'+syms:cl;
+      });
 
       charts['club-dist-chart']=new Chart(distEl,{
         type:'bar',
@@ -8331,21 +8343,37 @@ function initCharts(){
         }
       });
 
-      // ── 범례 + 연습 필요 클럽 안내 렌더
+      // ── 개선 필요 + 연습 부족 안내 렌더 (색상 범례 없음)
       const legendEl=document.getElementById('dist-chart-legend');
       if(legendEl){
         const workList=Object.entries(needsWork);
-        legendEl.innerHTML=`
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:${workList.length?'.45rem':'0'}">
-            ${[['wood','#F0B040','드라이버/우드'],['util','#34B0A0','유틸'],['iron','#4CAFE4','아이언'],['wedge','#B070D8','웨지']].map(([g,col,label])=>`
-              <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:rgba(240,237,230,.55)">
-                <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col};opacity:.8"></span>${label}
-              </span>`).join('')}
-          </div>
-          ${workList.length?`<div style="font-size:.68rem;color:rgba(240,237,230,.5);line-height:1.8">
-            ${workList.map(([cl,sym])=>`<span style="margin-right:8px">${sym} <b style="color:rgba(240,237,230,.75)">${cl}</b>${sym.includes('⚡')?' 일관성':sym.includes('↗')?' 방향성':' 비거리'} 개선 권장</span>`).join('')}
-          </div>`:''}
-        `;
+        const lackList=[...lackPractice].filter(cl=>labels.includes(cl));
+        const rows=[];
+        workList.forEach(([cl,sym])=>{
+          const items=[];
+          if(sym.includes('⚡')) items.push({icon:'⚡',text:'일관성 개선 필요',color:'rgba(255,200,60,.9)'});
+          if(sym.includes('↗')) items.push({icon:'↗',text:'방향성 교정 필요',color:'rgba(122,176,232,.9)'});
+          if(sym.includes('📈')) items.push({icon:'📈',text:'비거리 향상 정체',color:'rgba(167,139,250,.9)'});
+          rows.push({cl,items,type:'work'});
+        });
+        lackList.forEach(cl=>{
+          const existing=rows.find(r=>r.cl===cl);
+          const item={icon:'🔸',text:'최근 연습 부족',color:'rgba(200,137,58,.85)'};
+          if(existing) existing.items.unshift(item);
+          else rows.push({cl,items:[item],type:'lack'});
+        });
+        if(!rows.length){ legendEl.innerHTML=''; }
+        else {
+          legendEl.innerHTML='<div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.35rem">'+
+            rows.map(r=>
+              '<div style="display:flex;align-items:flex-start;gap:.55rem;padding:.4rem .6rem;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.08);border-radius:4px">'+
+              '<span style="font-size:.84rem;font-weight:600;color:rgba(240,237,230,.85);flex-shrink:0;min-width:38px">'+r.cl+'</span>'+
+              '<span style="display:flex;flex-wrap:wrap;gap:.3rem">'+
+              r.items.map(it=>'<span style="font-size:.84rem;color:'+it.color+'">'+it.icon+' <span style="font-size:.80rem">'+it.text+'</span></span>').join('')+
+              '</span></div>'
+            ).join('')+
+          '</div>';
+        }
       }
     }catch(e){console.warn('club-dist-chart 오류:',e);}
   }
