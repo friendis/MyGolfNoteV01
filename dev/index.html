@@ -3385,6 +3385,7 @@ function render(){
     m.innerHTML=homeView();
     setTimeout(loadHomeSocial, 0);
     setTimeout(loadPopularNotes, 50);
+    requestAnimationFrame(()=>requestAnimationFrame(initHomeDistChart));
     return;
   }
   if(tab==='videos'){
@@ -3627,24 +3628,21 @@ function homeView(){
     ${scoreHtml}
   </div>
 
-  <!-- 실력 벤치마크 -->
-  ${allCarries.length>=3||allShots.length>0?`<div class="home-section">
-    <div class="home-section-title">
-      📊 실력 비교
-      <div style="margin-left:auto;display:flex;gap:3px">
-        <button onclick="toggleBenchClub()" style="background:${!is7I?'rgba(200,137,58,.15)':'none'};border:1px solid ${!is7I?'rgba(200,137,58,.4)':'var(--border)'};color:${!is7I?'var(--wing2)':'var(--muted)'};padding:1px 8px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans);letter-spacing:.04em">드라이버</button>
-        <button onclick="toggleBenchClub()" style="background:${is7I?'rgba(122,176,232,.15)':'none'};border:1px solid ${is7I?'rgba(122,176,232,.4)':'var(--border)'};color:${is7I?'#7ab0e8':'var(--muted)'};padding:1px 8px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans);letter-spacing:.04em">7번 아이언</button>
+  <!-- 클럽별 비거리 차트 -->
+  ${(()=>{
+    const homeCm={};
+    D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!homeCm[nc])homeCm[nc]=[];const cv=ss(s).avgCarry;if(cv)homeCm[nc].push(cv);});
+    const homeClubs=[...CLUBS].reverse().filter(cl=>homeCm[cl]?.length);
+    if(!homeClubs.length) return '';
+    return `<div class="home-section">
+      <div class="home-section-title">📊 클럽별 비거리
+        <button onclick="gotoTab('practice');setPSub('stats')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">자세히 →</button>
       </div>
-    </div>
-    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem">
-      ${allCarries.length>=3?`${benchHtml}${myCarryRow}`:noDriverNote||`<div style="font-size:.73rem;color:var(--muted)">${homeBenchClub} 기록이 3개 이상 필요합니다.</div>`}
-      <div style="margin-top:.6rem;display:flex;gap:.75rem;flex-wrap:wrap">
-        ${myHs?`<div><span style="font-size:.68rem;color:var(--muted)">헤드스피드 </span><span style="font-size:.82rem;color:var(--turf);font-weight:600">${Math.round(myHs*10)/10}</span></div>`:''}
-        ${mySf?`<div><span style="font-size:.68rem;color:var(--muted)">스매시팩터 </span><span style="font-size:.82rem;color:#7ab0e8;font-weight:600">${mySf.toFixed(2)}</span></div>`:''}
-        ${myCon?`<div><span style="font-size:.68rem;color:var(--muted)">일관성 </span><span style="font-size:.82rem;color:${consistencyColor(Math.round(myCon))};font-weight:600">${Math.round(myCon)}점</span></div>`:''}
+      <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.65rem .75rem">
+        <div style="position:relative;height:150px"><canvas id="home-dist-chart"></canvas></div>
       </div>
-    </div>
-  </div>`:''}
+    </div>`;
+  })()}
 
   <!-- 소셜 — 팔로워/버디 -->
   ${D.profile?.is_public?`
@@ -7772,6 +7770,7 @@ function renderInstaCanvas(){
   // ── 2. 캔버스 초기화 및 그리기 ──
   const ctx=canvas.getContext('2d');
   const r=window._instaRatios?.[window._instaRatio||'4:5']||{w:1080,h:1350};
+  const W=r.w, H=r.h;
   canvas.width=W; canvas.height=H;
   const dark=window._instaTheme!=='light';
   const type=window._instaType||'dist';
@@ -8067,6 +8066,34 @@ window.setDistMode = (mode) => {
   requestAnimationFrame(initCharts);
 };
 
+
+function initHomeDistChart(){
+  const el=document.getElementById('home-dist-chart');
+  if(!el)return;
+  if(charts['home-dist-chart']){try{charts['home-dist-chart'].destroy();}catch(e){}delete charts['home-dist-chart'];}
+  const cm={};
+  D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!cm[nc])cm[nc]=[];const cv=ss(s).avgCarry;if(cv)cm[nc].push(cv);});
+  const clubOrder=[...CLUBS].reverse().filter(cl=>cm[cl]?.length);
+  if(!clubOrder.length)return;
+  const RECENT_N=5;
+  const vals=clubOrder.map(cl=>Math.round(avg(cm[cl].slice(-RECENT_N))));
+  const colors=clubOrder.map(cl=>(typeof clubColor==='function'?clubColor(cl):{line:'#C8893A'}).line||'#C8893A');
+  charts['home-dist-chart']=new Chart(el,{
+    type:'bar',
+    data:{
+      labels:clubOrder,
+      datasets:[{data:vals,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1.5,borderRadius:3}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}m`}}},
+      scales:{
+        x:{ticks:{color:'rgba(240,237,230,.55)',font:{size:11}},grid:{display:false}},
+        y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:11},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
+      }
+    }
+  });
+}
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
 
