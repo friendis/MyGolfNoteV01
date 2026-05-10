@@ -52,12 +52,12 @@ body{font-family:var(--sans);background:var(--night);color:var(--text);min-heigh
 #loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
 .spinner{width:28px;height:28px;border:1.5px solid rgba(200,137,58,.15);border-top-color:var(--wing2);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-logo{font-family:var(--serif);font-size:1.8rem;font-weight:700;color:var(--chalk);letter-spacing:.05em}
+.loading-logo{font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--chalk);letter-spacing:.05em}
 
 /* AUTH */
 #auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem;background:var(--night)}
 .auth-box{background:var(--dusk);border:1px solid var(--border2);border-radius:4px;padding:2.5rem 2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
-.auth-logo{font-family:var(--serif);font-size:2.2rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:10px}
+.auth-logo{font-family:var(--serif);font-size:1.75rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:10px}
 .auth-sub{font-size:.67rem;color:var(--wing2);text-align:center;letter-spacing:.3em;text-transform:uppercase;margin-bottom:2rem}
 .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
 .auth-tab{flex:1;padding:.65rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:400;letter-spacing:.1em;cursor:pointer;transition:all .2s;text-transform:uppercase}
@@ -150,7 +150,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .stats-row{display:flex;gap:.6rem;margin-bottom:1.25rem}
 .stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.85rem;text-align:center;position:relative;overflow:hidden}
 .stat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--wing),transparent);opacity:.35}
-.stat-n{font-family:var(--mono);font-size:1.6rem;font-weight:500;color:var(--wing2);line-height:1;margin-bottom:4px}
+.stat-n{font-family:var(--mono);font-size:1.35rem;font-weight:500;color:var(--wing2);line-height:1;margin-bottom:4px}
 .stat-l{font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
 
 /* FILTER */
@@ -192,7 +192,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .link-date{font-size:.68rem;color:var(--muted);margin-top:2px;letter-spacing:.04em}
 .price-entry{display:flex;justify-content:space-between;font-size:.79rem;padding:4px 0;border-bottom:1px solid rgba(245,240,232,.04);color:var(--dim)}
 .sec-box{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.85rem 1rem;margin-bottom:.8rem}
-.price-big{font-family:var(--mono);font-size:1.3rem;font-weight:500;color:var(--wing2)}
+.price-big{font-family:var(--mono);font-size:1.1rem;font-weight:500;color:var(--wing2)}
 
 /* PRACTICE */
 .p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
@@ -225,7 +225,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .home-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.2rem}
 .home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column;align-items:center}
 .home-kpi:hover{border-color:rgba(200,137,58,.3)}
-.home-kpi-n{font-family:var(--serif);font-size:1.6rem;font-weight:700;line-height:1;color:var(--chalk)}
+.home-kpi-n{font-family:var(--serif);font-size:1.35rem;font-weight:700;line-height:1;color:var(--chalk)}
 .home-kpi-l{font-size:.67rem;color:var(--muted);margin-top:4px;letter-spacing:.06em}
 .skill-bar-wrap{margin-bottom:.5rem}
 .skill-bar-label{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px}
@@ -363,7 +363,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 ::-webkit-scrollbar-thumb:hover{background:var(--wing)}
 
 @media(max-width:480px){
-  .stats-row{gap:.4rem}.stat-n{font-size:1.3rem}
+  .stats-row{gap:.4rem}.stat-n{font-size:1.1rem}
   .email-lbl,.sync-dot{display:none}
   .shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}
   .acct-panel{right:.5rem;left:.5rem;min-width:unset}
@@ -7582,8 +7582,9 @@ window.openInstaCard = () => {
   ov.id='insta-card-overlay';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;padding-top:2rem';
 
-  const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'1.91:1':{w:1080,h:566,label:'가로형'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
-  const HASHTAGS={dist:'#골프스윙 #비거리 #아이언 #골프연습 #골프데이터 #스윙분석 #골프향상',score:'#골프스코어 #라운드 #골프기록 #스크린골프 #필드골프 #파온 #버디',practice:'#골프연습 #골프훈련 #스윙연습 #골프레슨 #구질교정 #골프향상',equip:'#골프장비 #골프클럽 #아이언 #드라이버 #골프용품 #클럽피팅'};
+  const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
+  const HASHTAGS={dist:'#골프 #비거리 #버드야드 #골프기록',score:'#골프 #라운드기록 #버드야드 #스코어',practice:'#골프연습 #스윙연습 #버드야드 #골프향상',equip:'#골프장비 #클럽피팅 #버드야드 #마이셋업'};
+  const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.'};
   const ownedEquip=D.equip.filter(e=>e.status==='owned');
   const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,5);
   const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
@@ -7601,7 +7602,7 @@ window.openInstaCard = () => {
       <span style="font-size:.7rem;color:var(--muted)">비율</span>
       <button id="ic-ratio-4-5" onclick="selectInstaRatio('4:5')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2)">4:5 권장</button>
       <button id="ic-ratio-1-1" onclick="selectInstaRatio('1:1')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">1:1</button>
-      <button id="ic-ratio-191-1" onclick="selectInstaRatio('1.91:1')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">가로</button>
+      <button id="ic-ratio-191-1" style="display:none"></button>
       <button id="ic-ratio-9-16" onclick="selectInstaRatio('9:16')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">스토리</button>
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center">
@@ -7621,8 +7622,14 @@ window.openInstaCard = () => {
     <div style="display:flex;justify-content:center;margin-bottom:.7rem;background:rgba(0,0,0,.3);border-radius:6px;padding:.5rem">
       <canvas id="insta-canvas" width="1080" height="1350" style="width:auto;max-width:100%;max-height:260px;border-radius:4px;border:1px solid var(--border)"></canvas>
     </div>
+    <button onclick="showInstaPreview()" style="width:100%;padding:.42rem;border-radius:6px;border:1px solid rgba(200,137,58,.3);background:rgba(200,137,58,.07);color:var(--wing2);font-size:.78rem;font-weight:600;cursor:pointer;font-family:var(--sans);margin-bottom:.65rem">🔍 실제 크기 미리보기</button>
     <div style="margin-bottom:.65rem">
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">해시태그 (수정 가능)</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">게시물 내용 <span style="color:rgba(240,237,230,.2)">(복사해서 인스타에 붙여넣기)</span></div>
+      <textarea id="ic-caption" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--dim);padding:.4rem .6rem;border-radius:4px;font-size:.75rem;font-family:var(--sans);resize:vertical;min-height:72px;line-height:1.6" placeholder="게시물에 쓸 내용...">${CAPTIONS.dist}</textarea>
+      <button onclick="(()=>{const t=document.getElementById('ic-caption');if(!t)return;navigator.clipboard.writeText(t.value).then(()=>{const b=event.target;b.textContent='✓ 복사됨';setTimeout(()=>b.textContent='📋 내용 복사',1500);}).catch(()=>{t.select();document.execCommand('copy');})})()" style="margin-top:.25rem;padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.7rem;cursor:pointer;font-family:var(--sans)">📋 내용 복사</button>
+    </div>
+    <div style="margin-bottom:.65rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">해시태그 (수정 가능, 4개 이하 권장)</div>
       <textarea id="ic-hashtags" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--dim);padding:.4rem .6rem;border-radius:4px;font-size:.75rem;font-family:var(--sans);resize:vertical;min-height:50px;line-height:1.6" oninput="renderInstaCanvas()">${HASHTAGS.dist}</textarea>
     </div>
     <button onclick="downloadInstaCard()" style="width:100%;padding:.6rem;border-radius:6px;border:none;background:linear-gradient(135deg,#C8893A,#A78BFA);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--sans)">⬇ PNG 다운로드</button>
@@ -7632,14 +7639,14 @@ window.openInstaCard = () => {
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
   window._instaType='dist'; window._instaTheme='dark'; window._instaRatio='4:5';
-  window._instaRatios=RATIOS; window._instaHashtags=HASHTAGS;
+  window._instaRatios=RATIOS; window._instaHashtags=HASHTAGS; window._instaCaptions=CAPTIONS;
   window._instaRecentSessions=recentSessions; window._instaOwnedEquip=ownedEquip;
   renderInstaCanvas();
 };
 
 window.selectInstaRatio = (ratio) => {
   window._instaRatio=ratio;
-  const idMap={'4:5':'4-5','1:1':'1-1','1.91:1':'191-1','9:16':'9-16'};
+  const idMap={'4:5':'4-5','1:1':'1-1','9:16':'9-16'};
   Object.keys(idMap).forEach(k=>{
     const btn=document.getElementById(`ic-ratio-${idMap[k]}`);
     if(!btn)return;
@@ -7673,6 +7680,8 @@ window.selectInstaType = (type) => {
   // 해시태그 업데이트
   const hashEl=document.getElementById('ic-hashtags');
   if(hashEl&&window._instaHashtags?.[type]) hashEl.value=window._instaHashtags[type];
+  const capEl=document.getElementById('ic-caption');
+  if(capEl&&window._instaCaptions?.[type]) capEl.value=window._instaCaptions[type];
   renderInstaCanvas();
 };
 
@@ -7876,6 +7885,32 @@ function drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH){
   });
   ctx.textAlign='left';
 }
+window.showInstaPreview = () => {
+  const canvas=document.getElementById('insta-canvas');
+  if(!canvas)return;
+  const ex=document.getElementById('insta-preview-overlay');
+  if(ex)ex.remove();
+  const pv=document.createElement('div');
+  pv.id='insta-preview-overlay';
+  pv.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:1rem';
+  const ratio=canvas.height/canvas.width;
+  // 실제 크기에 가깝게 — 화면 너비의 90% 또는 최대 480px
+  const dispW=Math.min(window.innerWidth*0.9,480);
+  const dispH=Math.round(dispW*ratio);
+  pv.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px;margin-bottom:.65rem">
+      <span style="font-size:.8rem;font-weight:600;color:var(--chalk)">실제 크기 미리보기 <span style="color:var(--muted);font-weight:400">(${canvas.width}×${canvas.height})</span></span>
+      <button onclick="document.getElementById('insta-preview-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;line-height:1">✕</button>
+    </div>
+    <img src="${canvas.toDataURL('image/png')}" style="width:${dispW}px;height:${dispH}px;border-radius:6px;border:1px solid rgba(200,137,58,.2);object-fit:contain;display:block">
+    <div style="margin-top:.85rem;display:flex;gap:.5rem">
+      <button onclick="downloadInstaCard();document.getElementById('insta-preview-overlay').remove();" style="padding:.52rem 1.2rem;border-radius:6px;border:none;background:linear-gradient(135deg,#C8893A,#A78BFA);color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--sans)">⬇ PNG 다운로드</button>
+      <button onclick="document.getElementById('insta-preview-overlay').remove()" style="padding:.52rem 1rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.82rem;cursor:pointer;font-family:var(--sans)">닫기</button>
+    </div>`;
+  pv.addEventListener('click',e=>{if(e.target===pv)pv.remove();});
+  document.body.appendChild(pv);
+};
+
 window.downloadInstaCard = () => {
   const canvas=document.getElementById('insta-canvas');
   if(!canvas)return;
