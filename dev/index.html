@@ -7161,7 +7161,11 @@ function pList(){
       <div style="position:relative;height:180px"><canvas id="club-dist-chart"></canvas></div>
     </div>` : '';
 
-    return`<div class="page">${srow}${ptabs}
+    return`<div class="page">${srow}
+    <div style="margin:.3rem 0 .65rem;display:flex;justify-content:flex-end">
+      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,rgba(200,137,58,.12),rgba(167,139,250,.12));border:1px solid rgba(200,137,58,.28);color:var(--wing2);padding:.35rem .9rem;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--sans)">📸 카드 만들기</button>
+    </div>
+    ${ptabs}
     ${gameChartSection}
     ${distChartSection}
     <div style="margin-bottom:.9rem">
@@ -7185,11 +7189,6 @@ function pList(){
       <button class="btn-analyze" id="btn-growth" onclick="analyzeGrowth()" ${D.sessions.length<2?'disabled':''}>✦ 성장 분석</button>
     </div>
     <div id="growth-result"></div>
-    <div style="margin:.85rem 0 .5rem;display:flex;justify-content:center">
-      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.45rem;background:linear-gradient(135deg,rgba(200,137,58,.15),rgba(167,139,250,.15));border:1px solid rgba(200,137,58,.3);color:var(--wing2);padding:.5rem 1.2rem;border-radius:20px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--sans)">
-        📸 인스타그램 카드 만들기
-      </button>
-    </div>
     <div class="public-toggle">
       <label><input type="checkbox" id="stats-public-toggle" ${D.profile?.is_public?'checked':''} onchange="toggleStatsPublic(this.checked)"><span>통계 공개 (내 프로필에 표시)</span></label>
     </div>
@@ -7583,12 +7582,12 @@ window.openInstaCard = () => {
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;padding-top:2rem';
 
   const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
-  const HASHTAGS={dist:'#골프 #비거리 #버드야드 #골프기록',score:'#골프 #라운드기록 #버드야드 #스코어',practice:'#골프연습 #스윙연습 #버드야드 #골프향상',equip:'#골프장비 #클럽피팅 #버드야드 #마이셋업'};
+  const HASHTAGS={dist:'#골프 #비거리 #Birdyard #골프기록',score:'#골프 #라운드기록 #Birdyard #스코어',practice:'#골프연습 #스윙연습 #Birdyard #골프향상',equip:'#골프장비 #클럽피팅 #Birdyard #마이셋업'};
   const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.'};
   const ownedEquip=D.equip.filter(e=>e.status==='owned');
   const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,5);
   const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
-  const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="setTimeout(renderInstaCanvas,0)" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
+  const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="updateInstaEquip()" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
 
   ov.innerHTML=`<div id="insta-panel" style="background:var(--dusk);border:1px solid var(--border2);border-radius:12px 12px 0 0;width:min(560px,100%);padding:1.25rem 1rem 2rem;max-height:90vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem">
@@ -7612,8 +7611,8 @@ window.openInstaCard = () => {
     </div>
     <div id="ic-options-practice" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">연습 세션 선택</div>
-      <select id="ic-session1" onchange="setTimeout(renderInstaCanvas,0)" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.3rem"><option value="">클럽 1 선택...</option>${sessionOpts}</select>
-      <select id="ic-session2" onchange="setTimeout(renderInstaCanvas,0)" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans)"><option value="">클럽 2 선택 (선택사항)...</option>${sessionOpts}</select>
+      <select id="ic-session1" onchange="updateInstaSession()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.3rem"><option value="">클럽 1 선택...</option>${sessionOpts}</select>
+      <select id="ic-session2" onchange="updateInstaSession()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans)"><option value="">클럽 2 선택 (선택사항)...</option>${sessionOpts}</select>
     </div>
     <div id="ic-options-equip" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">게시할 장비 선택</div>
@@ -7672,18 +7671,26 @@ window.selectInstaType = (type) => {
     btn.style.background=active?'rgba(200,137,58,.12)':'none';
     btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
   });
-  // 유형별 옵션 패널 표시
+  // 패널 표시/숨김
   ['practice','equip'].forEach(t=>{
     const panel=document.getElementById(`ic-options-${t}`);
     if(panel) panel.style.display=type===t?'block':'none';
   });
-  // 해시태그 업데이트
+  // 해시태그·캡션 업데이트
   const hashEl=document.getElementById('ic-hashtags');
   if(hashEl&&window._instaHashtags?.[type]) hashEl.value=window._instaHashtags[type];
   const capEl=document.getElementById('ic-caption');
   if(capEl&&window._instaCaptions?.[type]) capEl.value=window._instaCaptions[type];
-  // 패널 display 변경이 DOM에 반영된 뒤 캔버스 렌더 (rAF 2중으로 확실히)
-  requestAnimationFrame(()=>requestAnimationFrame(renderInstaCanvas));
+  // 타입 전환 시 세션/장비 캐시를 최신 DOM 값으로 갱신 후 렌더
+  requestAnimationFrame(()=>{
+    const s1=document.getElementById('ic-session1');
+    const s2=document.getElementById('ic-session2');
+    if(s1) window._instaSelIdx1=parseInt(s1.value??'-1');
+    if(s2) window._instaSelIdx2=parseInt(s2.value??'-1');
+    const eEls=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
+    window._instaSelEquip=eEls.map(el=>parseInt(el.id.replace('ic-equip-','')));
+    renderInstaCanvas();
+  });
 };
 
 window.selectInstaTheme = (theme) => {
@@ -7699,19 +7706,38 @@ window.selectInstaTheme = (theme) => {
   renderInstaCanvas();
 };
 
+// 세션 선택 변경 → 캐시 즉시 업데이트 → 렌더
+window.updateInstaSession = () => {
+  const s1=document.getElementById('ic-session1');
+  const s2=document.getElementById('ic-session2');
+  window._instaSelIdx1 = s1 ? parseInt(s1.value??'-1') : -1;
+  window._instaSelIdx2 = s2 ? parseInt(s2.value??'-1') : -1;
+  renderInstaCanvas();
+};
+// 장비 체크 변경 → 캐시 즉시 업데이트 → 렌더
+window.updateInstaEquip = () => {
+  const els=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
+  window._instaSelEquip = els.map(el=>parseInt(el.id.replace('ic-equip-','')));
+  renderInstaCanvas();
+};
+
 function renderInstaCanvas(){
   const canvas=document.getElementById('insta-canvas');
   if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  const r=window._instaRatios?.[window._instaRatio||'4:5']||{w:1080,h:1350};
-  // 세션/장비 선택값을 DOM이 살아있는 지금 미리 읽어 캐시
+
+  // ── 1. DOM에서 현재값 읽기 (canvas 리셋 전에 먼저) ──
   const s1El=document.getElementById('ic-session1');
   const s2El=document.getElementById('ic-session2');
+  // DOM 값이 있으면 우선 사용, 없으면 캐시 유지
   if(s1El) window._instaSelIdx1=parseInt(s1El.value??'-1');
   if(s2El) window._instaSelIdx2=parseInt(s2El.value??'-1');
   const equipEls=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
-  window._instaSelEquip=equipEls.map(el=>parseInt(el.id.replace('ic-equip-','')));
-  const W=r.w, H=r.h;
+  if(equipEls.length>0||document.querySelector('[id^="ic-equip-"]'))
+    window._instaSelEquip=equipEls.map(el=>parseInt(el.id.replace('ic-equip-','')));
+
+  // ── 2. 캔버스 초기화 및 그리기 ──
+  const ctx=canvas.getContext('2d');
+  const r=window._instaRatios?.[window._instaRatio||'4:5']||{w:1080,h:1350};
   canvas.width=W; canvas.height=H;
   const dark=window._instaTheme!=='light';
   const type=window._instaType||'dist';
@@ -7728,37 +7754,62 @@ function renderInstaCanvas(){
    [0,H,c,H],[0,H,0,H-c],[W,H,W-c,H],[W,H,W,H-c]
   ].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
 
+  // 스토리(9:16) dead zone 안전 구역 설정
+  // 상단: UI/시간 표시 약 14% (~269px), 하단: 댓글·스티커 영역 약 35% (~672px)
+  // 실질 safe zone: H*0.16 ~ H*0.63
+  const isStory=(window._instaRatio==='9:16');
+  const safeTop   = isStory ? Math.round(H*0.16) : 0;
+  const safeBottom= isStory ? Math.round(H*0.63) : H;
+  const safeH     = safeBottom - safeTop;
+
   const pad=Math.round(W*0.05);
-  // 로고
+
+  // 스토리일 때 safe zone 경계 표시 (연한 점선)
+  if(isStory){
+    ctx.save();
+    ctx.setLineDash([8,8]);
+    ctx.strokeStyle='rgba(200,137,58,.25)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0,safeTop); ctx.lineTo(W,safeTop); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,safeBottom); ctx.lineTo(W,safeBottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font=`400 ${Math.round(W*0.018)}px system-ui`;
+    ctx.fillStyle='rgba(200,137,58,.35)'; ctx.textAlign='center';
+    ctx.fillText('▲ safe zone', W/2, safeTop-8);
+    ctx.fillText('▼ safe zone', W/2, safeBottom+20);
+    ctx.restore();
+  }
+
+  // 로고 (safe zone 상단 기준)
+  const logoY = safeTop + Math.round(safeH*0.07);
   ctx.font=`700 ${Math.round(W*0.044)}px Georgia,serif`;
   ctx.fillStyle='#C8893A'; ctx.textAlign='left';
-  ctx.fillText('BIRDYARD',pad,pad*1.5);
+  ctx.fillText('BIRDYARD',pad,logoY);
   ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;
   ctx.fillStyle=dark?'rgba(240,237,230,.4)':'rgba(30,30,30,.4)';
-  ctx.fillText('GOLF NOTE & COMMUNITY',pad,pad*1.5+Math.round(W*0.028));
+  ctx.fillText('GOLF NOTE & COMMUNITY',pad,logoY+Math.round(W*0.028));
 
   // 날짜
   ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;
   ctx.textAlign='right';
   ctx.fillStyle=dark?'rgba(240,237,230,.4)':'rgba(30,30,30,.4)';
-  ctx.fillText(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}),W-pad,pad*1.5);
+  ctx.fillText(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}),W-pad,logoY);
   ctx.textAlign='left';
 
-  const contentTop=Math.round(H*0.16);
-  const contentH=Math.round(H*0.75);
+  // 콘텐츠 영역 (safe zone 내)
+  const contentTop = safeTop + Math.round(safeH*0.16);
+  const contentH   = Math.round(safeH*(isStory?0.68:0.75));
 
   if(type==='dist') drawDistCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='score') drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='practice') drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='equip') drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH);
 
-  // 해시태그 (하단)
+  // 해시태그 (safe zone 하단 기준)
   ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;
   ctx.fillStyle=dark?'rgba(240,237,230,.35)':'rgba(30,30,30,.3)';
   ctx.textAlign='center';
-  // 긴 해시태그 줄바꿈
   const words=hashtags.split(' ');
-  let line='',lineY=H-Math.round(H*0.04);
+  let line='',lineY=safeBottom-Math.round(safeH*0.04);
   words.forEach(w=>{
     const test=line?line+' '+w:w;
     if(ctx.measureText(test).width>W-pad*2&&line){
@@ -7789,10 +7840,16 @@ function drawDistCard(ctx,W,H,dark,pad,contentTop,contentH){
     const v=vals[i];if(!v)return;
     const ratio=v/maxVal;const bH=Math.round(barAreaH*ratio*0.85);
     const x=pad+i*barSpacing+barSpacing/2-barW/2;const y=barAreaTop+barAreaH-bH;
+    // CLUB_COLORS 기반 색상 (클럽별 고유색)
+    const cc=typeof clubColor==='function'?clubColor(club):{line:'#C8893A',bg:'rgba(200,137,58,.2)'};
+    const lineCol=cc.line||'#C8893A';
+    // 그라데이션: 클럽 고유색 밝게 → 어둡게
     const g=ctx.createLinearGradient(x,y,x,y+bH);
-    if(ratio>0.85){g.addColorStop(0,'#E4A855');g.addColorStop(1,'#C8893A');}
-    else if(ratio>0.6){g.addColorStop(0,'#6AAFCC');g.addColorStop(1,'#4A8FA8');}
-    else{g.addColorStop(0,'#A78BFA');g.addColorStop(1,'#7C5FC4');}
+    g.addColorStop(0,lineCol);
+    g.addColorStop(1,lineCol.replace(/^#/,'')
+      .match(/.{2}/g)
+      ?.map(h=>Math.max(0,parseInt(h,16)-40).toString(16).padStart(2,'0'))
+      .reduce((a,b)=>a+b,'#')||lineCol);
     ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,y,barW,bH,4);ctx.fill();
     const vfs=Math.max(16,Math.min(26,Math.round(barSpacing*0.3)));
     ctx.font=`700 ${vfs}px system-ui`;ctx.fillStyle=chalk;ctx.textAlign='center';
