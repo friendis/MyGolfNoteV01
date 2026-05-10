@@ -148,10 +148,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 
 /* STATS */
 .stats-row{display:flex;gap:.6rem;margin-bottom:1.25rem}
-.stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.85rem;text-align:center;position:relative;overflow:hidden}
+.stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.6rem .5rem;text-align:center;position:relative;overflow:hidden}
 .stat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--wing),transparent);opacity:.35}
-.stat-n{font-family:var(--mono);font-size:1.35rem;font-weight:500;color:var(--wing2);line-height:1;margin-bottom:4px}
-.stat-l{font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.stat-n{font-family:var(--mono);font-size:1.05rem;font-weight:600;color:var(--wing2);line-height:1;margin-bottom:3px}
+.stat-l{font-size:.68rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
 
 /* FILTER */
 .filter-bar{display:flex;gap:.5rem;margin-bottom:1.1rem;flex-wrap:wrap}
@@ -363,7 +363,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 ::-webkit-scrollbar-thumb:hover{background:var(--wing)}
 
 @media(max-width:480px){
-  .stats-row{gap:.4rem}.stat-n{font-size:1.1rem}
+  .stats-row{gap:.4rem}.stat-n{font-size:.95rem}
   .email-lbl,.sync-dot{display:none}
   .shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}
   .acct-panel{right:.5rem;left:.5rem;min-width:unset}
@@ -7030,7 +7030,10 @@ function pList(){
     <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
     <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
     <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
-    <button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+    <div style="margin-left:auto;display:flex;gap:.35rem;flex-shrink:0;align-items:center">
+      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:linear-gradient(135deg,rgba(200,137,58,.12),rgba(167,139,250,.12));border:1px solid rgba(200,137,58,.28);color:var(--wing2);padding:.3rem .7rem;border-radius:14px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
+      <button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+    </div>
   </div>`;
   const srow=`<div class="stats-row">
     <div class="stat"><div class="stat-n">${gdrSessions.length}</div><div class="stat-l">훈련 세션</div></div>
@@ -7161,11 +7164,7 @@ function pList(){
       <div style="position:relative;height:180px"><canvas id="club-dist-chart"></canvas></div>
     </div>` : '';
 
-    return`<div class="page">${srow}
-    <div style="margin:.3rem 0 .65rem;display:flex;justify-content:flex-end">
-      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,rgba(200,137,58,.12),rgba(167,139,250,.12));border:1px solid rgba(200,137,58,.28);color:var(--wing2);padding:.35rem .9rem;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--sans)">📸 카드 만들기</button>
-    </div>
-    ${ptabs}
+    return`<div class="page">${srow}${ptabs}
     ${gameChartSection}
     ${distChartSection}
     <div style="margin-bottom:.9rem">
@@ -8095,8 +8094,8 @@ function initCharts(){
               }}}
             },
             scales:{
-              x:{ticks:{font:{size:10},color:'rgba(240,237,230,.4)'},grid:{color:'rgba(240,237,230,.05)'}},
-              y:{reverse:true,ticks:{font:{size:10},color:'rgba(240,237,230,.4)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
+              x:{ticks:{font:{size:12},color:'rgba(240,237,230,.5)'},grid:{color:'rgba(240,237,230,.05)'}},
+              y:{reverse:true,ticks:{font:{size:12},color:'rgba(240,237,230,.5)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
             },
             onClick:(e,elements)=>{
               if(!elements.length)return;
@@ -8200,8 +8199,8 @@ function initCharts(){
             }
           },
           scales:{
-            x:{ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},grid:{display:false}},
-            y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
+            x:{ticks:{color:'rgba(240,237,230,.6)',font:{size:12}},grid:{display:false}},
+            y:{min:0,ticks:{color:'rgba(240,237,230,.5)',font:{size:12},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
           }
         }
       });
@@ -8269,8 +8268,8 @@ function initCharts(){
           padding:8,cornerRadius:3,
         }},
         scales:{
-          x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
-          y:{...yOpts,ticks:{color:'#8AABBB',font:{size:9},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.09)'}}
+          x:{ticks:{color:'#8AABBB',font:{size:11},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+          y:{...yOpts,ticks:{color:'#8AABBB',font:{size:11},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.09)'}}
         }},
       plugins:zones&&zones.length?[benchPlugin(zones)]:[]
     });
@@ -8360,8 +8359,8 @@ function initCharts(){
             padding:8,cornerRadius:3,
           }},
           scales:{
-            x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
-            y:{...def.yOpts,ticks:{color:'#8AABBB',font:{size:9},...(def.yOpts.callback?{callback:def.yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.07)'},border:{color:'rgba(240,237,230,.1)'}},
+            x:{ticks:{color:'#8AABBB',font:{size:11},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+            y:{...def.yOpts,ticks:{color:'#8AABBB',font:{size:11},...(def.yOpts.callback?{callback:def.yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.07)'},border:{color:'rgba(240,237,230,.1)'}},
           }},
         plugins:def.zones&&def.zones.length?[benchPlugin(def.zones)]:[]
       });
