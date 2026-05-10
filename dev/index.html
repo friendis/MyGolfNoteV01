@@ -45,8 +45,8 @@ html{font-size:17px}
 body{font-family:var(--sans);background:var(--night);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 /* 매우 작은 폰트(.67rem~.72rem)를 최소 .75rem 수준으로 보정 */
 .fl-label,.card-meta,.note,.stat-l,
-.badge,.kw-pill,.tag-chip{font-size:max(.75rem,1em) !important}
-.badge{font-size:.75rem !important}
+.badge,.kw-pill,.tag-chip{font-size:.72rem !important}
+.badge{font-size:.72rem !important}
 
 /* LOADING */
 #loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
@@ -133,14 +133,15 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .card-meta{font-size:.72rem;color:var(--muted);margin-top:4px;letter-spacing:.04em}
 
 /* BADGES */
-.badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-right:3px;margin-bottom:2px}
+.badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.70rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-right:3px;margin-bottom:2px}
 .b-gold{background:rgba(200,137,58,.12);color:var(--wing2);border:1px solid rgba(200,137,58,.25)}
 .b-green{background:rgba(122,191,160,.1);color:var(--turf);border:1px solid rgba(122,191,160,.2)}
 .b-blue{background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.2)}
 .b-amber{background:rgba(228,168,85,.12);color:var(--wing2);border:1px solid rgba(228,168,85,.22)}
+.b-gray{background:rgba(138,155,170,.1);color:rgba(138,155,170,.8);border:1px solid rgba(138,155,170,.2)}
 
 /* MISC */
-.sec-label{font-size:.67rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.sec-label{font-size:.70rem;font-weight:500;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
 .sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
 .divider{height:1px;background:var(--border);margin:.9rem 0}
 .back-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--wing2);font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:1.1rem;transition:color .15s}
@@ -181,7 +182,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .ts-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 2px;transition:color .15s;flex-shrink:0}
 .ts-del:hover{color:var(--red)}
 .kw-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.kw-pill{padding:3px 9px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(184,151,58,.06);border:1px solid rgba(184,151,58,.18);color:var(--wing2);cursor:pointer;transition:all .12s}
+.kw-pill{padding:3px 8px;border-radius:2px;font-size:.70rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;background:rgba(184,151,58,.06);border:1px solid rgba(184,151,58,.18);color:var(--wing2);cursor:pointer;transition:all .12s}
 .kw-pill:hover{background:rgba(184,151,58,.16)}
 
 /* EQUIPMENT */
@@ -214,7 +215,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .stbl .best{color:var(--wing2);font-weight:500}
 .chart-wrap{background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:1rem;margin-bottom:.9rem}
 .chart-title{font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem}
-.club-badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.22)}
+.club-badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.70rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.22)}
 .img-upload{border:1px dashed rgba(184,151,58,.3);border-radius:2px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
 .img-upload:hover{border-color:var(--wing2);color:var(--wing)}
 .img-upload input{display:none}
@@ -308,7 +309,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 /* TAG EDITOR */
 .tag-editor{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:.55rem .7rem;background:rgba(13,17,23,.6);border:1px solid rgba(200,137,58,.18);border-radius:2px;min-height:38px;cursor:text}
 .tag-editor:focus-within{border-color:rgba(200,137,58,.4)}
-.tag-item{display:inline-flex;align-items:center;gap:4px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:2px 6px 2px 8px;border-radius:2px;font-size:.72rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.tag-item{display:inline-flex;align-items:center;gap:4px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:2px 6px 2px 8px;border-radius:2px;font-size:.73rem;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
 .tag-item.editable{cursor:pointer}
 .tag-item input.tag-rename{background:transparent;border:none;color:var(--wing2);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;outline:none;width:60px;min-width:30px}
 .tag-del{background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;font-size:.8rem;padding:0;line-height:1;transition:color .15s}
@@ -746,6 +747,39 @@ import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm
 Chart.register(...registerables);
 Chart.defaults.plugins.legend.display = false;
 Chart.defaults.plugins.legend.onClick = () => {};
+
+// ── GPS 장소 메모리 (Supabase user_settings 저장, localStorage 폴백) ──────────
+window._gpsMemoryCache = null;
+async function loadGpsMemory(){
+  if(window._gpsMemoryCache) return window._gpsMemoryCache;
+  try{
+    const{data}=await sb.from('user_settings').select('value').eq('user_id',(await sb.auth.getUser()).data.user?.id).eq('key','gps_memory').maybeSingle();
+    window._gpsMemoryCache = data?.value ? (typeof data.value==='string'?JSON.parse(data.value):data.value) : JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+  }catch(e){
+    window._gpsMemoryCache = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+  }
+  return window._gpsMemoryCache;
+}
+async function saveGpsMemory(gpsKey, placeName){
+  if(!gpsKey||!placeName) return;
+  const mem = await loadGpsMemory();
+  mem[gpsKey] = placeName;
+  window._gpsMemoryCache = mem;
+  localStorage.setItem('birdyard_gps_memory', JSON.stringify(mem));
+  try{
+    const uid=(await sb.auth.getUser()).data.user?.id;
+    if(!uid) return;
+    await sb.from('user_settings').upsert({user_id:uid,key:'gps_memory',value:mem},{onConflict:'user_id,key'});
+  }catch(e){ /* 폴백: localStorage만 저장됨 */ }
+}
+async function getLocationHistory(){
+  const mem = await loadGpsMemory();
+  // 세션에서도 장소 이력 수집
+  const fromSessions = [...new Set((D.sessions||[]).map(s=>s.loc).filter(Boolean))];
+  const fromMemory = [...new Set(Object.values(mem).filter(Boolean))];
+  return [...new Set([...fromMemory,...fromSessions])].sort();
+}
+
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 // ── AI 모델 설정 ── 문제 발생 시 'gemini-2.5-flash' 로 변경 ──
@@ -4990,7 +5024,7 @@ function eList(){
 
   if(eSub === 'sets') return eSetsView(subTabs);
 
-  const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
+  const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist'),past=D.equip.filter(e=>e.status==='past');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{
@@ -5019,8 +5053,8 @@ function eList(){
     ${allCustomTags.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" data-kind="tag" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}','tag')">${esc(t)}</button>`).join('')}
   </div>`:'';
 
-  return`<div class="page">${subTabs}<div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div>
-  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
+  return`<div class="page">${subTabs}<div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유 중</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:.9rem;color:rgba(138,155,170,.8)">${past.length}</div><div class="stat-l">이전 보유</div></div></div>
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유 중</option><option value="wishlist">관심</option><option value="past">이전 보유</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
   ${tagChips}
   <div id="ecards">${cards}</div>
   <div style="margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)">
@@ -5074,7 +5108,7 @@ window.filterE=(q,cat,st,tag='',kind='')=>{
         <div style="flex:1;min-width:0">
           <div class="card-title">${esc(e.name)}</div>
           <div style="margin:3px 0">
-            <span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
+            <span class="badge ${e.status==='owned'?'b-green':e.status==='past'?'b-gray':'b-amber'}">${e.status==='owned'?'✓ 보유 중':e.status==='past'?'◇ 이전 보유':'★ 관심'}</span>
             <span class="badge b-blue">${esc(e.cat)}</span>
             ${Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join(''):''}
           </div>
@@ -5113,8 +5147,8 @@ function eDetail(){
           ${esc(e.cat)||'분류 없음'}
           <button onclick="editECat('${e.id}')" style="background:none;border:none;color:rgba(106,175,204,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="분류 변경">✎</button>
         </span>
-        <span class="badge ${e.status==='owned'?'b-green':'b-amber'}" style="cursor:default">
-          ${e.status==='owned'?'✓ 보유':'★ 관심'}
+        <span class="badge ${e.status==='owned'?'b-green':e.status==='past'?'b-gray':'b-amber'}" style="cursor:default">
+          ${e.status==='owned'?'✓ 보유 중':e.status==='past'?'◇ 이전 보유':'★ 관심'}
           <button onclick="toggleEStatus('${e.id}')" style="background:none;border:none;color:rgba(122,191,160,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="상태 전환">⇄</button>
         </span>
         ${tags.map((t,i)=>`<span class="badge b-gold" style="cursor:default">${esc(t)}<button onclick="delETag('${e.id}',${i})" style="background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="삭제">✕</button></span>`).join('')}
@@ -5815,8 +5849,8 @@ window.editECat=async id=>{
 // 보유/관심 상태 전환
 window.toggleEStatus=async id=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
-  const newStatus=e.status==='owned'?'wishlist':'owned';
-  sync('busy');const{error}=await sb.from('equipment').update({status:newStatus}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.status=newStatus;sync('ok');toast(newStatus==='owned'?'보유로 변경됨':'관심으로 변경됨');goDetail(id);
+  const newStatus=e.status==='owned'?'past':e.status==='past'?'wishlist':'owned';
+  sync('busy');const{error}=await sb.from('equipment').update({status:newStatus}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.status=newStatus;sync('ok');toast(newStatus==='owned'?'✓ 보유 중으로 변경됨':newStatus==='past'?'◇ 이전 보유로 변경됨':'★ 관심으로 변경됨');goDetail(id);
 };
 // 장비 커스텀 태그 추가
 window.addETag=async id=>{
@@ -6020,6 +6054,7 @@ function eAdd(){
       <div style="display:flex;gap:.75rem">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="past" onchange="toggleOwned(this.value)"> <span class="badge b-gray">◇ 이전 보유</span></label>
       </div>
     </div>
     <div id="owned-f" style="display:none">
@@ -6064,7 +6099,7 @@ function eAdd(){
     </div>
   </div></div>`;
 }
-window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
+window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'||v==='past'?'block':'none';};
 window.toggleRecType=v=>{
   const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
   if(gdr)gdr.style.display=v==='gdr'?'block':'none';
@@ -10075,7 +10110,7 @@ window.handleGamePhoto = async function(input) {
       const lat = exif.gps.latRef==='S' ? -exif.gps.lat : exif.gps.lat;
       const lon = exif.gps.lonRef==='W' ? -exif.gps.lon : exif.gps.lon;
       const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
-      const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+      const gpsMemory = await loadGpsMemory();
       const knownPlace = gpsMemory[gpsKey];
       const pl = $('pl');
       if(knownPlace && pl && !pl.value) {
@@ -10276,25 +10311,20 @@ async function analyzeOne(idx) {
     const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
 
     // 저장된 장소 목록 조회
-    const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+    const gpsMemory = await loadGpsMemory();
     const knownPlace = gpsMemory[gpsKey];
     const pl = $('pl');
 
     if(knownPlace && pl && !pl.value) {
-      // 알려진 장소 → 자동 입력
       pl.value = knownPlace;
       toast(`📍 ${knownPlace}`);
     } else if(!knownPlace) {
-      // 처음 가보는 장소 → 주소 조회 후 알림
       const addr = await gpsToAddress(lat, lon);
       if(addr && pl && !pl.value) pl.value = addr;
-      // 장소 입력 완료 시 GPS 매핑 저장하도록 이벤트 등록
       if(pl) {
         pl.dataset.gpsKey = gpsKey;
         pl.dataset.isNewPlace = '1';
-        // 입력창에 포커스 유도
         setTimeout(()=>{
-          const existing = pl.value.trim();
           pl.style.borderColor = 'rgba(167,139,250,.5)';
           pl.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
           if(!$('pl-new-hint')){
@@ -10401,7 +10431,10 @@ function pAdd() {
     <!-- 스크린/필드 전용 입력 -->
     <div id="game-fields" style="display:none">
       <div class="frow">
-        <div class="fg"><label class="fl-label">코스명 (선택)</label><input class="inp" id="p-course" placeholder="예: 설악밸리 CC"></div>
+        <div class="fg"><label class="fl-label">코스명 (선택)</label>
+          <input class="inp" id="p-course" placeholder="예: 설악밸리 CC" list="course-datalist" autocomplete="off" onfocus="fillCourseDatalist()">
+          <datalist id="course-datalist"></datalist>
+        </div>
         <div class="fg"><label class="fl-label">홀 수</label>
           <select class="sel" id="p-holes" onchange="renderHoleInputs(true)">
             <option value="18" selected>18홀</option>
@@ -10409,8 +10442,18 @@ function pAdd() {
           </select>
         </div>
       </div>
-      <div class="fg"><label class="fl-label">총 타수</label>
-        <input class="inp" type="number" id="p-score" placeholder="예: 95 (홀별 입력 시 자동 계산)">
+      <div class="frow">
+        <div class="fg">
+          <label class="fl-label">클럽 세트 (선택)</label>
+          <select class="sel" id="p-game-set">
+            <option value="">세트 선택...</option>
+            ${D.sets.length?D.sets.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join(''):''}
+          </select>
+          ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.2rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트</a>에서 먼저 만들어보세요</div>`:''}
+        </div>
+        <div class="fg"><label class="fl-label">총 타수</label>
+          <input class="inp" type="number" id="p-score" placeholder="예: 95 (홀별 입력 시 자동 계산)">
+        </div>
       </div>
 
       <!-- 스코어카드 사진 분석 -->
@@ -10447,7 +10490,10 @@ function pAdd() {
       <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
-    <div class="fg"><label class="fl-label">연습장 · 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
+    <div class="fg"><label class="fl-label">연습장 · 장소</label>
+      <input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력" list="pl-datalist" autocomplete="off" onfocus="fillPlDatalist()">
+      <datalist id="pl-datalist"></datalist>
+    </div>
 
     <!-- GDR 전용 입력 -->
     <div id="gdr-fields">
@@ -10571,6 +10617,7 @@ window.saveSession = async () => {
   const loc = $('pl').value.trim(), memo = $('pm').value.trim();
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
+  const gameSet = recType!=='gdr'?($('p-game-set')?.value.trim()||''):'';
   const holes = recType!=='gdr'?parseInt($('p-holes')?.value||18):18;
 
   // 분석 중인 사진이 있으면 사용자에게 알림 (저장은 계속 진행)
@@ -10589,9 +10636,7 @@ window.saveSession = async () => {
   // GPS ↔ 장소 매핑 저장
   const pl = $('pl');
   if(pl?.dataset.gpsKey && loc) {
-    const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
-    gpsMemory[pl.dataset.gpsKey] = loc;
-    localStorage.setItem('birdyard_gps_memory', JSON.stringify(gpsMemory));
+    await saveGpsMemory(pl.dataset.gpsKey, loc);
   }
 
   // 이미지 전부 업로드 (분석 완료 여부와 무관)
@@ -10629,6 +10674,7 @@ window.saveSession = async () => {
     game_type: recType,
     score: score,
     course_name: courseName,
+    club: gameSet||($('pc')?.value||''),
     holes: holes,
     hole_scores: (recType!=='gdr'&&_holeScoresData.some(h=>h.score)) ? {holes:_holeScoresData} : null,
     is_public: isPublic,
