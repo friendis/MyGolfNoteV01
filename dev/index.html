@@ -7788,28 +7788,30 @@ function renderInstaCanvas(){
    [0,H,c,H],[0,H,0,H-c],[W,H,W-c,H],[W,H,W,H-c]
   ].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
 
-  // 스토리(9:16) dead zone 안전 구역 설정
-  // 상단: UI/시간 표시 약 14% (~269px), 하단: 댓글·스티커 영역 약 35% (~672px)
-  // 실질 safe zone: H*0.16 ~ H*0.63
+  // ── Instagram safe zone (2026 검색 기준)
+  // Story 9:16 (1080×1920): 상단 250px, 하단 250px → safe zone 1080×1420
+  //   출처: Hootsuite(155px), Minta(250px), SellerPic(155px) → 안전하게 250px 적용
+  // 피드 4:5, 1:1: UI 오버레이 없음 → dead zone 불필요
   const isStory=(window._instaRatio==='9:16');
-  const safeTop   = isStory ? Math.round(H*0.16) : 0;
-  const safeBottom= isStory ? Math.round(H*0.63) : H;
+  const STORY_TOP_PX=250, STORY_BOT_PX=250; // 1080×1920 기준 픽셀
+  const safeTop   = isStory ? Math.round(H*(STORY_TOP_PX/1920)) : 0;
+  const safeBottom= isStory ? H-Math.round(H*(STORY_BOT_PX/1920)) : H;
   const safeH     = safeBottom - safeTop;
 
   const pad=Math.round(W*0.05);
 
-  // 스토리일 때 safe zone 경계 표시 (연한 점선)
+  // 스토리일 때 safe zone 경계 표시
   if(isStory){
     ctx.save();
-    ctx.setLineDash([8,8]);
-    ctx.strokeStyle='rgba(200,137,58,.25)'; ctx.lineWidth=2;
+    ctx.setLineDash([10,6]);
+    ctx.strokeStyle='rgba(200,137,58,.22)'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(0,safeTop); ctx.lineTo(W,safeTop); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0,safeBottom); ctx.lineTo(W,safeBottom); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font=`400 ${Math.round(W*0.018)}px system-ui`;
-    ctx.fillStyle='rgba(200,137,58,.35)'; ctx.textAlign='center';
-    ctx.fillText('▲ safe zone', W/2, safeTop-8);
-    ctx.fillText('▼ safe zone', W/2, safeBottom+20);
+    ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;
+    ctx.fillStyle='rgba(200,137,58,.3)'; ctx.textAlign='center';
+    ctx.fillText('▲ UI 영역', W/2, safeTop-10);
+    ctx.fillText('▼ 답장창 영역', W/2, safeBottom+22);
     ctx.restore();
   }
 
@@ -7836,7 +7838,22 @@ function renderInstaCanvas(){
   if(type==='dist') drawDistCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='score') drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='practice') drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH);
-  else if(type==='equip') drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='equip'){
+    drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH);
+    // 사진 로드 완료 후 재렌더 (비동기 사진 합성)
+    drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH).then(()=>{
+      // 해시태그 재그리기 (사진 합성이 덮어쓸 수 있으므로)
+      const ht=document.getElementById('ic-hashtags')?.value||'';
+      if(ht){
+        ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;
+        ctx.fillStyle=dark?'rgba(240,237,230,.35)':'rgba(30,30,30,.3)';
+        ctx.textAlign='center';
+        const words2=ht.split(' ');let line2='',lineY2=safeBottom-Math.round(safeH*0.04);
+        words2.forEach(w=>{const test=line2?line2+' '+w:w;if(ctx.measureText(test).width>W-pad*2&&line2){ctx.fillText(line2,W/2,lineY2);line2=w;lineY2-=Math.round(W*0.025);}else line2=test;});
+        if(line2)ctx.fillText(line2,W/2,lineY2);ctx.textAlign='left';
+      }
+    }).catch(()=>{});
+  }
 
   // 해시태그 (safe zone 하단 기준)
   ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;
@@ -7962,27 +7979,131 @@ function drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH){
   });
 }
 
-function drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH){
-  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
-  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🪶 MY GOLF SETUP',pad,contentTop);
+// 장비 카드에서 사진 URL을 Image 객체로 로드 (캐시)
+const _equipImgCache={};
+function loadEquipImg(url){
+  if(!url)return Promise.resolve(null);
+  if(_equipImgCache[url]) return Promise.resolve(_equipImgCache[url]);
+  return new Promise(res=>{
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{_equipImgCache[url]=img;res(img);};
+    img.onerror=()=>res(null);
+    img.src=url;
+  });
+}
+
+// 장비 카드 비동기 렌더 (사진 있으면 합성)
+async function drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';
+  const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;
+  ctx.fillText('🪶 MY GOLF SETUP',pad,contentTop);
   const owned=window._instaOwnedEquip||D.equip.filter(e=>e.status==='owned');
-  // 선택된 장비만
   const checked=window._instaSelEquip||[];
   const show=checked.length?checked.map(i=>owned[i]).filter(Boolean):owned.slice(0,6);
-  if(!show.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('장비를 선택해주세요',pad,contentTop+contentH/2);return;}
-  const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.1));
+  if(!show.length){
+    ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;
+    ctx.fillText('장비를 선택해주세요',pad,contentTop+contentH/2);return;
+  }
+  // 사진 미리 로드
+  const imgs=await Promise.all(show.map(e=>loadEquipImg(e.photoUrl||'')));
+
+  const hasAnyPhoto=imgs.some(Boolean);
+  // 사진이 있으면 좌측 사진열 + 우측 텍스트, 없으면 기존 레이아웃
+  const photoColW = hasAnyPhoto ? Math.round(W*0.22) : 0;
+  const textX = pad + photoColW + (hasAnyPhoto?Math.round(W*0.03):0);
+  const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.11));
   let y=contentTop+Math.round(H*0.04);
+
   show.forEach((e,i)=>{
-    ctx.font=`700 ${Math.round(W*0.025)}px system-ui`;ctx.fillStyle='#C8893A';ctx.fillText(`${i+1}`,pad,y+rowH*0.65);
-    ctx.fillStyle=dark?'rgba(200,137,58,.12)':'rgba(200,137,58,.1)';ctx.beginPath();ctx.roundRect(pad+Math.round(W*0.04),y+rowH*0.15,Math.round(W*0.115),rowH*0.65,5);ctx.fill();
-    ctx.font=`600 ${Math.round(W*0.021)}px system-ui`;ctx.fillStyle='#C8893A';ctx.textAlign='center';ctx.fillText(e.cat,pad+Math.round(W*0.097),y+rowH*0.62);
-    ctx.font=`600 ${Math.round(W*0.028)}px system-ui`;ctx.fillStyle=chalk;ctx.textAlign='left';ctx.fillText(e.name.slice(0,20),pad+Math.round(W*0.175),y+rowH*0.62);
+    const img=imgs[i];
+    const rowTop=y;
+
+    // ── 장비 사진 (있을 때만)
+    if(hasAnyPhoto){
+      const imgX=pad+Math.round(W*0.01);
+      const imgW=Math.round(photoColW*0.85);
+      const imgH=Math.round(rowH*0.78);
+      const imgY=rowTop+Math.round((rowH-imgH)/2);
+      if(img){
+        // 사진: 둥근 클립 + 살짝 어두운 오버레이로 AI합성 느낌
+        ctx.save();
+        ctx.beginPath();ctx.roundRect(imgX,imgY,imgW,imgH,6);ctx.clip();
+        // 배경 (사진 없을 때 폴백)
+        ctx.fillStyle=dark?'rgba(200,137,58,.08)':'rgba(200,137,58,.06)';
+        ctx.fillRect(imgX,imgY,imgW,imgH);
+        // object-fit: contain 방식으로 그리기
+        const scale=Math.min(imgW/img.naturalWidth,imgH/img.naturalHeight);
+        const dw=img.naturalWidth*scale, dh=img.naturalHeight*scale;
+        const dx=imgX+(imgW-dw)/2, dy=imgY+(imgH-dh)/2;
+        ctx.drawImage(img,dx,dy,dw,dh);
+        // 미세 비네팅 — AI합성 자연스러운 경계
+        const vg=ctx.createRadialGradient(imgX+imgW/2,imgY+imgH/2,imgW*0.3,imgX+imgW/2,imgY+imgH/2,imgW*0.7);
+        vg.addColorStop(0,'rgba(0,0,0,0)');
+        vg.addColorStop(1,dark?'rgba(13,17,23,.45)':'rgba(245,240,232,.35)');
+        ctx.fillStyle=vg;ctx.fillRect(imgX,imgY,imgW,imgH);
+        ctx.restore();
+        // 테두리
+        ctx.strokeStyle=dark?'rgba(200,137,58,.25)':'rgba(200,137,58,.2)';
+        ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(imgX,imgY,imgW,imgH,6);ctx.stroke();
+      } else {
+        // 사진 없는 장비: 카테고리 이니셜 표시
+        ctx.fillStyle=dark?'rgba(200,137,58,.1)':'rgba(200,137,58,.08)';
+        ctx.beginPath();ctx.roundRect(imgX,imgY,imgW,imgH,6);ctx.fill();
+        ctx.font=`500 ${Math.round(imgH*0.38)}px system-ui`;
+        ctx.fillStyle='rgba(200,137,58,.4)';ctx.textAlign='center';
+        ctx.fillText((e.cat||'?').slice(0,2),imgX+imgW/2,imgY+imgH*0.62);
+        ctx.textAlign='left';
+      }
+    }
+
+    // ── 번호 + 카테고리 뱃지
+    ctx.font=`700 ${Math.round(W*0.024)}px system-ui`;ctx.fillStyle='#C8893A';
+    ctx.fillText(`${i+1}`,textX,y+rowH*0.4);
+    const badgeX=textX+Math.round(W*0.032);
+    const badgeW=Math.round(W*0.1);const badgeH=Math.round(rowH*0.38);
+    ctx.fillStyle=dark?'rgba(200,137,58,.14)':'rgba(200,137,58,.1)';
+    ctx.beginPath();ctx.roundRect(badgeX,y+rowH*0.12,badgeW,badgeH,4);ctx.fill();
+    ctx.font=`600 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle='#C8893A';
+    ctx.textAlign='center';ctx.fillText((e.cat||'').slice(0,5),badgeX+badgeW/2,y+rowH*0.4);
+    ctx.textAlign='left';
+
+    // ── 장비명
+    ctx.font=`600 ${Math.round(W*0.026)}px system-ui`;ctx.fillStyle=chalk;
+    const nameX=badgeX+badgeW+Math.round(W*0.02);
+    const maxNameW=W-nameX-pad;
+    const nameStr=e.name.length>18?e.name.slice(0,18)+'…':e.name;
+    ctx.fillText(nameStr,nameX,y+rowH*0.4);
+
+    // ── 번호 세트
     const nums=[...(e.ironSet||[]),...(e.tags?.wedge_set||[]),...(e.tags?.wood_set||[])].slice(0,7).join(' · ');
-    if(nums){ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(nums,pad+Math.round(W*0.175),y+rowH*0.9);}
-    if(i<show.length-1){ctx.strokeStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y+rowH);ctx.lineTo(W-pad,y+rowH);ctx.stroke();}
+    if(nums){
+      ctx.font=`400 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle=muted;
+      ctx.fillText(nums,textX+Math.round(W*0.032),y+rowH*0.75);
+    }
+
+    // ── 구분선
+    if(i<show.length-1){
+      ctx.strokeStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';
+      ctx.lineWidth=1;ctx.beginPath();
+      ctx.moveTo(pad,y+rowH);ctx.lineTo(W-pad,y+rowH);ctx.stroke();
+    }
     y+=rowH;
   });
   ctx.textAlign='left';
+}
+
+function drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH){
+  // 동기 기본 렌더 먼저 (텍스트만) — 사진은 비동기로 덮어쓰기
+  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🪶 MY GOLF SETUP',pad,contentTop);
+  const owned=window._instaOwnedEquip||D.equip.filter(e=>e.status==='owned');
+  const checked=window._instaSelEquip||[];
+  const show=checked.length?checked.map(i=>owned[i]).filter(Boolean):owned.slice(0,6);
+  if(!show.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('장비를 선택해주세요',pad,contentTop+contentH/2);return;}
+  // 비동기 사진 합성 시작
+  drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH).catch(()=>{});
 }
 window.showInstaPreview = () => {
   const canvas=document.getElementById('insta-canvas');
