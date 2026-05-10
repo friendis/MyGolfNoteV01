@@ -45,19 +45,19 @@ html{font-size:17px}
 body{font-family:var(--sans);background:var(--night);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 /* 매우 작은 폰트(.67rem~.72rem)를 최소 .75rem 수준으로 보정 */
 .fl-label,.card-meta,.note,.stat-l,
-.badge,.kw-pill,.tag-chip{font-size:max(.75rem,1em) !important}
-.badge{font-size:.75rem !important}
+.badge,.kw-pill,.tag-chip{font-size:.72rem !important}
+.badge{font-size:.72rem !important}
 
 /* LOADING */
 #loading{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:1.25rem}
 .spinner{width:28px;height:28px;border:1.5px solid rgba(200,137,58,.15);border-top-color:var(--wing2);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-logo{font-family:var(--serif);font-size:1.8rem;font-weight:700;color:var(--chalk);letter-spacing:.05em}
+.loading-logo{font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--chalk);letter-spacing:.05em}
 
 /* AUTH */
 #auth{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1rem;background:var(--night)}
 .auth-box{background:var(--dusk);border:1px solid var(--border2);border-radius:4px;padding:2.5rem 2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
-.auth-logo{font-family:var(--serif);font-size:2.2rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:10px}
+.auth-logo{font-family:var(--serif);font-size:1.75rem;font-weight:700;color:var(--chalk);text-align:center;margin-bottom:.15rem;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:10px}
 .auth-sub{font-size:.67rem;color:var(--wing2);text-align:center;letter-spacing:.3em;text-transform:uppercase;margin-bottom:2rem}
 .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
 .auth-tab{flex:1;padding:.65rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:400;letter-spacing:.1em;cursor:pointer;transition:all .2s;text-transform:uppercase}
@@ -133,14 +133,15 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .card-meta{font-size:.72rem;color:var(--muted);margin-top:4px;letter-spacing:.04em}
 
 /* BADGES */
-.badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-right:3px;margin-bottom:2px}
+.badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.70rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-right:3px;margin-bottom:2px}
 .b-gold{background:rgba(200,137,58,.12);color:var(--wing2);border:1px solid rgba(200,137,58,.25)}
 .b-green{background:rgba(122,191,160,.1);color:var(--turf);border:1px solid rgba(122,191,160,.2)}
 .b-blue{background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.2)}
 .b-amber{background:rgba(228,168,85,.12);color:var(--wing2);border:1px solid rgba(228,168,85,.22)}
+.b-gray{background:rgba(138,155,170,.1);color:rgba(138,155,170,.8);border:1px solid rgba(138,155,170,.2)}
 
 /* MISC */
-.sec-label{font-size:.67rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.sec-label{font-size:.70rem;font-weight:500;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
 .sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
 .divider{height:1px;background:var(--border);margin:.9rem 0}
 .back-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--wing2);font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:1.1rem;transition:color .15s}
@@ -148,10 +149,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 
 /* STATS */
 .stats-row{display:flex;gap:.6rem;margin-bottom:1.25rem}
-.stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.85rem;text-align:center;position:relative;overflow:hidden}
+.stat{flex:1;background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:.6rem .5rem;text-align:center;position:relative;overflow:hidden}
 .stat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--wing),transparent);opacity:.35}
-.stat-n{font-family:var(--mono);font-size:1.6rem;font-weight:500;color:var(--wing2);line-height:1;margin-bottom:4px}
-.stat-l{font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.stat-n{font-family:var(--mono);font-size:1.05rem;font-weight:600;color:var(--wing2);line-height:1;margin-bottom:3px}
+.stat-l{font-size:.68rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
 
 /* FILTER */
 .filter-bar{display:flex;gap:.5rem;margin-bottom:1.1rem;flex-wrap:wrap}
@@ -181,7 +182,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .ts-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 2px;transition:color .15s;flex-shrink:0}
 .ts-del:hover{color:var(--red)}
 .kw-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.kw-pill{padding:3px 9px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(184,151,58,.06);border:1px solid rgba(184,151,58,.18);color:var(--wing2);cursor:pointer;transition:all .12s}
+.kw-pill{padding:3px 8px;border-radius:2px;font-size:.70rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;background:rgba(184,151,58,.06);border:1px solid rgba(184,151,58,.18);color:var(--wing2);cursor:pointer;transition:all .12s}
 .kw-pill:hover{background:rgba(184,151,58,.16)}
 
 /* EQUIPMENT */
@@ -192,7 +193,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .link-date{font-size:.68rem;color:var(--muted);margin-top:2px;letter-spacing:.04em}
 .price-entry{display:flex;justify-content:space-between;font-size:.79rem;padding:4px 0;border-bottom:1px solid rgba(245,240,232,.04);color:var(--dim)}
 .sec-box{background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.85rem 1rem;margin-bottom:.8rem}
-.price-big{font-family:var(--mono);font-size:1.3rem;font-weight:500;color:var(--wing2)}
+.price-big{font-family:var(--mono);font-size:1.1rem;font-weight:500;color:var(--wing2)}
 
 /* PRACTICE */
 .p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
@@ -214,7 +215,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .stbl .best{color:var(--wing2);font-weight:500}
 .chart-wrap{background:var(--dusk);border:1px solid var(--border);border-radius:2px;padding:1rem;margin-bottom:.9rem}
 .chart-title{font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.7rem}
-.club-badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.67rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.22)}
+.club-badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.70rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;background:rgba(200,137,58,.1);color:var(--wing2);border:1px solid rgba(200,137,58,.22)}
 .img-upload{border:1px dashed rgba(184,151,58,.3);border-radius:2px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.85rem;margin-bottom:.75rem}
 .img-upload:hover{border-color:var(--wing2);color:var(--wing)}
 .img-upload input{display:none}
@@ -225,7 +226,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .home-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.2rem}
 .home-kpi{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem .6rem;text-align:center;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column;align-items:center}
 .home-kpi:hover{border-color:rgba(200,137,58,.3)}
-.home-kpi-n{font-family:var(--serif);font-size:1.6rem;font-weight:700;line-height:1;color:var(--chalk)}
+.home-kpi-n{font-family:var(--serif);font-size:1.35rem;font-weight:700;line-height:1;color:var(--chalk)}
 .home-kpi-l{font-size:.67rem;color:var(--muted);margin-top:4px;letter-spacing:.06em}
 .skill-bar-wrap{margin-bottom:.5rem}
 .skill-bar-label{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px}
@@ -308,7 +309,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 /* TAG EDITOR */
 .tag-editor{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:.55rem .7rem;background:rgba(13,17,23,.6);border:1px solid rgba(200,137,58,.18);border-radius:2px;min-height:38px;cursor:text}
 .tag-editor:focus-within{border-color:rgba(200,137,58,.4)}
-.tag-item{display:inline-flex;align-items:center;gap:4px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:2px 6px 2px 8px;border-radius:2px;font-size:.72rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.tag-item{display:inline-flex;align-items:center;gap:4px;background:rgba(200,137,58,.12);border:1px solid rgba(200,137,58,.25);color:var(--wing2);padding:2px 6px 2px 8px;border-radius:2px;font-size:.73rem;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
 .tag-item.editable{cursor:pointer}
 .tag-item input.tag-rename{background:transparent;border:none;color:var(--wing2);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;outline:none;width:60px;min-width:30px}
 .tag-del{background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;font-size:.8rem;padding:0;line-height:1;transition:color .15s}
@@ -363,7 +364,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 ::-webkit-scrollbar-thumb:hover{background:var(--wing)}
 
 @media(max-width:480px){
-  .stats-row{gap:.4rem}.stat-n{font-size:1.3rem}
+  .stats-row{gap:.4rem}.stat-n{font-size:.95rem}
   .email-lbl,.sync-dot{display:none}
   .shot-row{grid-template-columns:repeat(2,1fr);padding-top:1.5rem}
   .acct-panel{right:.5rem;left:.5rem;min-width:unset}
@@ -746,6 +747,39 @@ import{Chart,registerables}from'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/+esm
 Chart.register(...registerables);
 Chart.defaults.plugins.legend.display = false;
 Chart.defaults.plugins.legend.onClick = () => {};
+
+// ── GPS 장소 메모리 (Supabase user_settings 저장, localStorage 폴백) ──────────
+window._gpsMemoryCache = null;
+async function loadGpsMemory(){
+  if(window._gpsMemoryCache) return window._gpsMemoryCache;
+  try{
+    const{data}=await sb.from('user_settings').select('value').eq('user_id',(await sb.auth.getUser()).data.user?.id).eq('key','gps_memory').maybeSingle();
+    window._gpsMemoryCache = data?.value ? (typeof data.value==='string'?JSON.parse(data.value):data.value) : JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+  }catch(e){
+    window._gpsMemoryCache = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+  }
+  return window._gpsMemoryCache;
+}
+async function saveGpsMemory(gpsKey, placeName){
+  if(!gpsKey||!placeName) return;
+  const mem = await loadGpsMemory();
+  mem[gpsKey] = placeName;
+  window._gpsMemoryCache = mem;
+  localStorage.setItem('birdyard_gps_memory', JSON.stringify(mem));
+  try{
+    const uid=(await sb.auth.getUser()).data.user?.id;
+    if(!uid) return;
+    await sb.from('user_settings').upsert({user_id:uid,key:'gps_memory',value:mem},{onConflict:'user_id,key'});
+  }catch(e){ /* 폴백: localStorage만 저장됨 */ }
+}
+async function getLocationHistory(){
+  const mem = await loadGpsMemory();
+  // 세션에서도 장소 이력 수집
+  const fromSessions = [...new Set((D.sessions||[]).map(s=>s.loc).filter(Boolean))];
+  const fromMemory = [...new Set(Object.values(mem).filter(Boolean))];
+  return [...new Set([...fromMemory,...fromSessions])].sort();
+}
+
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 // ── AI 모델 설정 ── 문제 발생 시 'gemini-2.5-flash' 로 변경 ──
@@ -953,7 +987,7 @@ const CLUB_BENCH={
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드','하이브리드','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUB_CATS=new Set(['드라이버','우드','하이브리드','아이언','웨지']);
-const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
+const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT','5UT','유틸리티','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
@@ -3351,6 +3385,7 @@ function render(){
     m.innerHTML=homeView();
     setTimeout(loadHomeSocial, 0);
     setTimeout(loadPopularNotes, 50);
+    requestAnimationFrame(()=>requestAnimationFrame(initHomeDistChart));
     return;
   }
   if(tab==='videos'){
@@ -3593,24 +3628,21 @@ function homeView(){
     ${scoreHtml}
   </div>
 
-  <!-- 실력 벤치마크 -->
-  ${allCarries.length>=3||allShots.length>0?`<div class="home-section">
-    <div class="home-section-title">
-      📊 실력 비교
-      <div style="margin-left:auto;display:flex;gap:3px">
-        <button onclick="toggleBenchClub()" style="background:${!is7I?'rgba(200,137,58,.15)':'none'};border:1px solid ${!is7I?'rgba(200,137,58,.4)':'var(--border)'};color:${!is7I?'var(--wing2)':'var(--muted)'};padding:1px 8px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans);letter-spacing:.04em">드라이버</button>
-        <button onclick="toggleBenchClub()" style="background:${is7I?'rgba(122,176,232,.15)':'none'};border:1px solid ${is7I?'rgba(122,176,232,.4)':'var(--border)'};color:${is7I?'#7ab0e8':'var(--muted)'};padding:1px 8px;border-radius:2px;font-size:.72rem;cursor:pointer;font-family:var(--sans);letter-spacing:.04em">7번 아이언</button>
+  <!-- 클럽별 비거리 차트 -->
+  ${(()=>{
+    const homeCm={};
+    D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!homeCm[nc])homeCm[nc]=[];const cv=ss(s).avgCarry;if(cv)homeCm[nc].push(cv);});
+    const homeClubs=[...CLUBS].reverse().filter(cl=>homeCm[cl]?.length);
+    if(!homeClubs.length) return '';
+    return `<div class="home-section">
+      <div class="home-section-title">📊 클럽별 비거리
+        <button onclick="gotoTab('practice');setPSub('stats')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">자세히 →</button>
       </div>
-    </div>
-    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem">
-      ${allCarries.length>=3?`${benchHtml}${myCarryRow}`:noDriverNote||`<div style="font-size:.73rem;color:var(--muted)">${homeBenchClub} 기록이 3개 이상 필요합니다.</div>`}
-      <div style="margin-top:.6rem;display:flex;gap:.75rem;flex-wrap:wrap">
-        ${myHs?`<div><span style="font-size:.68rem;color:var(--muted)">헤드스피드 </span><span style="font-size:.82rem;color:var(--turf);font-weight:600">${Math.round(myHs*10)/10}</span></div>`:''}
-        ${mySf?`<div><span style="font-size:.68rem;color:var(--muted)">스매시팩터 </span><span style="font-size:.82rem;color:#7ab0e8;font-weight:600">${mySf.toFixed(2)}</span></div>`:''}
-        ${myCon?`<div><span style="font-size:.68rem;color:var(--muted)">일관성 </span><span style="font-size:.82rem;color:${consistencyColor(Math.round(myCon))};font-weight:600">${Math.round(myCon)}점</span></div>`:''}
+      <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.65rem .75rem">
+        <div style="position:relative;height:150px"><canvas id="home-dist-chart"></canvas></div>
       </div>
-    </div>
-  </div>`:''}
+    </div>`;
+  })()}
 
   <!-- 소셜 — 팔로워/버디 -->
   ${D.profile?.is_public?`
@@ -4990,7 +5022,7 @@ function eList(){
 
   if(eSub === 'sets') return eSetsView(subTabs);
 
-  const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist');
+  const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist'),past=D.equip.filter(e=>e.status==='past');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{
@@ -5019,8 +5051,8 @@ function eList(){
     ${allCustomTags.map(t=>`<button class="kw-pill etag-chip" data-tag="${ea(t)}" data-kind="tag" style="font-size:.7rem;padding:3px 10px" onclick="filterByTag('${ea(t)}','tag')">${esc(t)}</button>`).join('')}
   </div>`:'';
 
-  return`<div class="page">${subTabs}<div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:1rem;padding-top:6px">${wishTot?fmtP(wishTot):'—'}</div><div class="stat-l">관심 합계</div></div></div>
-  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유</option><option value="wishlist">관심</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
+  return`<div class="page">${subTabs}<div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유 중</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:.9rem;color:rgba(138,155,170,.8)">${past.length}</div><div class="stat-l">이전 보유</div></div></div>
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유 중</option><option value="wishlist">관심</option><option value="past">이전 보유</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
   ${tagChips}
   <div id="ecards">${cards}</div>
   <div style="margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)">
@@ -5074,7 +5106,7 @@ window.filterE=(q,cat,st,tag='',kind='')=>{
         <div style="flex:1;min-width:0">
           <div class="card-title">${esc(e.name)}</div>
           <div style="margin:3px 0">
-            <span class="badge ${e.status==='owned'?'b-green':'b-amber'}">${e.status==='owned'?'✓ 보유':'★ 관심'}</span>
+            <span class="badge ${e.status==='owned'?'b-green':e.status==='past'?'b-gray':'b-amber'}">${e.status==='owned'?'✓ 보유 중':e.status==='past'?'◇ 이전 보유':'★ 관심'}</span>
             <span class="badge b-blue">${esc(e.cat)}</span>
             ${Array.isArray(e.tags)?e.tags.filter(t=>t&&typeof t==='string').map(t=>`<span class="badge" style="background:rgba(74,143,168,.12);color:var(--sky2);border:1px solid rgba(74,143,168,.25)">${esc(t)}</span>`).join(''):''}
           </div>
@@ -5113,8 +5145,8 @@ function eDetail(){
           ${esc(e.cat)||'분류 없음'}
           <button onclick="editECat('${e.id}')" style="background:none;border:none;color:rgba(106,175,204,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="분류 변경">✎</button>
         </span>
-        <span class="badge ${e.status==='owned'?'b-green':'b-amber'}" style="cursor:default">
-          ${e.status==='owned'?'✓ 보유':'★ 관심'}
+        <span class="badge ${e.status==='owned'?'b-green':e.status==='past'?'b-gray':'b-amber'}" style="cursor:default">
+          ${e.status==='owned'?'✓ 보유 중':e.status==='past'?'◇ 이전 보유':'★ 관심'}
           <button onclick="toggleEStatus('${e.id}')" style="background:none;border:none;color:rgba(122,191,160,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="상태 전환">⇄</button>
         </span>
         ${tags.map((t,i)=>`<span class="badge b-gold" style="cursor:default">${esc(t)}<button onclick="delETag('${e.id}',${i})" style="background:none;border:none;color:rgba(200,137,58,.5);cursor:pointer;margin-left:3px;font-size:.7rem;padding:0;line-height:1" title="삭제">✕</button></span>`).join('')}
@@ -5422,8 +5454,8 @@ window.confirmEquipPhoto=async()=>{
       const path=`equip/${user.id}/${Date.now()}.${ext}`;
       const{error:ue}=await sb.storage.from('gdr-images').upload(path,file,{upsert:true});
       if(ue)throw ue;
-      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path,60*60*24*365*5);
-      photoUrl=sd?.signedUrl||'';
+      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
+      photoUrl=sd?.publicUrl||'';
     } else {
       photoUrl=_ePhotoSelected.value;
     }
@@ -5815,8 +5847,8 @@ window.editECat=async id=>{
 // 보유/관심 상태 전환
 window.toggleEStatus=async id=>{
   const e=D.equip.find(x=>x.id===id);if(!e)return;
-  const newStatus=e.status==='owned'?'wishlist':'owned';
-  sync('busy');const{error}=await sb.from('equipment').update({status:newStatus}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.status=newStatus;sync('ok');toast(newStatus==='owned'?'보유로 변경됨':'관심으로 변경됨');goDetail(id);
+  const newStatus=e.status==='owned'?'past':e.status==='past'?'wishlist':'owned';
+  sync('busy');const{error}=await sb.from('equipment').update({status:newStatus}).eq('id',id).eq('user_id',user.id);if(error){toast('저장 실패');sync('err');return}e.status=newStatus;sync('ok');toast(newStatus==='owned'?'✓ 보유 중으로 변경됨':newStatus==='past'?'◇ 이전 보유로 변경됨':'★ 관심으로 변경됨');goDetail(id);
 };
 // 장비 커스텀 태그 추가
 window.addETag=async id=>{
@@ -6020,6 +6052,7 @@ function eAdd(){
       <div style="display:flex;gap:.75rem">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="wishlist" checked onchange="toggleOwned(this.value)"> <span class="badge b-amber">★ 관심 목록</span></label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="owned" onchange="toggleOwned(this.value)"> <span class="badge b-green">✓ 보유 중</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.87rem"><input type="radio" name="est" value="past" onchange="toggleOwned(this.value)"> <span class="badge b-gray">◇ 이전 보유</span></label>
       </div>
     </div>
     <div id="owned-f" style="display:none">
@@ -6064,7 +6097,7 @@ function eAdd(){
     </div>
   </div></div>`;
 }
-window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'?'block':'none'};
+window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'||v==='past'?'block':'none';};
 window.toggleRecType=v=>{
   const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
   if(gdr)gdr.style.display=v==='gdr'?'block':'none';
@@ -7030,7 +7063,10 @@ function pList(){
     <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
     <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
     <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
-    <button class="btn btn-p btn-sm" style="margin-left:auto;flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+    <div style="margin-left:auto;display:flex;gap:.35rem;flex-shrink:0;align-items:center">
+      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:linear-gradient(135deg,rgba(200,137,58,.12),rgba(167,139,250,.12));border:1px solid rgba(200,137,58,.28);color:var(--wing2);padding:.3rem .7rem;border-radius:14px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
+      <button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+    </div>
   </div>`;
   const srow=`<div class="stats-row">
     <div class="stat"><div class="stat-n">${gdrSessions.length}</div><div class="stat-l">훈련 세션</div></div>
@@ -7159,6 +7195,7 @@ function pList(){
         </div>
       </div>
       <div style="position:relative;height:180px"><canvas id="club-dist-chart"></canvas></div>
+      <div id="dist-chart-legend" style="margin-top:.5rem"></div>
     </div>` : '';
 
     return`<div class="page">${srow}${ptabs}
@@ -7569,25 +7606,687 @@ function renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, analyz
   `;
 }
 
-// ── 클럽별 색상 팔레트 ────────────────────────────────
+// ── 인스타그램 카드 생성 ─────────────────────────────
+window.openInstaCard = () => {
+  const existing=document.getElementById('insta-card-overlay');
+  if(existing)existing.remove();
+  const ov=document.createElement('div');
+  ov.id='insta-card-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;padding-top:2rem';
+
+  const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
+  const HASHTAGS={dist:'#골프 #비거리 #Birdyard #골프기록',score:'#골프 #라운드기록 #Birdyard #스코어',practice:'#골프연습 #스윙연습 #Birdyard #골프향상',equip:'#골프장비 #클럽피팅 #Birdyard #마이셋업'};
+  const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.'};
+  const ownedEquip=D.equip.filter(e=>e.status==='owned');
+  const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,5);
+  const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
+  const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="updateInstaEquip()" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
+
+  ov.innerHTML=`<div id="insta-panel" style="background:var(--dusk);border:1px solid var(--border2);border-radius:12px 12px 0 0;width:min(560px,100%);padding:1.25rem 1rem 2rem;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem">
+      <div style="font-family:var(--serif);font-size:1rem;font-weight:700;color:var(--chalk)">📸 인스타그램 카드</div>
+      <button onclick="document.getElementById('insta-card-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">✕</button>
+    </div>
+    <div style="display:flex;gap:.3rem;margin-bottom:.65rem;flex-wrap:wrap">
+      ${/* TODO: equip 타입 준비 완료 후 ["equip","🪶 장비"] 추가 */ [["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:60px;padding:.4rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.75rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
+    </div>
+    <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center;flex-wrap:wrap">
+      <span style="font-size:.7rem;color:var(--muted)">비율</span>
+      <button id="ic-ratio-4-5" onclick="selectInstaRatio('4:5')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2)">4:5 권장</button>
+      <button id="ic-ratio-1-1" onclick="selectInstaRatio('1:1')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">1:1</button>
+      <button id="ic-ratio-191-1" style="display:none"></button>
+      <button id="ic-ratio-9-16" onclick="selectInstaRatio('9:16')" style="padding:2px 8px;border-radius:10px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:none;color:var(--muted)">스토리</button>
+    </div>
+    <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center">
+      <span style="font-size:.7rem;color:var(--muted)">테마</span>
+      <button id="ic-theme-dark" onclick="selectInstaTheme('dark')" style="padding:2px 10px;border-radius:10px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);font-size:.7rem;cursor:pointer;font-family:var(--sans)">다크</button>
+      <button id="ic-theme-light" onclick="selectInstaTheme('light')" style="padding:2px 10px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.7rem;cursor:pointer;font-family:var(--sans)">라이트</button>
+    </div>
+    <div id="ic-options-practice" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">연습 세션 선택</div>
+      <select id="ic-session1" onchange="updateInstaSession()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.3rem"><option value="">클럽 1 선택...</option>${sessionOpts}</select>
+      <select id="ic-session2" onchange="updateInstaSession()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans)"><option value="">클럽 2 선택 (선택사항)...</option>${sessionOpts}</select>
+    </div>
+    <div id="ic-options-equip" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">게시할 장비 선택</div>
+      <div id="ic-equip-list" style="max-height:120px;overflow-y:auto;margin-bottom:.55rem">${equipOpts||'<div style="font-size:.78rem;color:var(--muted)">보유 장비 없음</div>'}</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">사진 합성 스타일</div>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+        ${[['card','🃏 카드형'],['showcase','✨ 쇼케이스'],['minimal','◻ 미니멀'],['dark-glow','🌑 다크글로우']].map(([v,l])=>`<button id="ic-style-${v}" onclick="selectEquipStyle('${v}')" style="padding:3px 9px;border-radius:8px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid ${v==='card'?'rgba(200,137,58,.4)':'var(--border)'};background:${v==='card'?'rgba(200,137,58,.12)':'none'};color:${v==='card'?'var(--wing2)':'var(--muted)'}">${l}</button>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;margin-bottom:.7rem;background:rgba(0,0,0,.3);border-radius:6px;padding:.5rem">
+      <canvas id="insta-canvas" width="1080" height="1350" style="width:auto;max-width:100%;max-height:260px;border-radius:4px;border:1px solid var(--border)"></canvas>
+    </div>
+    <button onclick="showInstaPreview()" style="width:100%;padding:.42rem;border-radius:6px;border:1px solid rgba(200,137,58,.3);background:rgba(200,137,58,.07);color:var(--wing2);font-size:.78rem;font-weight:600;cursor:pointer;font-family:var(--sans);margin-bottom:.65rem">🔍 실제 크기 미리보기</button>
+    <div style="margin-bottom:.65rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">게시물 내용 <span style="color:rgba(240,237,230,.2)">(복사해서 인스타에 붙여넣기)</span></div>
+      <textarea id="ic-caption" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--dim);padding:.4rem .6rem;border-radius:4px;font-size:.75rem;font-family:var(--sans);resize:vertical;min-height:72px;line-height:1.6" placeholder="게시물에 쓸 내용...">${CAPTIONS.dist}</textarea>
+      <button onclick="(()=>{const t=document.getElementById('ic-caption');if(!t)return;navigator.clipboard.writeText(t.value).then(()=>{const b=event.target;b.textContent='✓ 복사됨';setTimeout(()=>b.textContent='📋 내용 복사',1500);}).catch(()=>{t.select();document.execCommand('copy');})})()" style="margin-top:.25rem;padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.7rem;cursor:pointer;font-family:var(--sans)">📋 내용 복사</button>
+    </div>
+    <div style="margin-bottom:.65rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">해시태그 (수정 가능, 4개 이하 권장)</div>
+      <textarea id="ic-hashtags" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--dim);padding:.4rem .6rem;border-radius:4px;font-size:.75rem;font-family:var(--sans);resize:vertical;min-height:50px;line-height:1.6" oninput="renderInstaCanvas()">${HASHTAGS.dist}</textarea>
+    </div>
+    <button onclick="downloadInstaCard()" style="width:100%;padding:.6rem;border-radius:6px;border:none;background:linear-gradient(135deg,#C8893A,#A78BFA);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--sans)">⬇ PNG 다운로드</button>
+    <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.35rem">다운로드 후 인스타그램에서 업로드하세요</div>
+  </div>`;
+
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+  window._instaType='dist'; window._instaTheme='dark'; window._instaRatio='4:5'; window._instaEquipStyle='card';
+  window._instaRatios=RATIOS; window._instaHashtags=HASHTAGS; window._instaCaptions=CAPTIONS;
+  window._instaRecentSessions=recentSessions; window._instaOwnedEquip=ownedEquip;
+  renderInstaCanvas();
+};
+
+window.selectInstaRatio = (ratio) => {
+  window._instaRatio=ratio;
+  const idMap={'4:5':'4-5','1:1':'1-1','9:16':'9-16'};
+  Object.keys(idMap).forEach(k=>{
+    const btn=document.getElementById(`ic-ratio-${idMap[k]}`);
+    if(!btn)return;
+    const active=k===ratio;
+    btn.style.border=active?'1px solid rgba(200,137,58,.4)':'1px solid rgba(240,237,230,.08)';
+    btn.style.background=active?'rgba(200,137,58,.12)':'none';
+    btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
+  });
+  // 캔버스 크기 변경
+  const r=window._instaRatios?.[ratio]||{w:1080,h:1350};
+  const canvas=document.getElementById('insta-canvas');
+  if(canvas){canvas.width=r.w;canvas.height=r.h;}
+  renderInstaCanvas();
+};
+
+window.selectInstaType = (type) => {
+  window._instaType=type;
+  ['dist','score','practice'/* TODO: 'equip' 준비 완료 후 추가 */].forEach(t=>{
+    const btn=document.getElementById(`ic-type-${t}`);
+    if(!btn)return;
+    const active=t===type;
+    btn.style.border=active?'1px solid rgba(200,137,58,.4)':'1px solid rgba(240,237,230,.08)';
+    btn.style.background=active?'rgba(200,137,58,.12)':'none';
+    btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
+  });
+  // 패널 표시/숨김
+  ['practice','equip'].forEach(t=>{
+    const panel=document.getElementById(`ic-options-${t}`);
+    if(panel) panel.style.display=type===t?'block':'none';
+  });
+  // 해시태그·캡션 업데이트
+  const hashEl=document.getElementById('ic-hashtags');
+  if(hashEl&&window._instaHashtags?.[type]) hashEl.value=window._instaHashtags[type];
+  const capEl=document.getElementById('ic-caption');
+  if(capEl&&window._instaCaptions?.[type]) capEl.value=window._instaCaptions[type];
+  // 타입 전환 시 세션/장비 캐시를 최신 DOM 값으로 갱신 후 렌더
+  requestAnimationFrame(()=>{
+    const s1=document.getElementById('ic-session1');
+    const s2=document.getElementById('ic-session2');
+    if(s1) window._instaSelIdx1=parseInt(s1.value??'-1');
+    if(s2) window._instaSelIdx2=parseInt(s2.value??'-1');
+    const eEls=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
+    window._instaSelEquip=eEls.map(el=>parseInt(el.id.replace('ic-equip-','')));
+    renderInstaCanvas();
+  });
+};
+
+window.selectInstaTheme = (theme) => {
+  window._instaTheme=theme;
+  ['dark','light'].forEach(t=>{
+    const btn=document.getElementById(`ic-theme-${t}`);
+    if(!btn)return;
+    const active=t===theme;
+    btn.style.border=active?'1px solid rgba(200,137,58,.4)':'1px solid rgba(240,237,230,.08)';
+    btn.style.background=active?'rgba(200,137,58,.12)':'none';
+    btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
+  });
+  renderInstaCanvas();
+};
+
+window.selectEquipStyle = (style) => {
+  window._instaEquipStyle = style;
+  ['card','showcase','minimal','dark-glow'].forEach(v=>{
+    const btn=document.getElementById(`ic-style-${v}`);
+    if(!btn)return;
+    const active=v===style;
+    btn.style.border=active?'1px solid rgba(200,137,58,.4)':'1px solid rgba(240,237,230,.08)';
+    btn.style.background=active?'rgba(200,137,58,.12)':'none';
+    btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
+  });
+  renderInstaCanvas();
+};
+
+// 세션 선택 변경 → 캐시 즉시 업데이트 → 렌더
+window.updateInstaSession = () => {
+  const s1=document.getElementById('ic-session1');
+  const s2=document.getElementById('ic-session2');
+  window._instaSelIdx1 = s1 ? parseInt(s1.value??'-1') : -1;
+  window._instaSelIdx2 = s2 ? parseInt(s2.value??'-1') : -1;
+  renderInstaCanvas();
+};
+// 장비 체크 변경 → 캐시 즉시 업데이트 → 렌더
+window.updateInstaEquip = () => {
+  const els=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
+  window._instaSelEquip = els.map(el=>parseInt(el.id.replace('ic-equip-','')));
+  renderInstaCanvas();
+};
+
+let _instaRenderPending=false;
+async function renderInstaCanvas(){
+  // 이미 렌더 중이면 pending 표시 후 현재 호출 종료 (마지막 요청만 실행)
+  if(window._instaRendering){
+    _instaRenderPending=true;
+    return;
+  }
+  window._instaRendering=true;
+  _instaRenderPending=false;
+  try{
+    await _renderInstaCanvasCore();
+  }finally{
+    window._instaRendering=false;
+    if(_instaRenderPending) renderInstaCanvas();
+  }
+}
+async function _renderInstaCanvasCore(){
+  const canvas=document.getElementById('insta-canvas');
+  if(!canvas)return;
+
+  // ── 1. DOM에서 현재값 읽기 (canvas 리셋 전에 먼저) ──
+  const s1El=document.getElementById('ic-session1');
+  const s2El=document.getElementById('ic-session2');
+  // DOM 값이 있으면 우선 사용, 없으면 캐시 유지
+  if(s1El) window._instaSelIdx1=parseInt(s1El.value??'-1');
+  if(s2El) window._instaSelIdx2=parseInt(s2El.value??'-1');
+  const equipEls=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
+  if(equipEls.length>0||document.querySelector('[id^="ic-equip-"]'))
+    window._instaSelEquip=equipEls.map(el=>parseInt(el.id.replace('ic-equip-','')));
+
+  // ── 2. 캔버스 초기화 및 그리기 ──
+  const ctx=canvas.getContext('2d');
+  const r=window._instaRatios?.[window._instaRatio||'4:5']||{w:1080,h:1350};
+  const W=r.w, H=r.h;
+  canvas.width=W; canvas.height=H;
+  const dark=window._instaTheme!=='light';
+  const type=window._instaType||'dist';
+  const hashtags=document.getElementById('ic-hashtags')?.value||'#골프 #버드야드';
+
+  // 배경
+  ctx.fillStyle=dark?'#0D1117':'#F5F0E8';
+  ctx.fillRect(0,0,W,H);
+
+  // 모서리 장식
+  ctx.strokeStyle='#C8893A'; ctx.lineWidth=Math.round(W/360);
+  const c=Math.round(W*0.074);
+  [[0,0,c,0],[0,0,0,c],[W,0,W-c,0],[W,0,W,c],
+   [0,H,c,H],[0,H,0,H-c],[W,H,W-c,H],[W,H,W,H-c]
+  ].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
+
+  // ── Instagram safe zone (2026 검색 기준)
+  // Story 9:16 (1080×1920): 상단 250px, 하단 250px → safe zone 1080×1420
+  //   출처: Hootsuite(155px), Minta(250px), SellerPic(155px) → 안전하게 250px 적용
+  // 피드 4:5, 1:1: UI 오버레이 없음 → dead zone 불필요
+  const isStory=(window._instaRatio==='9:16');
+  const STORY_TOP_PX=250, STORY_BOT_PX=250; // 1080×1920 기준 픽셀
+  const safeTop   = isStory ? Math.round(H*(STORY_TOP_PX/1920)) : 0;
+  const safeBottom= isStory ? H-Math.round(H*(STORY_BOT_PX/1920)) : H;
+  const safeH     = safeBottom - safeTop;
+
+  const pad=Math.round(W*0.05);
+
+  // 스토리일 때 safe zone 경계 표시
+  if(isStory){
+    ctx.save();
+    ctx.setLineDash([10,6]);
+    ctx.strokeStyle='rgba(200,137,58,.22)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0,safeTop); ctx.lineTo(W,safeTop); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,safeBottom); ctx.lineTo(W,safeBottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;
+    ctx.fillStyle='rgba(200,137,58,.3)'; ctx.textAlign='center';
+    ctx.fillText('▲ UI 영역', W/2, safeTop-10);
+    ctx.fillText('▼ 답장창 영역', W/2, safeBottom+22);
+    ctx.restore();
+  }
+
+  // 로고 (safe zone 상단 기준)
+  const logoY = safeTop + Math.round(safeH*0.07);
+  ctx.font=`700 ${Math.round(W*0.044)}px Georgia,serif`;
+  ctx.fillStyle='#C8893A'; ctx.textAlign='left';
+  ctx.fillText('BIRDYARD',pad,logoY);
+  ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;
+  ctx.fillStyle=dark?'rgba(240,237,230,.4)':'rgba(30,30,30,.4)';
+  ctx.fillText('GOLF NOTE & COMMUNITY',pad,logoY+Math.round(W*0.028));
+
+  // 날짜
+  ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;
+  ctx.textAlign='right';
+  ctx.fillStyle=dark?'rgba(240,237,230,.4)':'rgba(30,30,30,.4)';
+  ctx.fillText(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}),W-pad,logoY);
+  ctx.textAlign='left';
+
+  // 콘텐츠 영역 (safe zone 내)
+  const contentTop = safeTop + Math.round(safeH*0.16);
+  const contentH   = Math.round(safeH*(isStory?0.68:0.75));
+
+  if(type==='dist') drawDistCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='score') drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='practice') drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH);
+  /* TODO: equip 타입 — 준비 완료 후 활성화
+  else if(type==='equip'){
+    await drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH);
+  }
+  */
+
+  // 해시태그 (safe zone 하단 기준)
+  ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;
+  ctx.fillStyle=dark?'rgba(240,237,230,.35)':'rgba(30,30,30,.3)';
+  ctx.textAlign='center';
+  const words=hashtags.split(' ');
+  let line='',lineY=safeBottom-Math.round(safeH*0.04);
+  words.forEach(w=>{
+    const test=line?line+' '+w:w;
+    if(ctx.measureText(test).width>W-pad*2&&line){
+      ctx.fillText(line,W/2,lineY);
+      line=w; lineY-=Math.round(W*0.025);
+    } else line=test;
+  });
+  if(line) ctx.fillText(line,W/2,lineY);
+  ctx.textAlign='left';
+}
+
+function drawDistCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';
+  const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;
+  ctx.fillText('📊 클럽별 비거리 (최근 5세션 평균)',pad,contentTop);
+  const RECENT_N=5; const cm={};
+  D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!cm[nc])cm[nc]=[];const c=ss(s).avgCarry;if(c)cm[nc].push(c);});
+  const clubOrder=[...CLUBS].reverse().filter(c=>cm[c]?.length);
+  if(!clubOrder.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('비거리 데이터가 없습니다',pad,contentTop+contentH/2);return;}
+  const vals=clubOrder.map(c=>Math.round(avg(cm[c].slice(-RECENT_N))));
+  const maxVal=Math.max(...vals);
+  const barAreaTop=contentTop+Math.round(H*0.055);
+  const barAreaH=contentH-Math.round(H*0.11);
+  const barSpacing=(W-pad*2)/clubOrder.length;
+  const barW=Math.min(Math.round(barSpacing*0.6),Math.round(W*0.075));
+  clubOrder.forEach((club,i)=>{
+    const v=vals[i];if(!v)return;
+    const ratio=v/maxVal;const bH=Math.round(barAreaH*ratio*0.85);
+    const x=pad+i*barSpacing+barSpacing/2-barW/2;const y=barAreaTop+barAreaH-bH;
+    // CLUB_COLORS 기반 색상 (클럽별 고유색)
+    const cc=typeof clubColor==='function'?clubColor(club):{line:'#C8893A',bg:'rgba(200,137,58,.2)'};
+    const lineCol=cc.line||'#C8893A';
+    // 그라데이션: 클럽 고유색 밝게 → 어둡게
+    const g=ctx.createLinearGradient(x,y,x,y+bH);
+    g.addColorStop(0,lineCol);
+    g.addColorStop(1,lineCol.replace(/^#/,'')
+      .match(/.{2}/g)
+      ?.map(h=>Math.max(0,parseInt(h,16)-40).toString(16).padStart(2,'0'))
+      .reduce((a,b)=>a+b,'#')||lineCol);
+    ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,y,barW,bH,4);ctx.fill();
+    const vfs=Math.max(16,Math.min(26,Math.round(barSpacing*0.3)));
+    ctx.font=`700 ${vfs}px system-ui`;ctx.fillStyle=chalk;ctx.textAlign='center';
+    ctx.fillText(`${v}m`,x+barW/2,y-Math.round(H*0.009));
+    const lfs=Math.max(14,Math.min(22,Math.round(barSpacing*0.25)));
+    ctx.font=`500 ${lfs}px system-ui`;ctx.fillStyle=muted;
+    ctx.fillText(club,x+barW/2,barAreaTop+barAreaH+Math.round(H*0.028));
+  });
+  ctx.textAlign='left';
+}
+
+function drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  const gameScores=D.sessions.filter(s=>(s.gameType==='screen'||s.gameType==='field')&&s.score>0&&(s.holes||18)===18).sort((a,b)=>a.date>b.date?1:-1).slice(-10);
+  if(!gameScores.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('게임 기록이 없습니다',pad,contentTop+contentH/2);return;}
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('⛳ 최근 게임 스코어 추이',pad,contentTop);
+  const scores=gameScores.map(s=>s.score);
+  const best=Math.min(...scores),worst=Math.max(...scores);
+  const avgSc=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  const latest=scores[scores.length-1];
+  const statData=[{label:'베스트',val:`${best}타`,color:'#3D9E74'},{label:'평균',val:`${avgSc}타`,color:'#C8893A'},{label:'최근',val:`${latest}타`,color:'#6AAFCC'}];
+  const sbH=Math.round(contentH*0.16);const sbY=contentTop+Math.round(H*0.04);const sbW=(W-pad*2-20)/3;
+  statData.forEach((s,i)=>{
+    const x=pad+i*(sbW+10);
+    ctx.fillStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';ctx.beginPath();ctx.roundRect(x,sbY,sbW,sbH,8);ctx.fill();
+    ctx.font=`700 ${Math.round(W*0.047)}px system-ui`;ctx.fillStyle=s.color;ctx.textAlign='center';ctx.fillText(s.val,x+sbW/2,sbY+sbH*.68);
+    ctx.font=`400 ${Math.round(W*0.023)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(s.label,x+sbW/2,sbY+sbH*.93);
+  });
+  const chartT=sbY+sbH+Math.round(H*0.03);const chartB=contentTop+contentH-Math.round(H*0.04);
+  const cW=W-pad*2;const cH=chartB-chartT;
+  const minV=best-3,maxV=worst+3,vRange=maxV-minV;
+  const pts=scores.map((v,i)=>({x:pad+(i/(scores.length-1||1))*cW,y:chartB-(v-minV)/vRange*cH}));
+  ctx.strokeStyle=dark?'rgba(240,237,230,.07)':'rgba(0,0,0,.07)';ctx.lineWidth=1;
+  [0,.5,1].forEach(r=>{const y=chartT+r*cH;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(pad+cW,y);ctx.stroke();});
+  ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#C8893A';ctx.lineWidth=Math.round(W*0.004);ctx.stroke();
+  ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.lineTo(pts[pts.length-1].x,chartB);ctx.lineTo(pts[0].x,chartB);ctx.closePath();ctx.fillStyle='rgba(200,137,58,.12)';ctx.fill();
+  pts.forEach((p,si)=>{
+    const isBest=scores[si]===best;const r=isBest?Math.round(W*0.013):Math.round(W*0.007);
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=isBest?'#FFD700':'#C8893A';ctx.fill();
+    if(isBest){ctx.strokeStyle='#fff';ctx.lineWidth=Math.round(W*0.003);ctx.stroke();}
+    ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;ctx.fillStyle=muted;ctx.textAlign='center';
+    ctx.fillText(gameScores[si].date?.slice(5)||'',p.x,chartB+Math.round(H*0.025));
+  });
+  ctx.textAlign='left';
+}
+
+function drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🏋️ 오늘의 연습 결과',pad,contentTop);
+  const sessions=window._instaRecentSessions||[];
+  const idx1=window._instaSelIdx1??-1;
+  const idx2=window._instaSelIdx2??-1;
+  const sel=[idx1,idx2].filter(i=>i>=0&&sessions[i]).map(i=>sessions[i]);
+  if(!sel.length){ctx.font=`400 ${Math.round(W*0.025)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('연습 세션을 선택해주세요',pad,contentTop+contentH/2);return;}
+  let y=contentTop+Math.round(H*0.06);
+  sel.forEach((s,si)=>{
+    const st=ss(s);
+    const club=s.club||'?';
+    const boxH=Math.round(contentH/(sel.length)*0.85);
+    ctx.fillStyle=dark?'rgba(240,237,230,.04)':'rgba(0,0,0,.04)';ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,boxH,10);ctx.fill();
+    ctx.font=`700 ${Math.round(W*0.038)}px system-ui`;ctx.fillStyle='#C8893A';ctx.fillText(club,pad+Math.round(W*0.03),y+boxH*0.32);
+    ctx.font=`400 ${Math.round(W*0.022)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(s.date||'',pad+Math.round(W*0.03),y+boxH*0.54);
+    const stats=[];
+    if(st.avgCarry) stats.push({l:'캐리',v:`${Math.round(st.avgCarry)}m`,c:'#C8893A'});
+    if(st.avgBs) stats.push({l:'볼스피드',v:`${Math.round(st.avgBs*10)/10}`,c:'#6AAFCC'});
+    if(st.consistency) stats.push({l:'방향안정',v:`${st.consistency}점`,c:'#A78BFA'});
+    if(st.avgHs) stats.push({l:'헤드스피드',v:`${Math.round(st.avgHs*10)/10}`,c:'#3D9E74'});
+    const statW=(W-pad*2-Math.round(W*0.06))/Math.max(stats.length,3);
+    stats.slice(0,4).forEach((st2,i)=>{
+      const sx=pad+Math.round(W*0.03)+i*statW;
+      ctx.font=`700 ${Math.round(W*0.04)}px system-ui`;ctx.fillStyle=st2.c;ctx.textAlign='left';ctx.fillText(st2.v,sx,y+boxH*0.82);
+      ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(st2.l,sx,y+boxH*0.97);
+    });
+    ctx.textAlign='left';
+    y+=Math.round(contentH/sel.length);
+  });
+}
+
+// 장비 카드에서 사진 URL을 Image 객체로 로드 (캐시)
+const _equipImgCache={};
+function loadEquipImg(url){
+  if(!url)return Promise.resolve(null);
+  if(_equipImgCache[url]) return Promise.resolve(_equipImgCache[url]);
+  return new Promise(res=>{
+    const img=new Image();
+    // Public URL만 crossOrigin=anonymous 허용 (signed URL이면 tainted canvas 오류)
+    const isPublic=url.includes('/storage/v1/object/public/');
+    if(isPublic) img.crossOrigin='anonymous';
+    img.onload=()=>{
+      _equipImgCache[url]=img;
+      // public URL이 아니면 canvas에 그릴 수 없으므로 null 처리
+      if(!isPublic){
+        // tainted canvas 방지: 사진 정보는 있지만 canvas 합성 불가
+        img._noCanvas=true;
+      }
+      res(img);
+    };
+    img.onerror=e=>{
+      console.warn('[Birdyard] 장비사진 로드 실패:', url, e);
+      res(null);
+    };
+    img.src=url;
+  });
+}
+
+// 장비 카드 비동기 렌더 — 스타일별 합성
+async function drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';
+  const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
+  const owned=window._instaOwnedEquip||D.equip.filter(e=>e.status==='owned');
+  const checked=window._instaSelEquip||[];
+  const show=checked.length?checked.map(i=>owned[i]).filter(Boolean):owned.slice(0,6);
+  const style=window._instaEquipStyle||'card';
+
+  ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;
+  ctx.fillText('🪶 MY GOLF SETUP',pad,contentTop);
+
+  if(!show.length){
+    ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;
+    ctx.fillText('장비를 선택해주세요',pad,contentTop+contentH/2);return;
+  }
+
+  // 모든 사진 로드 (없으면 null)
+  const imgs=await Promise.all(show.map(e=>loadEquipImg(e.photoUrl||'')));
+  const hasAnyPhoto=imgs.some(Boolean);
+
+  // ─────────────────────────────────────────────
+  // 헬퍼: 사진 한 장 그리기 (공통)
+  const drawPhoto=(img,e,x,y,w,h,radius=6,styleOpt='card')=>{
+    // _noCanvas: 로드됐지만 CORS로 canvas에 그릴 수 없는 이미지
+    const canDraw = img && !img._noCanvas;
+    ctx.save();
+    ctx.beginPath();ctx.roundRect(x,y,w,h,radius);ctx.clip();
+
+    if(styleOpt==='dark-glow'){
+      // 다크글로우: 매우 어두운 배경 + 사진 + 빛 번짐
+      ctx.fillStyle='#0A0E14';ctx.fillRect(x,y,w,h);
+    } else {
+      ctx.fillStyle=dark?'rgba(200,137,58,.06)':'rgba(200,137,58,.04)';
+      ctx.fillRect(x,y,w,h);
+    }
+
+    if(img){
+      const scale=Math.min(w/img.naturalWidth,h/img.naturalHeight);
+      const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
+      const dx=x+(w-dw)/2,dy=y+(h-dh)/2;
+
+      if(styleOpt==='showcase'){
+        // 쇼케이스: 살짝 크게 + 아래 그라데이션 페이드
+        const sc2=Math.min(w/img.naturalWidth,h/img.naturalHeight)*1.08;
+        const dw2=img.naturalWidth*sc2,dh2=img.naturalHeight*sc2;
+        ctx.drawImage(img,x+(w-dw2)/2,y+(h-dh2)/2,dw2,dh2);
+        const fg=ctx.createLinearGradient(x,y,x,y+h);
+        fg.addColorStop(0.5,'rgba(0,0,0,0)');
+        fg.addColorStop(1,dark?'rgba(13,17,23,.85)':'rgba(245,240,232,.88)');
+        ctx.fillStyle=fg;ctx.fillRect(x,y,w,h);
+      } else if(styleOpt==='dark-glow'){
+        ctx.globalAlpha=0.88;
+        ctx.drawImage(img,dx,dy,dw,dh);
+        ctx.globalAlpha=1;
+        // 네온 빛 번짐
+        const gg=ctx.createRadialGradient(x+w/2,y+h/2,w*0.1,x+w/2,y+h/2,w*0.65);
+        gg.addColorStop(0,'rgba(200,137,58,0)');
+        gg.addColorStop(1,'rgba(200,137,58,.28)');
+        ctx.fillStyle=gg;ctx.fillRect(x,y,w,h);
+      } else {
+        ctx.drawImage(img,dx,dy,dw,dh);
+        // 미니멀: 오버레이 없음 / 카드: 미세 비네팅
+        if(styleOpt==='card'){
+          const vg=ctx.createRadialGradient(x+w/2,y+h/2,w*0.28,x+w/2,y+h/2,w*0.72);
+          vg.addColorStop(0,'rgba(0,0,0,0)');
+          vg.addColorStop(1,dark?'rgba(13,17,23,.4)':'rgba(245,240,232,.3)');
+          ctx.fillStyle=vg;ctx.fillRect(x,y,w,h);
+        }
+      }
+    } else {
+      // 사진 없음: 이니셜
+      ctx.font=`500 ${Math.round(h*0.36)}px system-ui`;
+      ctx.fillStyle=dark?'rgba(200,137,58,.35)':'rgba(200,137,58,.3)';
+      ctx.textAlign='center';
+      ctx.fillText((e.cat||'?').slice(0,2),x+w/2,y+h*0.63);
+      ctx.textAlign='left';
+    }
+    ctx.restore();
+    // 테두리
+    const borderCol=styleOpt==='dark-glow'?'rgba(200,137,58,.5)':dark?'rgba(200,137,58,.2)':'rgba(200,137,58,.18)';
+    ctx.strokeStyle=borderCol;ctx.lineWidth=styleOpt==='dark-glow'?1.5:1;
+    ctx.beginPath();ctx.roundRect(x,y,w,h,radius);ctx.stroke();
+  };
+  // ─────────────────────────────────────────────
+
+  if(style==='showcase' && hasAnyPhoto){
+    // ── 쇼케이스: 상단에 주 장비 사진 크게, 하단에 나머지 리스트
+    const mainImg=imgs[0];
+    const mainE=show[0];
+    const featH=Math.round(contentH*0.52);
+    const featY=contentTop+Math.round(H*0.04);
+    const featW=W-pad*2;
+    drawPhoto(mainImg,mainE,pad,featY,featW,featH,10,'showcase');
+    // 주 장비명 오버레이 (하단)
+    ctx.font=`700 ${Math.round(W*0.038)}px system-ui`;ctx.fillStyle='#fff';
+    ctx.textAlign='left';
+    ctx.fillText(mainE.name.slice(0,20),pad+Math.round(W*0.03),featY+featH-Math.round(H*0.028));
+    ctx.font=`400 ${Math.round(W*0.022)}px system-ui`;ctx.fillStyle='rgba(255,255,255,.7)';
+    ctx.fillText(mainE.cat,pad+Math.round(W*0.03),featY+featH-Math.round(H*0.01));
+    ctx.textAlign='left';
+    // 나머지 장비 가로 나열
+    if(show.length>1){
+      const rest=show.slice(1);const restImgs=imgs.slice(1);
+      const thumbW=Math.round((featW-(rest.length-1)*Math.round(W*0.02))/rest.length);
+      const thumbH=Math.round(contentH*0.28);
+      const thumbY=featY+featH+Math.round(H*0.015);
+      rest.forEach((e2,i)=>{
+        const tx=pad+i*(thumbW+Math.round(W*0.02));
+        drawPhoto(restImgs[i],e2,tx,thumbY,thumbW,thumbH,6,'showcase');
+        ctx.font=`500 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle=chalk;
+        ctx.textAlign='center';ctx.fillText(e2.name.slice(0,12),tx+thumbW/2,thumbY+thumbH+Math.round(H*0.02));
+        ctx.textAlign='left';
+      });
+    }
+
+  } else if(style==='dark-glow' && hasAnyPhoto){
+    // ── 다크글로우: 세로 그리드, 각 사진에 네온 테두리
+    const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.14));
+    const imgSize=Math.round(rowH*0.82);
+    let y=contentTop+Math.round(H*0.04);
+    show.forEach((e,i)=>{
+      const imgY=y+Math.round((rowH-imgSize)/2);
+      drawPhoto(imgs[i],e,pad,imgY,imgSize,imgSize,8,'dark-glow');
+      // 장비명
+      ctx.font=`600 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle='#F0EDE6';
+      ctx.fillText(e.name.slice(0,18),pad+imgSize+Math.round(W*0.04),y+rowH*0.42);
+      ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;ctx.fillStyle='rgba(200,137,58,.8)';
+      ctx.fillText(e.cat,pad+imgSize+Math.round(W*0.04),y+rowH*0.66);
+      const nums=[...(e.ironSet||[]),...(e.tags?.wedge_set||[]),...(e.tags?.wood_set||[])].slice(0,6).join(' · ');
+      if(nums){ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;ctx.fillStyle='rgba(240,237,230,.4)';ctx.fillText(nums,pad+imgSize+Math.round(W*0.04),y+rowH*0.86);}
+      y+=rowH;
+    });
+
+  } else if(style==='minimal'){
+    // ── 미니멀: 사진 없으면 텍스트만, 있으면 작은 아이콘 + 넓은 여백
+    const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.12));
+    const thumbSize=hasAnyPhoto?Math.round(rowH*0.68):0;
+    let y=contentTop+Math.round(H*0.04);
+    show.forEach((e,i)=>{
+      if(hasAnyPhoto && thumbSize>0){
+        drawPhoto(imgs[i],e,pad,y+Math.round((rowH-thumbSize)/2),thumbSize,thumbSize,4,'minimal');
+      }
+      const tx=hasAnyPhoto?pad+thumbSize+Math.round(W*0.035):pad;
+      // 얇은 구분선 (미니멀)
+      if(i>0){ctx.strokeStyle=dark?'rgba(240,237,230,.05)':'rgba(0,0,0,.05)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();}
+      ctx.font=`500 ${Math.round(W*0.026)}px system-ui`;ctx.fillStyle=chalk;ctx.fillText(e.name.slice(0,22),tx,y+rowH*0.46);
+      ctx.font=`400 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(e.cat,tx,y+rowH*0.72);
+      y+=rowH;
+    });
+
+  } else {
+    // ── 카드형 (기본): 좌측 사진 + 우측 텍스트
+    const photoColW=hasAnyPhoto?Math.round(W*0.21):0;
+    const textX=pad+photoColW+(hasAnyPhoto?Math.round(W*0.03):0);
+    const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.11));
+    let y=contentTop+Math.round(H*0.04);
+    show.forEach((e,i)=>{
+      if(hasAnyPhoto){
+        const imgW=Math.round(photoColW*0.86);
+        const imgH=Math.round(rowH*0.78);
+        drawPhoto(imgs[i],e,pad+Math.round(W*0.01),y+Math.round((rowH-imgH)/2),imgW,imgH,6,'card');
+      }
+      // 번호
+      ctx.font=`700 ${Math.round(W*0.023)}px system-ui`;ctx.fillStyle='#C8893A';
+      ctx.fillText(`${i+1}`,textX,y+rowH*0.42);
+      // 카테고리 뱃지
+      const bx=textX+Math.round(W*0.03);const bw=Math.round(W*0.1);const bh=Math.round(rowH*0.37);
+      ctx.fillStyle=dark?'rgba(200,137,58,.13)':'rgba(200,137,58,.09)';
+      ctx.beginPath();ctx.roundRect(bx,y+rowH*0.13,bw,bh,4);ctx.fill();
+      ctx.font=`600 ${Math.round(W*0.017)}px system-ui`;ctx.fillStyle='#C8893A';
+      ctx.textAlign='center';ctx.fillText((e.cat||'').slice(0,5),bx+bw/2,y+rowH*0.4);ctx.textAlign='left';
+      // 장비명
+      const nx=bx+bw+Math.round(W*0.018);
+      ctx.font=`600 ${Math.round(W*0.025)}px system-ui`;ctx.fillStyle=chalk;
+      ctx.fillText(e.name.length>17?e.name.slice(0,17)+'…':e.name,nx,y+rowH*0.42);
+      // 번호 세트
+      const nums=[...(e.ironSet||[]),...(e.tags?.wedge_set||[]),...(e.tags?.wood_set||[])].slice(0,6).join(' · ');
+      if(nums){ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;ctx.fillStyle=muted;ctx.fillText(nums,bx,y+rowH*0.76);}
+      if(i<show.length-1){
+        ctx.strokeStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';
+        ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y+rowH);ctx.lineTo(W-pad,y+rowH);ctx.stroke();
+      }
+      y+=rowH;
+    });
+  }
+  ctx.textAlign='left';
+}
+
+// drawEquipCard: renderInstaCanvas에서 drawEquipCardAsync를 직접 await 호출
+window.showInstaPreview = () => {
+  const canvas=document.getElementById('insta-canvas');
+  if(!canvas)return;
+  const ex=document.getElementById('insta-preview-overlay');
+  if(ex)ex.remove();
+  const pv=document.createElement('div');
+  pv.id='insta-preview-overlay';
+  pv.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:1rem';
+  const ratio=canvas.height/canvas.width;
+  // 실제 크기에 가깝게 — 화면 너비의 90% 또는 최대 480px
+  const dispW=Math.min(window.innerWidth*0.9,480);
+  const dispH=Math.round(dispW*ratio);
+  pv.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px;margin-bottom:.65rem">
+      <span style="font-size:.8rem;font-weight:600;color:var(--chalk)">실제 크기 미리보기 <span style="color:var(--muted);font-weight:400">(${canvas.width}×${canvas.height})</span></span>
+      <button onclick="document.getElementById('insta-preview-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem;line-height:1">✕</button>
+    </div>
+    <img src="${canvas.toDataURL('image/png')}" style="width:${dispW}px;height:${dispH}px;border-radius:6px;border:1px solid rgba(200,137,58,.2);object-fit:contain;display:block">
+    <div style="margin-top:.85rem;display:flex;gap:.5rem">
+      <button onclick="downloadInstaCard();document.getElementById('insta-preview-overlay').remove();" style="padding:.52rem 1.2rem;border-radius:6px;border:none;background:linear-gradient(135deg,#C8893A,#A78BFA);color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--sans)">⬇ PNG 다운로드</button>
+      <button onclick="document.getElementById('insta-preview-overlay').remove()" style="padding:.52rem 1rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:.82rem;cursor:pointer;font-family:var(--sans)">닫기</button>
+    </div>`;
+  pv.addEventListener('click',e=>{if(e.target===pv)pv.remove();});
+  document.body.appendChild(pv);
+};
+
+window.downloadInstaCard = () => {
+  const canvas=document.getElementById('insta-canvas');
+  if(!canvas)return;
+  const link=document.createElement('a');
+  link.download=`birdyard_${window._instaType||'card'}_${new Date().toISOString().slice(0,10)}.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  toast('📸 카드가 저장됐습니다. 인스타그램에 업로드해보세요!');
+};
 const CLUB_COLORS = {
-  '드라이버':  {line:'#E8A855', bg:'rgba(232,168,85,.15)'},
-  '3W':        {line:'#F07070', bg:'rgba(240,112,112,.15)'},
-  '5W':        {line:'#F09070', bg:'rgba(240,144,112,.15)'},
-  '유틸리티':  {line:'#E87070', bg:'rgba(232,112,112,.12)'},
-  '2I':        {line:'#70C8A8', bg:'rgba(112,200,168,.15)'},
-  '3I':        {line:'#60B898', bg:'rgba(96,184,152,.15)'},
-  '4I':        {line:'#50A888', bg:'rgba(80,168,136,.15)'},
-  '5I':        {line:'#3D9E74', bg:'rgba(61,158,116,.15)'},
-  '6I':        {line:'#5AB4A0', bg:'rgba(90,180,160,.15)'},
-  '7I':        {line:'#7AB0E8', bg:'rgba(122,176,232,.15)'},
-  '8I':        {line:'#88A8E0', bg:'rgba(136,168,224,.15)'},
-  '9I':        {line:'#A090D8', bg:'rgba(160,144,216,.15)'},
-  'PW':        {line:'#A78BFA', bg:'rgba(167,139,250,.15)'},
-  'AW/GW':        {line:'#C085E8', bg:'rgba(192,133,232,.15)'},
-  'SW':        {line:'#D880D0', bg:'rgba(216,128,208,.15)'},
-  'LW':        {line:'#E870C0', bg:'rgba(232,112,192,.15)'},
-  '퍼터':      {line:'#8888A8', bg:'rgba(136,136,168,.15)'},
+  // ── 드라이버 (골드)
+  '드라이버':  {line:'#F0B040', bg:'rgba(240,176,64,.15)',  group:'wood'},
+  // ── 우드 (주황~산호 그라데이션)
+  '2W':        {line:'#F09050', bg:'rgba(240,144,80,.15)',  group:'wood'},
+  '3W':        {line:'#E87848', bg:'rgba(232,120,72,.15)',  group:'wood'},
+  '4W':        {line:'#E06840', bg:'rgba(224,104,64,.15)',  group:'wood'},
+  '5W':        {line:'#D85838', bg:'rgba(216,88,56,.15)',   group:'wood'},
+  '7W':        {line:'#CC4830', bg:'rgba(204,72,48,.15)',   group:'wood'},
+  '9W':        {line:'#C03828', bg:'rgba(192,56,40,.15)',   group:'wood'},
+  // ── 유틸/하이브리드 (청록~민트)
+  '1UT':       {line:'#40C8C0', bg:'rgba(64,200,192,.15)',  group:'util'},
+  '2UT':       {line:'#38B8A8', bg:'rgba(56,184,168,.15)',  group:'util'},
+  '3UT':       {line:'#30A898', bg:'rgba(48,168,152,.15)',  group:'util'},
+  '4UT':       {line:'#289888', bg:'rgba(40,152,136,.15)',  group:'util'},
+  '5UT':       {line:'#208878', bg:'rgba(32,136,120,.15)',  group:'util'},
+  '유틸리티':  {line:'#34B0A0', bg:'rgba(52,176,160,.15)',  group:'util'},
+  // ── 아이언 (파랑 계열 그라데이션, 번호 클수록 밝음)
+  '1I':        {line:'#3870D0', bg:'rgba(56,112,208,.15)',  group:'iron'},
+  '2I':        {line:'#3D80D8', bg:'rgba(61,128,216,.15)',  group:'iron'},
+  '3I':        {line:'#4290DC', bg:'rgba(66,144,220,.15)',  group:'iron'},
+  '4I':        {line:'#479FE0', bg:'rgba(71,159,224,.15)',  group:'iron'},
+  '5I':        {line:'#4CAFE4', bg:'rgba(76,175,228,.15)',  group:'iron'},
+  '6I':        {line:'#54B8E8', bg:'rgba(84,184,232,.15)',  group:'iron'},
+  '7I':        {line:'#60C0EC', bg:'rgba(96,192,236,.15)',  group:'iron'},
+  '8I':        {line:'#6CC8F0', bg:'rgba(108,200,240,.15)', group:'iron'},
+  '9I':        {line:'#78D0F4', bg:'rgba(120,208,244,.15)', group:'iron'},
+  // ── 웨지 (보라~핑크 그라데이션)
+  'PW':        {line:'#9878E8', bg:'rgba(152,120,232,.15)', group:'wedge'},
+  'AW/GW':     {line:'#B070D8', bg:'rgba(176,112,216,.15)', group:'wedge'},
+  'SW':        {line:'#C868C8', bg:'rgba(200,104,200,.15)', group:'wedge'},
+  'LW':        {line:'#E060B8', bg:'rgba(224,96,184,.15)',  group:'wedge'},
+  // ── 퍼터 (회색)
+  '퍼터':      {line:'#8890A8', bg:'rgba(136,144,168,.15)', group:'putter'},
 };
 function clubColor(club) {
   return CLUB_COLORS[club] || {line:'#8A9BAA', bg:'rgba(138,155,170,.15)'};
@@ -7618,6 +8317,34 @@ window.setDistMode = (mode) => {
   requestAnimationFrame(initCharts);
 };
 
+
+function initHomeDistChart(){
+  const el=document.getElementById('home-dist-chart');
+  if(!el)return;
+  if(charts['home-dist-chart']){try{charts['home-dist-chart'].destroy();}catch(e){}delete charts['home-dist-chart'];}
+  const cm={};
+  D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!cm[nc])cm[nc]=[];const cv=ss(s).avgCarry;if(cv)cm[nc].push(cv);});
+  const clubOrder=[...CLUBS].reverse().filter(cl=>cm[cl]?.length);
+  if(!clubOrder.length)return;
+  const RECENT_N=5;
+  const vals=clubOrder.map(cl=>Math.round(avg(cm[cl].slice(-RECENT_N))));
+  const colors=clubOrder.map(cl=>(typeof clubColor==='function'?clubColor(cl):{line:'#C8893A'}).line||'#C8893A');
+  charts['home-dist-chart']=new Chart(el,{
+    type:'bar',
+    data:{
+      labels:clubOrder,
+      datasets:[{data:vals,backgroundColor:colors.map(col=>col+'88'),borderColor:colors.map(col=>col+'CC'),borderWidth:1.5,borderRadius:3}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}m`}}},
+      scales:{
+        x:{ticks:{color:'rgba(240,237,230,.55)',font:{size:11}},grid:{display:false}},
+        y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:11},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
+      }
+    }
+  });
+}
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
 
@@ -7680,8 +8407,8 @@ function initCharts(){
               }}}
             },
             scales:{
-              x:{ticks:{font:{size:10},color:'rgba(240,237,230,.4)'},grid:{color:'rgba(240,237,230,.05)'}},
-              y:{reverse:true,ticks:{font:{size:10},color:'rgba(240,237,230,.4)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
+              x:{ticks:{font:{size:12},color:'rgba(240,237,230,.5)'},grid:{color:'rgba(240,237,230,.05)'}},
+              y:{reverse:true,ticks:{font:{size:12},color:'rgba(240,237,230,.5)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
             },
             onClick:(e,elements)=>{
               if(!elements.length)return;
@@ -7743,24 +8470,73 @@ function initCharts(){
       const showTotal=mode==='total';
       const vals=showTotal?totalVals:carryVals;
       const maxVal=Math.max(...vals.filter(Boolean),50);
+      // ── 그룹별 색상 정의
+      const GROUP_COLORS={
+        wood:  {bg:'rgba(240,176,64,.55)',  border:'rgba(240,176,64,.95)'},
+        util:  {bg:'rgba(52,176,160,.55)',  border:'rgba(52,176,160,.95)'},
+        iron:  {bg:'rgba(76,175,228,.55)',  border:'rgba(76,175,228,.95)'},
+        wedge: {bg:'rgba(176,112,216,.55)', border:'rgba(176,112,216,.95)'},
+        putter:{bg:'rgba(136,144,168,.4)',  border:'rgba(136,144,168,.8)'},
+        def:   {bg:'rgba(74,101,128,.3)',   border:'rgba(74,101,128,.6)'},
+      };
+      const getGroup=cl=>CLUB_COLORS[cl]?.group||'def';
+
+      // ── 연습 부족 클럽 감지 (전체 세션 날짜 기준)
+      const allDatesSet=[...new Set(D.sessions.map(s=>s.date).filter(Boolean))].sort().reverse();
+      const recentDates=allDatesSet.slice(0,10); // 최근 10회 세션
+      const lackPractice=new Set();
+      // 전체 클럽 중 최근 10회 안에 등장하지 않은 클럽
+      const recentUsedClubs=new Set(
+        D.sessions.filter(s=>recentDates.includes(s.date)&&(!s.gameType||s.gameType==='gdr'))
+          .map(s=>normalizeClub(s.club)).filter(Boolean)
+      );
+      labels.forEach(cl=>{ if(!recentUsedClubs.has(cl)) lackPractice.add(cl); });
+
+      // ── 개선 필요 클럽 감지
+      const needsWork={};
+      labels.forEach(cl=>{
+        const clData=cm2[cl];
+        if(!clData||!clData.sessions.length)return;
+        const recent=clData.sessions.slice(0,RECENT_N);
+        // 1) 방향성
+        const dirs=recent.flatMap(s=>(s.shots||[]).map(sh=>sh.direction).filter(v=>v!=null));
+        const avgDirVal=dirs.length?dirs.reduce((a,b)=>a+b,0)/dirs.length:null;
+        const dirStd=dirs.length>=3?(()=>{const m=avgDirVal;return Math.sqrt(dirs.reduce((a,b)=>a+(b-m)**2,0)/dirs.length);})():null;
+        // 2) 일관성
+        const cons=recent.map(s=>ss(s).consistency).filter(v=>v!=null);
+        const avgCon=cons.length?cons.reduce((a,b)=>a+b,0)/cons.length:null;
+        // 3) 성장 정체
+        const carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
+        let stagnant=false;
+        if(carries.length>=4){
+          const half=Math.floor(carries.length/2);
+          const oldAvg=carries.slice(half).reduce((a,b)=>a+b,0)/half;
+          const newAvg=carries.slice(0,half).reduce((a,b)=>a+b,0)/half;
+          stagnant=(newAvg-oldAvg)<1;
+        }
+        const flags=[];
+        if(avgCon!=null&&avgCon<55) flags.push('⚡');
+        if((avgDirVal!=null&&Math.abs(avgDirVal)>8)||(dirStd!=null&&dirStd>10)) flags.push('↗');
+        if(stagnant&&carries.length>=4) flags.push('📈');
+        if(flags.length) needsWork[cl]=[...new Set(flags)].join('');
+      });
+
+      // ── 라벨에 심볼 추가 (연습 부족: 🔸, 개선 필요: 각 이모지)
+      const displayLabels=labels.map(cl=>{
+        const syms=(lackPractice.has(cl)?'🔸':'')+(needsWork[cl]||'');
+        return syms?cl+'\n'+syms:cl;
+      });
+
       charts['club-dist-chart']=new Chart(distEl,{
         type:'bar',
         data:{
-          labels,
+          labels:displayLabels,
           datasets:[{
             label:showTotal?'총거리(m)':'캐리(m)',
             data:vals,
-            backgroundColor:labels.map((_,i)=>{
-              const v=vals[i];if(!v)return'rgba(74,101,128,.15)';
-              const ratio=v/maxVal;
-              return ratio>0.85?'rgba(200,137,58,.65)':ratio>0.6?'rgba(74,143,168,.55)':'rgba(167,139,250,.45)';
-            }),
-            borderColor:labels.map((_,i)=>{
-              const v=vals[i];if(!v)return'rgba(74,101,128,.3)';
-              const ratio=v/maxVal;
-              return ratio>0.85?'rgba(200,137,58,.9)':ratio>0.6?'rgba(74,143,168,.9)':'rgba(167,139,250,.8)';
-            }),
-            borderWidth:1,
+            backgroundColor:labels.map(cl=>{const v=vals[labels.indexOf(cl)];if(!v)return GROUP_COLORS.def.bg;return GROUP_COLORS[getGroup(cl)]?.bg||GROUP_COLORS.def.bg;}),
+            borderColor:labels.map(cl=>{const v=vals[labels.indexOf(cl)];if(!v)return GROUP_COLORS.def.border;return GROUP_COLORS[getGroup(cl)]?.border||GROUP_COLORS.def.border;}),
+            borderWidth:1.5,
             borderRadius:3,
           }]
         },
@@ -7770,26 +8546,69 @@ function initCharts(){
             legend:false,
             tooltip:{
               callbacks:{
+                title:ctxArr=>{
+                  const cl=labels[ctxArr[0].dataIndex];
+                  return needsWork[cl]?cl+' — 연습 필요':cl;
+                },
                 label:ctx=>{
                   const n=nVals[ctx.dataIndex];
                   return`${ctx.raw||'-'}m (최근 ${n}세션 평균)`;
                 },
                 afterLabel:ctx=>{
-                  const club=labels[ctx.dataIndex];
-                  const c=carryVals[ctx.dataIndex],t=totalVals[ctx.dataIndex];
-                  if(c&&t&&!showTotal)return`총거리: ${t}m`;
-                  if(c&&t&&showTotal)return`캐리: ${c}m`;
-                  return '';
+                  const cl=labels[ctx.dataIndex];
+                  const cv=carryVals[ctx.dataIndex],tv=totalVals[ctx.dataIndex];
+                  const lines=[];
+                  if(cv&&tv&&!showTotal) lines.push(`총거리: ${tv}m`);
+                  if(cv&&tv&&showTotal)  lines.push(`캐리: ${cv}m`);
+                  if(needsWork[cl]){
+                    if(needsWork[cl].includes('⚡')) lines.push('⚡ 일관성 개선 필요');
+                    if(needsWork[cl].includes('↗')) lines.push('↗ 방향성 교정 필요');
+                    if(needsWork[cl].includes('📈')) lines.push('📈 비거리 향상 정체');
+                  }
+                  return lines;
                 }
               }
             }
           },
           scales:{
-            x:{ticks:{color:'rgba(240,237,230,.5)',font:{size:10}},grid:{display:false}},
-            y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:10},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
+            x:{ticks:{color:'rgba(240,237,230,.65)',font:{size:11},maxRotation:45},grid:{display:false}},
+            y:{min:0,ticks:{color:'rgba(240,237,230,.5)',font:{size:12},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
           }
         }
       });
+
+      // ── 개선 필요 + 연습 부족 안내 렌더 (색상 범례 없음)
+      const legendEl=document.getElementById('dist-chart-legend');
+      if(legendEl){
+        const workList=Object.entries(needsWork);
+        const lackList=[...lackPractice].filter(cl=>labels.includes(cl));
+        const rows=[];
+        workList.forEach(([cl,sym])=>{
+          const items=[];
+          if(sym.includes('⚡')) items.push({icon:'⚡',text:'일관성 개선 필요',color:'rgba(255,200,60,.9)'});
+          if(sym.includes('↗')) items.push({icon:'↗',text:'방향성 교정 필요',color:'rgba(122,176,232,.9)'});
+          if(sym.includes('📈')) items.push({icon:'📈',text:'비거리 향상 정체',color:'rgba(167,139,250,.9)'});
+          rows.push({cl,items,type:'work'});
+        });
+        lackList.forEach(cl=>{
+          const existing=rows.find(r=>r.cl===cl);
+          const item={icon:'🔸',text:'최근 연습 부족',color:'rgba(200,137,58,.85)'};
+          if(existing) existing.items.unshift(item);
+          else rows.push({cl,items:[item],type:'lack'});
+        });
+        if(!rows.length){ legendEl.innerHTML=''; }
+        else {
+          legendEl.innerHTML='<div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.35rem">'+
+            rows.map(r=>
+              '<div style="display:flex;align-items:flex-start;gap:.55rem;padding:.4rem .6rem;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.08);border-radius:4px">'+
+              '<span style="font-size:.84rem;font-weight:600;color:rgba(240,237,230,.85);flex-shrink:0;min-width:38px">'+r.cl+'</span>'+
+              '<span style="display:flex;flex-wrap:wrap;gap:.3rem">'+
+              r.items.map(it=>'<span style="font-size:.84rem;color:'+it.color+'">'+it.icon+' <span style="font-size:.80rem">'+it.text+'</span></span>').join('')+
+              '</span></div>'
+            ).join('')+
+          '</div>';
+        }
+      }
     }catch(e){console.warn('club-dist-chart 오류:',e);}
   }
   const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
@@ -7854,8 +8673,8 @@ function initCharts(){
           padding:8,cornerRadius:3,
         }},
         scales:{
-          x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
-          y:{...yOpts,ticks:{color:'#8AABBB',font:{size:9},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.09)'}}
+          x:{ticks:{color:'#8AABBB',font:{size:11},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+          y:{...yOpts,ticks:{color:'#8AABBB',font:{size:11},...(yOpts.callback?{callback:yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.09)'}}
         }},
       plugins:zones&&zones.length?[benchPlugin(zones)]:[]
     });
@@ -7945,8 +8764,8 @@ function initCharts(){
             padding:8,cornerRadius:3,
           }},
           scales:{
-            x:{ticks:{color:'#8AABBB',font:{size:9},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
-            y:{...def.yOpts,ticks:{color:'#8AABBB',font:{size:9},...(def.yOpts.callback?{callback:def.yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.07)'},border:{color:'rgba(240,237,230,.1)'}},
+            x:{ticks:{color:'#8AABBB',font:{size:11},maxRotation:45},grid:{color:'rgba(240,237,230,.07)'}},
+            y:{...def.yOpts,ticks:{color:'#8AABBB',font:{size:11},...(def.yOpts.callback?{callback:def.yOpts.callback}:{})},grid:{color:'rgba(240,237,230,.07)'},border:{color:'rgba(240,237,230,.1)'}},
           }},
         plugins:def.zones&&def.zones.length?[benchPlugin(def.zones)]:[]
       });
@@ -9661,7 +10480,7 @@ window.handleGamePhoto = async function(input) {
       const lat = exif.gps.latRef==='S' ? -exif.gps.lat : exif.gps.lat;
       const lon = exif.gps.lonRef==='W' ? -exif.gps.lon : exif.gps.lon;
       const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
-      const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+      const gpsMemory = await loadGpsMemory();
       const knownPlace = gpsMemory[gpsKey];
       const pl = $('pl');
       if(knownPlace && pl && !pl.value) {
@@ -9862,25 +10681,20 @@ async function analyzeOne(idx) {
     const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
 
     // 저장된 장소 목록 조회
-    const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
+    const gpsMemory = await loadGpsMemory();
     const knownPlace = gpsMemory[gpsKey];
     const pl = $('pl');
 
     if(knownPlace && pl && !pl.value) {
-      // 알려진 장소 → 자동 입력
       pl.value = knownPlace;
       toast(`📍 ${knownPlace}`);
     } else if(!knownPlace) {
-      // 처음 가보는 장소 → 주소 조회 후 알림
       const addr = await gpsToAddress(lat, lon);
       if(addr && pl && !pl.value) pl.value = addr;
-      // 장소 입력 완료 시 GPS 매핑 저장하도록 이벤트 등록
       if(pl) {
         pl.dataset.gpsKey = gpsKey;
         pl.dataset.isNewPlace = '1';
-        // 입력창에 포커스 유도
         setTimeout(()=>{
-          const existing = pl.value.trim();
           pl.style.borderColor = 'rgba(167,139,250,.5)';
           pl.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
           if(!$('pl-new-hint')){
@@ -9987,7 +10801,10 @@ function pAdd() {
     <!-- 스크린/필드 전용 입력 -->
     <div id="game-fields" style="display:none">
       <div class="frow">
-        <div class="fg"><label class="fl-label">코스명 (선택)</label><input class="inp" id="p-course" placeholder="예: 설악밸리 CC"></div>
+        <div class="fg"><label class="fl-label">코스명 (선택)</label>
+          <input class="inp" id="p-course" placeholder="예: 설악밸리 CC" list="course-datalist" autocomplete="off" onfocus="fillCourseDatalist()">
+          <datalist id="course-datalist"></datalist>
+        </div>
         <div class="fg"><label class="fl-label">홀 수</label>
           <select class="sel" id="p-holes" onchange="renderHoleInputs(true)">
             <option value="18" selected>18홀</option>
@@ -9995,8 +10812,18 @@ function pAdd() {
           </select>
         </div>
       </div>
-      <div class="fg"><label class="fl-label">총 타수</label>
-        <input class="inp" type="number" id="p-score" placeholder="예: 95 (홀별 입력 시 자동 계산)">
+      <div class="frow">
+        <div class="fg">
+          <label class="fl-label">클럽 세트 (선택)</label>
+          <select class="sel" id="p-game-set">
+            <option value="">세트 선택...</option>
+            ${D.sets.length?D.sets.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join(''):''}
+          </select>
+          ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.2rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트</a>에서 먼저 만들어보세요</div>`:''}
+        </div>
+        <div class="fg"><label class="fl-label">총 타수</label>
+          <input class="inp" type="number" id="p-score" placeholder="예: 95 (홀별 입력 시 자동 계산)">
+        </div>
       </div>
 
       <!-- 스코어카드 사진 분석 -->
@@ -10033,7 +10860,10 @@ function pAdd() {
       <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
-    <div class="fg"><label class="fl-label">연습장 · 장소</label><input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력"></div>
+    <div class="fg"><label class="fl-label">연습장 · 장소</label>
+      <input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력" list="pl-datalist" autocomplete="off" onfocus="fillPlDatalist()">
+      <datalist id="pl-datalist"></datalist>
+    </div>
 
     <!-- GDR 전용 입력 -->
     <div id="gdr-fields">
@@ -10157,6 +10987,7 @@ window.saveSession = async () => {
   const loc = $('pl').value.trim(), memo = $('pm').value.trim();
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
+  const gameSet = recType!=='gdr'?($('p-game-set')?.value.trim()||''):'';
   const holes = recType!=='gdr'?parseInt($('p-holes')?.value||18):18;
 
   // 분석 중인 사진이 있으면 사용자에게 알림 (저장은 계속 진행)
@@ -10175,9 +11006,7 @@ window.saveSession = async () => {
   // GPS ↔ 장소 매핑 저장
   const pl = $('pl');
   if(pl?.dataset.gpsKey && loc) {
-    const gpsMemory = JSON.parse(localStorage.getItem('birdyard_gps_memory')||'{}');
-    gpsMemory[pl.dataset.gpsKey] = loc;
-    localStorage.setItem('birdyard_gps_memory', JSON.stringify(gpsMemory));
+    await saveGpsMemory(pl.dataset.gpsKey, loc);
   }
 
   // 이미지 전부 업로드 (분석 완료 여부와 무관)
@@ -10215,6 +11044,7 @@ window.saveSession = async () => {
     game_type: recType,
     score: score,
     course_name: courseName,
+    club: gameSet||($('pc')?.value||''),
     holes: holes,
     hole_scores: (recType!=='gdr'&&_holeScoresData.some(h=>h.score)) ? {holes:_holeScoresData} : null,
     is_public: isPublic,
