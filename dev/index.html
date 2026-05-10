@@ -7628,7 +7628,7 @@ window.openInstaCard = () => {
       <button onclick="document.getElementById('insta-card-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">✕</button>
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;flex-wrap:wrap">
-      ${[["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"],["equip","🪶 장비"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:60px;padding:.4rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.75rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
+      ${/* TODO: equip 타입 준비 완료 후 ["equip","🪶 장비"] 추가 */ [["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:60px;padding:.4rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.75rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center;flex-wrap:wrap">
       <span style="font-size:.7rem;color:var(--muted)">비율</span>
@@ -7700,7 +7700,7 @@ window.selectInstaRatio = (ratio) => {
 
 window.selectInstaType = (type) => {
   window._instaType=type;
-  ['dist','score','practice','equip'].forEach(t=>{
+  ['dist','score','practice'/* TODO: 'equip' 준비 완료 후 추가 */].forEach(t=>{
     const btn=document.getElementById(`ic-type-${t}`);
     if(!btn)return;
     const active=t===type;
@@ -7871,10 +7871,11 @@ async function _renderInstaCanvasCore(){
   if(type==='dist') drawDistCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='score') drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='practice') drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH);
+  /* TODO: equip 타입 — 준비 완료 후 활성화
   else if(type==='equip'){
-    // await로 사진 로드 완료 후 렌더 (동기 콜 제거)
     await drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH);
   }
+  */
 
   // 해시태그 (safe zone 하단 기준)
   ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;
