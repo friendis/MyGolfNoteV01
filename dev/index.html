@@ -7588,7 +7588,7 @@ window.openInstaCard = () => {
   const ownedEquip=D.equip.filter(e=>e.status==='owned');
   const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,5);
   const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
-  const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="renderInstaCanvas()" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
+  const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="setTimeout(renderInstaCanvas,0)" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
 
   ov.innerHTML=`<div id="insta-panel" style="background:var(--dusk);border:1px solid var(--border2);border-radius:12px 12px 0 0;width:min(560px,100%);padding:1.25rem 1rem 2rem;max-height:90vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem">
@@ -7612,8 +7612,8 @@ window.openInstaCard = () => {
     </div>
     <div id="ic-options-practice" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">연습 세션 선택</div>
-      <select id="ic-session1" onchange="renderInstaCanvas()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.3rem"><option value="">클럽 1 선택...</option>${sessionOpts}</select>
-      <select id="ic-session2" onchange="renderInstaCanvas()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans)"><option value="">클럽 2 선택 (선택사항)...</option>${sessionOpts}</select>
+      <select id="ic-session1" onchange="setTimeout(renderInstaCanvas,0)" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.3rem"><option value="">클럽 1 선택...</option>${sessionOpts}</select>
+      <select id="ic-session2" onchange="setTimeout(renderInstaCanvas,0)" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans)"><option value="">클럽 2 선택 (선택사항)...</option>${sessionOpts}</select>
     </div>
     <div id="ic-options-equip" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">게시할 장비 선택</div>
@@ -7682,7 +7682,8 @@ window.selectInstaType = (type) => {
   if(hashEl&&window._instaHashtags?.[type]) hashEl.value=window._instaHashtags[type];
   const capEl=document.getElementById('ic-caption');
   if(capEl&&window._instaCaptions?.[type]) capEl.value=window._instaCaptions[type];
-  renderInstaCanvas();
+  // 패널 display 변경이 DOM에 반영된 뒤 캔버스 렌더 (rAF 2중으로 확실히)
+  requestAnimationFrame(()=>requestAnimationFrame(renderInstaCanvas));
 };
 
 window.selectInstaTheme = (theme) => {
@@ -7703,6 +7704,13 @@ function renderInstaCanvas(){
   if(!canvas)return;
   const ctx=canvas.getContext('2d');
   const r=window._instaRatios?.[window._instaRatio||'4:5']||{w:1080,h:1350};
+  // 세션/장비 선택값을 DOM이 살아있는 지금 미리 읽어 캐시
+  const s1El=document.getElementById('ic-session1');
+  const s2El=document.getElementById('ic-session2');
+  if(s1El) window._instaSelIdx1=parseInt(s1El.value??'-1');
+  if(s2El) window._instaSelIdx2=parseInt(s2El.value??'-1');
+  const equipEls=[...document.querySelectorAll('[id^="ic-equip-"]:checked')];
+  window._instaSelEquip=equipEls.map(el=>parseInt(el.id.replace('ic-equip-','')));
   const W=r.w, H=r.h;
   canvas.width=W; canvas.height=H;
   const dark=window._instaTheme!=='light';
@@ -7835,8 +7843,8 @@ function drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH){
   const chalk=dark?'#F0EDE6':'#1a1a1a';const muted=dark?'rgba(240,237,230,.5)':'rgba(0,0,0,.45)';
   ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🏋️ 오늘의 연습 결과',pad,contentTop);
   const sessions=window._instaRecentSessions||[];
-  const idx1=parseInt(document.getElementById('ic-session1')?.value??'-1');
-  const idx2=parseInt(document.getElementById('ic-session2')?.value??'-1');
+  const idx1=window._instaSelIdx1??-1;
+  const idx2=window._instaSelIdx2??-1;
   const sel=[idx1,idx2].filter(i=>i>=0&&sessions[i]).map(i=>sessions[i]);
   if(!sel.length){ctx.font=`400 ${Math.round(W*0.025)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('연습 세션을 선택해주세요',pad,contentTop+contentH/2);return;}
   let y=contentTop+Math.round(H*0.06);
@@ -7868,7 +7876,7 @@ function drawEquipCard(ctx,W,H,dark,pad,contentTop,contentH){
   ctx.font=`600 ${Math.round(W*0.033)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('🪶 MY GOLF SETUP',pad,contentTop);
   const owned=window._instaOwnedEquip||D.equip.filter(e=>e.status==='owned');
   // 선택된 장비만
-  const checked=[...document.querySelectorAll('[id^="ic-equip-"]:checked')].map(el=>parseInt(el.id.replace('ic-equip-','')));
+  const checked=window._instaSelEquip||[];
   const show=checked.length?checked.map(i=>owned[i]).filter(Boolean):owned.slice(0,6);
   if(!show.length){ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;ctx.fillText('장비를 선택해주세요',pad,contentTop+contentH/2);return;}
   const rowH=Math.min(Math.round(contentH/show.length),Math.round(H*0.1));
