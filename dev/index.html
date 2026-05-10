@@ -3631,11 +3631,12 @@ function homeView(){
   <!-- 클럽별 비거리 차트 -->
   ${(()=>{
     const homeCm={};
-    D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!homeCm[nc])homeCm[nc]=[];const cv=ss(s).avgCarry;if(cv)homeCm[nc].push(cv);});
+    // 홈 차트: best-shot(상위3개 평균) 기준 — 잘 나온 데이터 우선
+  D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!homeCm[nc])homeCm[nc]=[];const st=ss(s);const cv=st.topCarry||st.avgCarry;if(cv)homeCm[nc].push(cv);});
     const homeClubs=[...CLUBS].reverse().filter(cl=>homeCm[cl]?.length);
     if(!homeClubs.length) return '';
     return `<div class="home-section">
-      <div class="home-section-title">📊 클럽별 비거리
+      <div class="home-section-title">📊 클럽별 비거리 <span style="font-size:.62rem;color:rgba(240,237,230,.3);font-weight:400;margin-left:4px">베스트 기준</span>
         <button onclick="gotoTab('practice');setPSub('stats')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">자세히 →</button>
       </div>
       <div style="background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.65rem .75rem">
@@ -7049,7 +7050,15 @@ const ss=s=>{
   const consistency = avgCarry&&sdCarry!=null
     ? Math.max(0,Math.min(100,Math.round(100 - (sdCarry/avgCarry*400))))
     : null;
-  return{carries,totals,hs,bs,sf,avgCarry,bestCarry:best(carries),avgTotal:avg(totals),avgHs:avg(hs),bestHs:best(hs),avgBs:avg(bs),avgSf:avg(sf),consistency};
+  // Best-shot 평균: 상위 TOP_N개 평균 (기본 3개)
+  const topAvg=(arr,n=3)=>{if(!arr.length)return null;return avg([...arr].sort((a,b)=>b-a).slice(0,Math.min(n,arr.length)));};
+  const TOP_N=3;
+  return{carries,totals,hs,bs,sf,
+    avgCarry:avg(carries),bestCarry:best(carries),topCarry:topAvg(carries,TOP_N),
+    avgTotal:avg(totals),topTotal:topAvg(totals,TOP_N),
+    avgHs:avg(hs),bestHs:best(hs),topHs:topAvg(hs,TOP_N),
+    avgBs:avg(bs),topBs:topAvg(bs,TOP_N),
+    avgSf:avg(sf),consistency};
 };
 const consistencyLabel=c=>c==null?'—':c>=85?'매우 높음':c>=70?'높음':c>=55?'보통':c>=40?'낮음':'불안정';
 const consistencyColor=c=>c==null?'var(--muted)':c>=85?'var(--turf)':c>=70?'#7ab0e8':c>=55?'var(--wing2)':c>=40?'var(--amber)':'var(--red)';
@@ -7184,14 +7193,20 @@ function pList(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">📊 클럽별 비거리</div>
         <div style="display:flex;gap:.3rem;flex-wrap:wrap">
-          <button id="dist-filter-all" onclick="setDistFilter('all')"
-            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='all'?'rgba(200,137,58,.4)':'var(--border)'};background:${(window._distFilter||'all')==='all'?'rgba(200,137,58,.12)':'none'};color:${(window._distFilter||'all')==='all'?'var(--wing2)':'var(--muted)'};cursor:pointer;font-family:var(--sans)">전체</button>
-          <button id="dist-filter-owned" onclick="setDistFilter('owned')"
-            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='owned'?'rgba(74,143,168,.4)':'var(--border)'};background:${(window._distFilter||'all')==='owned'?'rgba(74,143,168,.1)':'none'};color:${(window._distFilter||'all')==='owned'?'var(--sky2)':'var(--muted)'};cursor:pointer;font-family:var(--sans)">보유 세트</button>
+          <button id="dist-filter-all" onclick="setDistFilter('all');window._distSetIdx=-1"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='all'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distFilter||'all')==='all'?'rgba(200,137,58,.12)':'none'};color:${(window._distFilter||'all')==='all'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)">전체</button>
+          <button id="dist-filter-owned" onclick="cycleSetFilter()" title="클릭할 때마다 저장된 세트 순환"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')!=='all'?'rgba(74,143,168,.4)':'rgba(240,237,230,.08)'};background:${(window._distFilter||'all')!=='all'?'rgba(74,143,168,.1)':'none'};color:${(window._distFilter||'all')!=='all'?'var(--sky2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)">${(()=>{const idx=window._distSetIdx??-1;return idx>=0&&D.sets[idx]?'🎒 '+D.sets[idx].name:'보유 세트';})()} ↻</button>
           <button id="dist-btn-carry" onclick="setDistMode('carry')"
-            style="font-size:.7rem;padding:2px 9px;border-radius:2px;border:1px solid rgba(200,137,58,.4);background:rgba(200,137,58,.12);color:var(--wing2);cursor:pointer;font-family:var(--sans)">캐리</button>
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distMode||'carry')==='carry'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distMode||'carry')==='carry'?'rgba(200,137,58,.12)':'none'};color:${(window._distMode||'carry')==='carry'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)">캐리</button>
           <button id="dist-btn-total" onclick="setDistMode('total')"
-            style="font-size:.7rem;padding:2px 9px;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--sans)">총거리</button>
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distMode||'carry')==='total'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distMode||'carry')==='total'?'rgba(200,137,58,.12)':'none'};color:${(window._distMode||'carry')==='total'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)">총거리</button>
+          <button id="dist-btn-top3" onclick="setDistMode('top3')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distMode||'carry')==='top3'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distMode||'carry')==='top3'?'rgba(200,137,58,.12)':'none'};color:${(window._distMode||'carry')==='top3'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)" title="세션당 상위 3샷 평균 × 최근 3세션">베스트3</button>
+          <button id="dist-btn-avg3" onclick="setDistMode('avg3')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distMode||'carry')==='avg3'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distMode||'carry')==='avg3'?'rgba(200,137,58,.12)':'none'};color:${(window._distMode||'carry')==='avg3'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)" title="최근 3세션 평균">최근3</button>
+          <button id="dist-btn-last1" onclick="setDistMode('last1')"
+            style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distMode||'carry')==='last1'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distMode||'carry')==='last1'?'rgba(200,137,58,.12)':'none'};color:${(window._distMode||'carry')==='last1'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)" title="마지막 연습 데이터">최근1</button>
         </div>
       </div>
       <div style="position:relative;height:180px"><canvas id="club-dist-chart"></canvas></div>
@@ -8298,21 +8313,38 @@ window.setDistFilter = (filter) => {
   requestAnimationFrame(initCharts);
 };
 
+window.cycleSetFilter = () => {
+  const sets = D.sets || [];
+  if(!sets.length){ window.setDistFilter('all'); return; }
+  const cur = window._distSetIdx ?? -1;
+  // 순서: -1=전체 → 0 → 1 → ... → sets.length-1 → -1(전체)
+  const next = cur >= sets.length - 1 ? -1 : cur + 1;
+  window._distSetIdx = next;
+  window._distFilter = next === -1 ? 'all' : `set_${next}`;
+  // 버튼 텍스트 업데이트
+  const btn = document.getElementById('dist-filter-owned');
+  if(btn){
+    btn.textContent = next === -1 ? '보유 세트' : `🎒 ${sets[next].name}`;
+    const active = next !== -1;
+    btn.style.border = active ? '1px solid rgba(74,143,168,.4)' : '1px solid rgba(240,237,230,.08)';
+    btn.style.background = active ? 'rgba(74,143,168,.1)' : 'none';
+    btn.style.color = active ? 'var(--sky2)' : 'rgba(240,237,230,.35)';
+  }
+  if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
+  requestAnimationFrame(initCharts);
+};
+
 window.setDistMode = (mode) => {
   window._distMode = mode;
-  // 버튼 스타일 토글
-  const btnCarry=$('dist-btn-carry'), btnTotal=$('dist-btn-total');
-  if(btnCarry){
-    btnCarry.style.background=mode==='carry'?'rgba(200,137,58,.12)':'none';
-    btnCarry.style.borderColor=mode==='carry'?'rgba(200,137,58,.4)':'var(--border)';
-    btnCarry.style.color=mode==='carry'?'var(--wing2)':'var(--muted)';
-  }
-  if(btnTotal){
-    btnTotal.style.background=mode==='total'?'rgba(200,137,58,.12)':'none';
-    btnTotal.style.borderColor=mode==='total'?'rgba(200,137,58,.4)':'var(--border)';
-    btnTotal.style.color=mode==='total'?'var(--wing2)':'var(--muted)';
-  }
-  // 차트 재그리기
+  // 버튼 스타일 토글 (모든 모드 버튼)
+  ['carry','total','top3','avg3','last1'].forEach(m=>{
+    const btn=document.getElementById(`dist-btn-${m}`);
+    if(!btn)return;
+    const active=m===mode;
+    btn.style.border=active?'1px solid rgba(200,137,58,.4)':'1px solid rgba(240,237,230,.08)';
+    btn.style.background=active?'rgba(200,137,58,.12)':'none';
+    btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
+  });
   if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
   requestAnimationFrame(initCharts);
 };
@@ -8431,43 +8463,72 @@ function initCharts(){
     try{
       if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){}}
       const distClubOrder=[...CLUBS].reverse();
-      const RECENT_N=5; // 최근 N세션 평균
+      const mode=window._distMode||'carry';
       const distFilter=window._distFilter||'all';
-      // 보유 세트 클럽 목록 (filter='owned'일 때)
-      const ownedClubNums=new Set();
-      if(distFilter==='owned'){
-        D.equip.filter(e=>e.status==='owned').forEach(e=>{
-          (e.ironSet||[]).forEach(n=>ownedClubNums.add(n));
-          (e.tags?.wedge_set||[]).forEach(n=>ownedClubNums.add(n));
-          (e.tags?.wood_set||[]).forEach(n=>ownedClubNums.add(n));
-          (e.tags?.util_set||[]).forEach(n=>ownedClubNums.add(n));
-          if(e.cat==='드라이버') ownedClubNums.add('드라이버');
-          if(e.cat==='퍼터') ownedClubNums.add('퍼터');
-        });
+
+      // 세트 필터: owned = 전체 보유, set_N = 특정 세트
+      const allowedClubs=new Set();
+      if(distFilter!=='all'){
+        const setIdx = distFilter.startsWith('set_') ? parseInt(distFilter.slice(4)) : -1;
+        const targetSet = setIdx>=0 ? D.sets[setIdx] : null;
+        if(targetSet && targetSet.clubs?.length){
+          // 세트 구성 클럽 목록 사용
+          targetSet.clubs.forEach(cl=>allowedClubs.add(normalizeClub(cl)||cl));
+        } else {
+          // 전체 보유 세트 합산
+          D.equip.filter(e=>e.status==='owned').forEach(e=>{
+            (e.ironSet||[]).forEach(n=>allowedClubs.add(n));
+            (e.tags?.wedge_set||[]).forEach(n=>allowedClubs.add(n));
+            (e.tags?.wood_set||[]).forEach(n=>allowedClubs.add(n));
+            (e.tags?.util_set||[]).forEach(n=>allowedClubs.add(n));
+            if(e.cat==='드라이버') allowedClubs.add('드라이버');
+            if(e.cat==='퍼터') allowedClubs.add('퍼터');
+          });
+        }
       }
+
       const cm2={};
       sessions.forEach(s=>{
         const nc=normalizeClub(s.club); if(!nc)return;
-        // 보유 세트 필터
-        if(distFilter==='owned'&&ownedClubNums.size>0&&!ownedClubNums.has(nc)) return;
+        if(distFilter!=='all'&&allowedClubs.size>0&&!allowedClubs.has(nc)) return;
         if(!cm2[nc])cm2[nc]={sessions:[]};
         cm2[nc].sessions.push(s);
       });
-      // 최근 N개만 사용
-      Object.keys(cm2).forEach(c=>{
-        const recent=cm2[c].sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,RECENT_N);
-        const carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
-        const totals=recent.map(s=>ss(s).avgTotal).filter(Boolean);
-        cm2[c].c=carries;
-        cm2[c].tot=totals;
-        cm2[c].n=recent.length;
+
+      // 모드별 N 결정
+      const modeN = mode==='avg3'||mode==='top3'||mode==='last1' ? (mode==='last1'?1:3) : 5;
+
+      Object.keys(cm2).forEach(cl=>{
+        const sorted=cm2[cl].sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+        const recent=sorted.slice(0,modeN);
+        let carries, totals;
+        if(mode==='top3'){
+          // 세션당 상위 3샷 평균 → 그 세션들의 평균
+          carries=recent.map(s=>ss(s).topCarry).filter(Boolean);
+          totals=recent.map(s=>ss(s).topTotal).filter(Boolean);
+        } else {
+          carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
+          totals=recent.map(s=>ss(s).avgTotal).filter(Boolean);
+        }
+        cm2[cl].c=carries;
+        cm2[cl].tot=totals;
+        cm2[cl].n=recent.length;
+        // HS, BS도 모드 반영
+        if(mode==='top3'){
+          cm2[cl].hs=recent.map(s=>ss(s).topHs).filter(Boolean);
+          cm2[cl].bs=recent.map(s=>ss(s).topBs).filter(Boolean);
+        } else {
+          cm2[cl].hs=recent.map(s=>ss(s).avgHs).filter(Boolean);
+          cm2[cl].bs=recent.map(s=>ss(s).avgBs).filter(Boolean);
+        }
       });
-      const mode=window._distMode||'carry';
-      const labels=distClubOrder.filter(c=>cm2[c]?.c.length||cm2[c]?.tot.length);
-      const carryVals=labels.map(c=>cm2[c]?.c.length?Math.round(avg(cm2[c].c)):null);
-      const totalVals=labels.map(c=>cm2[c]?.tot.length?Math.round(avg(cm2[c].tot)):null);
-      const nVals=labels.map(c=>cm2[c]?.n||0);
+
+      const RECENT_N=modeN; // needsWork 분석용 호환
       const showTotal=mode==='total';
+      const labels=distClubOrder.filter(cl=>cm2[cl]?.c.length||cm2[cl]?.tot.length);
+      const carryVals=labels.map(cl=>cm2[cl]?.c.length?Math.round(avg(cm2[cl].c)):null);
+      const totalVals=labels.map(cl=>cm2[cl]?.tot.length?Math.round(avg(cm2[cl].tot)):null);
+      const nVals=labels.map(cl=>cm2[cl]?.n||0);
       const vals=showTotal?totalVals:carryVals;
       const maxVal=Math.max(...vals.filter(Boolean),50);
       // ── 그룹별 색상 정의
@@ -8552,7 +8613,8 @@ function initCharts(){
                 },
                 label:ctx=>{
                   const n=nVals[ctx.dataIndex];
-                  return`${ctx.raw||'-'}m (최근 ${n}세션 평균)`;
+                  const modeLabel=mode==='top3'?`베스트3샷 평균 (${n}세션)`:mode==='avg3'?`최근 ${n}세션 평균`:mode==='last1'?'마지막 연습 기준':`최근 ${n}세션 평균`;
+                  return`${ctx.raw||'-'}m · ${modeLabel}`;
                 },
                 afterLabel:ctx=>{
                   const cl=labels[ctx.dataIndex];
