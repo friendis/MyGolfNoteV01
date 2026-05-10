@@ -987,7 +987,7 @@ const CLUB_BENCH={
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드','하이브리드','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUB_CATS=new Set(['드라이버','우드','하이브리드','아이언','웨지']);
-const CLUBS=['드라이버','3W','5W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
+const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT','5UT','유틸리티','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
@@ -7195,6 +7195,7 @@ function pList(){
         </div>
       </div>
       <div style="position:relative;height:180px"><canvas id="club-dist-chart"></canvas></div>
+      <div id="dist-chart-legend" style="margin-top:.5rem"></div>
     </div>` : '';
 
     return`<div class="page">${srow}${ptabs}
@@ -8019,23 +8020,39 @@ window.downloadInstaCard = () => {
   toast('📸 카드가 저장됐습니다. 인스타그램에 업로드해보세요!');
 };
 const CLUB_COLORS = {
-  '드라이버':  {line:'#E8A855', bg:'rgba(232,168,85,.15)'},
-  '3W':        {line:'#F07070', bg:'rgba(240,112,112,.15)'},
-  '5W':        {line:'#F09070', bg:'rgba(240,144,112,.15)'},
-  '유틸리티':  {line:'#E87070', bg:'rgba(232,112,112,.12)'},
-  '2I':        {line:'#70C8A8', bg:'rgba(112,200,168,.15)'},
-  '3I':        {line:'#60B898', bg:'rgba(96,184,152,.15)'},
-  '4I':        {line:'#50A888', bg:'rgba(80,168,136,.15)'},
-  '5I':        {line:'#3D9E74', bg:'rgba(61,158,116,.15)'},
-  '6I':        {line:'#5AB4A0', bg:'rgba(90,180,160,.15)'},
-  '7I':        {line:'#7AB0E8', bg:'rgba(122,176,232,.15)'},
-  '8I':        {line:'#88A8E0', bg:'rgba(136,168,224,.15)'},
-  '9I':        {line:'#A090D8', bg:'rgba(160,144,216,.15)'},
-  'PW':        {line:'#A78BFA', bg:'rgba(167,139,250,.15)'},
-  'AW/GW':        {line:'#C085E8', bg:'rgba(192,133,232,.15)'},
-  'SW':        {line:'#D880D0', bg:'rgba(216,128,208,.15)'},
-  'LW':        {line:'#E870C0', bg:'rgba(232,112,192,.15)'},
-  '퍼터':      {line:'#8888A8', bg:'rgba(136,136,168,.15)'},
+  // ── 드라이버 (골드)
+  '드라이버':  {line:'#F0B040', bg:'rgba(240,176,64,.15)',  group:'wood'},
+  // ── 우드 (주황~산호 그라데이션)
+  '2W':        {line:'#F09050', bg:'rgba(240,144,80,.15)',  group:'wood'},
+  '3W':        {line:'#E87848', bg:'rgba(232,120,72,.15)',  group:'wood'},
+  '4W':        {line:'#E06840', bg:'rgba(224,104,64,.15)',  group:'wood'},
+  '5W':        {line:'#D85838', bg:'rgba(216,88,56,.15)',   group:'wood'},
+  '7W':        {line:'#CC4830', bg:'rgba(204,72,48,.15)',   group:'wood'},
+  '9W':        {line:'#C03828', bg:'rgba(192,56,40,.15)',   group:'wood'},
+  // ── 유틸/하이브리드 (청록~민트)
+  '1UT':       {line:'#40C8C0', bg:'rgba(64,200,192,.15)',  group:'util'},
+  '2UT':       {line:'#38B8A8', bg:'rgba(56,184,168,.15)',  group:'util'},
+  '3UT':       {line:'#30A898', bg:'rgba(48,168,152,.15)',  group:'util'},
+  '4UT':       {line:'#289888', bg:'rgba(40,152,136,.15)',  group:'util'},
+  '5UT':       {line:'#208878', bg:'rgba(32,136,120,.15)',  group:'util'},
+  '유틸리티':  {line:'#34B0A0', bg:'rgba(52,176,160,.15)',  group:'util'},
+  // ── 아이언 (파랑 계열 그라데이션, 번호 클수록 밝음)
+  '1I':        {line:'#3870D0', bg:'rgba(56,112,208,.15)',  group:'iron'},
+  '2I':        {line:'#3D80D8', bg:'rgba(61,128,216,.15)',  group:'iron'},
+  '3I':        {line:'#4290DC', bg:'rgba(66,144,220,.15)',  group:'iron'},
+  '4I':        {line:'#479FE0', bg:'rgba(71,159,224,.15)',  group:'iron'},
+  '5I':        {line:'#4CAFE4', bg:'rgba(76,175,228,.15)',  group:'iron'},
+  '6I':        {line:'#54B8E8', bg:'rgba(84,184,232,.15)',  group:'iron'},
+  '7I':        {line:'#60C0EC', bg:'rgba(96,192,236,.15)',  group:'iron'},
+  '8I':        {line:'#6CC8F0', bg:'rgba(108,200,240,.15)', group:'iron'},
+  '9I':        {line:'#78D0F4', bg:'rgba(120,208,244,.15)', group:'iron'},
+  // ── 웨지 (보라~핑크 그라데이션)
+  'PW':        {line:'#9878E8', bg:'rgba(152,120,232,.15)', group:'wedge'},
+  'AW/GW':     {line:'#B070D8', bg:'rgba(176,112,216,.15)', group:'wedge'},
+  'SW':        {line:'#C868C8', bg:'rgba(200,104,200,.15)', group:'wedge'},
+  'LW':        {line:'#E060B8', bg:'rgba(224,96,184,.15)',  group:'wedge'},
+  // ── 퍼터 (회색)
+  '퍼터':      {line:'#8890A8', bg:'rgba(136,144,168,.15)', group:'putter'},
 };
 function clubColor(club) {
   return CLUB_COLORS[club] || {line:'#8A9BAA', bg:'rgba(138,155,170,.15)'};
@@ -8082,7 +8099,7 @@ function initHomeDistChart(){
     type:'bar',
     data:{
       labels:clubOrder,
-      datasets:[{data:vals,backgroundColor:colors.map(c=>c+'99'),borderColor:colors,borderWidth:1.5,borderRadius:3}]
+      datasets:[{data:vals,backgroundColor:colors.map(col=>col+'88'),borderColor:colors.map(col=>col+'CC'),borderWidth:1.5,borderRadius:3}]
     },
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -8219,24 +8236,61 @@ function initCharts(){
       const showTotal=mode==='total';
       const vals=showTotal?totalVals:carryVals;
       const maxVal=Math.max(...vals.filter(Boolean),50);
+      // ── 그룹별 색상 정의
+      const GROUP_COLORS={
+        wood:  {bg:'rgba(240,176,64,.55)',  border:'rgba(240,176,64,.95)'},
+        util:  {bg:'rgba(52,176,160,.55)',  border:'rgba(52,176,160,.95)'},
+        iron:  {bg:'rgba(76,175,228,.55)',  border:'rgba(76,175,228,.95)'},
+        wedge: {bg:'rgba(176,112,216,.55)', border:'rgba(176,112,216,.95)'},
+        putter:{bg:'rgba(136,144,168,.4)',  border:'rgba(136,144,168,.8)'},
+        def:   {bg:'rgba(74,101,128,.3)',   border:'rgba(74,101,128,.6)'},
+      };
+      const getGroup=cl=>CLUB_COLORS[cl]?.group||'def';
+
+      // ── 연습 필요 클럽 감지
+      // 클럽별 최근 N세션 데이터를 분석해 문제 클럽 플래그
+      const needsWork={};
+      labels.forEach(cl=>{
+        const clData=cm2[cl];
+        if(!clData||!clData.sessions.length)return;
+        const recent=clData.sessions.slice(0,RECENT_N);
+        // 1) 방향성: 방향 편차 심한 클럽
+        const dirs=recent.flatMap(s=>(s.shots||[]).map(sh=>sh.direction).filter(v=>v!=null));
+        const avgDirVal=dirs.length?dirs.reduce((a,b)=>a+b,0)/dirs.length:null;
+        const dirStd=dirs.length>=3?(()=>{const m=avgDirVal;return Math.sqrt(dirs.reduce((a,b)=>a+(b-m)**2,0)/dirs.length);})():null;
+        // 2) 일관성: consistency 낮은 클럽
+        const cons=recent.map(s=>ss(s).consistency).filter(v=>v!=null);
+        const avgCon=cons.length?cons.reduce((a,b)=>a+b,0)/cons.length:null;
+        // 3) 성장 정체: 최근 절반 vs 앞 절반 비거리 비교
+        const carries=recent.map(s=>ss(s).avgCarry).filter(Boolean);
+        let stagnant=false;
+        if(carries.length>=4){
+          const half=Math.floor(carries.length/2);
+          const oldAvg=carries.slice(half).reduce((a,b)=>a+b,0)/half;
+          const newAvg=carries.slice(0,half).reduce((a,b)=>a+b,0)/half;
+          stagnant=(newAvg-oldAvg)<1; // 개선 없거나 퇴보
+        }
+        const flags=[];
+        if(avgCon!=null&&avgCon<55) flags.push('⚡');           // 일관성 낮음
+        if(avgDirVal!=null&&Math.abs(avgDirVal)>8) flags.push('↗'); // 방향 편차
+        if(dirStd!=null&&dirStd>10) flags.push('↗');
+        if(stagnant&&carries.length>=4) flags.push('📈');         // 성장 정체
+        if(flags.length) needsWork[cl]=[...new Set(flags)].join('');
+      });
+
+      // ── 라벨에 심볼 추가
+      const displayLabels=labels.map(cl=>needsWork[cl]?cl+' '+needsWork[cl]:cl);
+
       charts['club-dist-chart']=new Chart(distEl,{
         type:'bar',
         data:{
-          labels,
+          labels:displayLabels,
           datasets:[{
             label:showTotal?'총거리(m)':'캐리(m)',
             data:vals,
-            backgroundColor:labels.map((_,i)=>{
-              const v=vals[i];if(!v)return'rgba(74,101,128,.15)';
-              const ratio=v/maxVal;
-              return ratio>0.85?'rgba(200,137,58,.65)':ratio>0.6?'rgba(74,143,168,.55)':'rgba(167,139,250,.45)';
-            }),
-            borderColor:labels.map((_,i)=>{
-              const v=vals[i];if(!v)return'rgba(74,101,128,.3)';
-              const ratio=v/maxVal;
-              return ratio>0.85?'rgba(200,137,58,.9)':ratio>0.6?'rgba(74,143,168,.9)':'rgba(167,139,250,.8)';
-            }),
-            borderWidth:1,
+            backgroundColor:labels.map(cl=>{const v=vals[labels.indexOf(cl)];if(!v)return GROUP_COLORS.def.bg;return GROUP_COLORS[getGroup(cl)]?.bg||GROUP_COLORS.def.bg;}),
+            borderColor:labels.map(cl=>{const v=vals[labels.indexOf(cl)];if(!v)return GROUP_COLORS.def.border;return GROUP_COLORS[getGroup(cl)]?.border||GROUP_COLORS.def.border;}),
+            borderWidth:1.5,
             borderRadius:3,
           }]
         },
@@ -8246,26 +8300,53 @@ function initCharts(){
             legend:false,
             tooltip:{
               callbacks:{
+                title:ctxArr=>{
+                  const cl=labels[ctxArr[0].dataIndex];
+                  return needsWork[cl]?cl+' — 연습 필요':cl;
+                },
                 label:ctx=>{
                   const n=nVals[ctx.dataIndex];
                   return`${ctx.raw||'-'}m (최근 ${n}세션 평균)`;
                 },
                 afterLabel:ctx=>{
-                  const club=labels[ctx.dataIndex];
-                  const c=carryVals[ctx.dataIndex],t=totalVals[ctx.dataIndex];
-                  if(c&&t&&!showTotal)return`총거리: ${t}m`;
-                  if(c&&t&&showTotal)return`캐리: ${c}m`;
-                  return '';
+                  const cl=labels[ctx.dataIndex];
+                  const cv=carryVals[ctx.dataIndex],tv=totalVals[ctx.dataIndex];
+                  const lines=[];
+                  if(cv&&tv&&!showTotal) lines.push(`총거리: ${tv}m`);
+                  if(cv&&tv&&showTotal)  lines.push(`캐리: ${cv}m`);
+                  if(needsWork[cl]){
+                    if(needsWork[cl].includes('⚡')) lines.push('⚡ 일관성 개선 필요');
+                    if(needsWork[cl].includes('↗')) lines.push('↗ 방향성 교정 필요');
+                    if(needsWork[cl].includes('📈')) lines.push('📈 비거리 향상 정체');
+                  }
+                  return lines;
                 }
               }
             }
           },
           scales:{
-            x:{ticks:{color:'rgba(240,237,230,.6)',font:{size:12}},grid:{display:false}},
+            x:{ticks:{color:'rgba(240,237,230,.65)',font:{size:11},maxRotation:45},grid:{display:false}},
             y:{min:0,ticks:{color:'rgba(240,237,230,.5)',font:{size:12},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
           }
         }
       });
+
+      // ── 범례 + 연습 필요 클럽 안내 렌더
+      const legendEl=document.getElementById('dist-chart-legend');
+      if(legendEl){
+        const workList=Object.entries(needsWork);
+        legendEl.innerHTML=`
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:${workList.length?'.45rem':'0'}">
+            ${[['wood','#F0B040','드라이버/우드'],['util','#34B0A0','유틸'],['iron','#4CAFE4','아이언'],['wedge','#B070D8','웨지']].map(([g,col,label])=>`
+              <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:rgba(240,237,230,.55)">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col};opacity:.8"></span>${label}
+              </span>`).join('')}
+          </div>
+          ${workList.length?`<div style="font-size:.68rem;color:rgba(240,237,230,.5);line-height:1.8">
+            ${workList.map(([cl,sym])=>`<span style="margin-right:8px">${sym} <b style="color:rgba(240,237,230,.75)">${cl}</b>${sym.includes('⚡')?' 일관성':sym.includes('↗')?' 방향성':' 비거리'} 개선 권장</span>`).join('')}
+          </div>`:''}
+        `;
+      }
     }catch(e){console.warn('club-dist-chart 오류:',e);}
   }
   const clubs=[...new Set(sessions.map(s=>normalizeClub(s.club)).filter(Boolean))];
