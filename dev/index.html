@@ -5454,8 +5454,8 @@ window.confirmEquipPhoto=async()=>{
       const path=`equip/${user.id}/${Date.now()}.${ext}`;
       const{error:ue}=await sb.storage.from('gdr-images').upload(path,file,{upsert:true});
       if(ue)throw ue;
-      const{data:sd}=await sb.storage.from('gdr-images').createSignedUrl(path,60*60*24*365*5);
-      photoUrl=sd?.signedUrl||'';
+      const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
+      photoUrl=sd?.publicUrl||'';
     } else {
       photoUrl=_ePhotoSelected.value;
     }
@@ -7771,7 +7771,23 @@ window.updateInstaEquip = () => {
   renderInstaCanvas();
 };
 
+let _instaRenderPending=false;
 async function renderInstaCanvas(){
+  // 이미 렌더 중이면 pending 표시 후 현재 호출 종료 (마지막 요청만 실행)
+  if(window._instaRendering){
+    _instaRenderPending=true;
+    return;
+  }
+  window._instaRendering=true;
+  _instaRenderPending=false;
+  try{
+    await _renderInstaCanvasCore();
+  }finally{
+    window._instaRendering=false;
+    if(_instaRenderPending) renderInstaCanvas();
+  }
+}
+async function _renderInstaCanvasCore(){
   const canvas=document.getElementById('insta-canvas');
   if(!canvas)return;
 
@@ -7991,9 +8007,22 @@ function loadEquipImg(url){
   if(_equipImgCache[url]) return Promise.resolve(_equipImgCache[url]);
   return new Promise(res=>{
     const img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=()=>{_equipImgCache[url]=img;res(img);};
-    img.onerror=()=>res(null);
+    // Public URL만 crossOrigin=anonymous 허용 (signed URL이면 tainted canvas 오류)
+    const isPublic=url.includes('/storage/v1/object/public/');
+    if(isPublic) img.crossOrigin='anonymous';
+    img.onload=()=>{
+      _equipImgCache[url]=img;
+      // public URL이 아니면 canvas에 그릴 수 없으므로 null 처리
+      if(!isPublic){
+        // tainted canvas 방지: 사진 정보는 있지만 canvas 합성 불가
+        img._noCanvas=true;
+      }
+      res(img);
+    };
+    img.onerror=e=>{
+      console.warn('[Birdyard] 장비사진 로드 실패:', url, e);
+      res(null);
+    };
     img.src=url;
   });
 }
@@ -8022,6 +8051,8 @@ async function drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH){
   // ─────────────────────────────────────────────
   // 헬퍼: 사진 한 장 그리기 (공통)
   const drawPhoto=(img,e,x,y,w,h,radius=6,styleOpt='card')=>{
+    // _noCanvas: 로드됐지만 CORS로 canvas에 그릴 수 없는 이미지
+    const canDraw = img && !img._noCanvas;
     ctx.save();
     ctx.beginPath();ctx.roundRect(x,y,w,h,radius);ctx.clip();
 
