@@ -7632,8 +7632,8 @@ window.openInstaCard = () => {
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;padding-top:2rem';
 
   const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
-  const HASHTAGS={dist:'#골프 #비거리 #Birdyard #골프기록',score:'#골프 #라운드기록 #Birdyard #스코어',practice:'#골프연습 #스윙연습 #Birdyard #골프향상',equip:'#골프장비 #클럽피팅 #Birdyard #마이셋업',session:'#골프연습 #비행기록 #Birdyard #스윙분석'};
-  const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.',session:'오늘 연습 기록이에요 ✈️ 샷 데이터와 AI 분석으로 내 스윙을 점검하고 있어요.\n\n#Birdyard 앱으로 비행 기록을 남겨보세요.'};
+  const HASHTAGS={dist:'#골프 #비거리 #Birdyard #골프기록',score:'#골프 #라운드기록 #Birdyard #스코어',practice:'#골프연습 #스윙연습 #Birdyard #골프향상',equip:'#골프장비 #클럽피팅 #Birdyard #마이셋업',session:'#골프연습 #연습분석 #Birdyard #스윙분석'};
+  const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.',session:'오늘 연습 기록이에요 ✈️ 샷 데이터와 AI 분석으로 내 스윙을 점검하고 있어요.\n\n#Birdyard 앱으로 연습 분석을 남겨보세요.'};
   const ownedEquip=D.equip.filter(e=>e.status==='owned');
   const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,20);
   const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
@@ -7645,7 +7645,7 @@ window.openInstaCard = () => {
       <button onclick="document.getElementById('insta-card-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">✕</button>
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;flex-wrap:wrap">
-      ${/* TODO: equip 타입 준비 완료 후 ["equip","🪶 장비"] 추가 */ [["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"],["session","✈️ 비행기록"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:50px;padding:.35rem .2rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
+      ${/* TODO: equip 타입 준비 완료 후 ["equip","🪶 장비"] 추가 */ [["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"],["session","✈️ 연습분석"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:50px;padding:.35rem .2rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center;flex-wrap:wrap">
       <span style="font-size:.7rem;color:var(--muted)">비율</span>
@@ -7674,8 +7674,8 @@ window.openInstaCard = () => {
     </div>
 
     <div id="ic-options-session" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">비행 기록 선택</div>
-      <select id="ic-session-single" onchange="updateInstaSessionSingle()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.55rem"><option value="">세션 선택...</option>${recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''} (${s.shots?.length||0}샷)</option>`).join('')}</select>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">연습 분석 선택</div>
+      <select id="ic-session-single" onchange="updateInstaSessionSingle()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.55rem"><option value="">연습 기록 선택...</option>${recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''} (${s.shots?.length||0}샷)</option>`).join('')}</select>
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">카드에 포함할 항목 선택</div>
       <div id="ic-session-blocks" style="display:flex;flex-direction:column;gap:.28rem">
         ${[['scatter','📊 샷 분포 그래프'],['best','🏆 베스트 샷'],['improve','🎯 개선이 필요한 샷'],['stats','📈 핵심 수치'],['ai','🤖 AI 스윙 분석']].map(([v,l])=>`
@@ -8002,7 +8002,7 @@ function drawSessionCard(ctx,W,H,dark,pad,contentTop,contentH){
   const s=sessions[idx>=0?idx:0];
   if(!s){
     ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;
-    ctx.fillText('세션을 선택해주세요',pad,contentTop+contentH/2);return;
+    ctx.fillText('연습 기록을 선택해주세요',pad,contentTop+contentH/2);return;
   }
 
   // 체크된 블록
@@ -8186,7 +8186,7 @@ function drawSessionCard(ctx,W,H,dark,pad,contentTop,contentH){
       ctx.textAlign='center';
       ctx.fillText('🤖 AI 스윙 분석',W/2,y+h*0.42);
       ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;ctx.fillStyle=muted;
-      ctx.fillText('분석 패널에서 [지금 분석] 버튼을 눌러주세요',W/2,y+h*0.68);
+      ctx.fillText('분석 패널에서 [지금 분석]을 눌러주세요',W/2,y+h*0.68);
       ctx.textAlign='left';
     } else {
       // 선택한 섹션 텍스트 추출
