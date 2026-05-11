@@ -196,8 +196,8 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .price-big{font-family:var(--mono);font-size:1.1rem;font-weight:500;color:var(--wing2)}
 
 /* PRACTICE */
-.p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
-.p-tab{padding:.4rem 1rem;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.p-tabs{display:flex;gap:.3rem;margin-bottom:0;flex-wrap:nowrap}
+.p-tab{padding:.38rem .7rem;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--sans);font-size:.73rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap;flex:1;text-align:center}
 .p-tab.on{background:rgba(200,137,58,.1);color:var(--wing2);border-color:rgba(200,137,58,.3)}
 .shot-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.45rem;background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.7rem;margin-bottom:.4rem;position:relative}
 .shot-num{position:absolute;top:.45rem;left:.6rem;font-size:.70rem;color:var(--muted);font-weight:500;letter-spacing:.12em;text-transform:uppercase}
@@ -7067,14 +7067,16 @@ function pList(){
   const gameSessions = D.sessions.filter(s=>s.gameType==='screen'||s.gameType==='field');
   const totalShots=gdrSessions.reduce((a,s)=>a+(s.shots?.length||0),0);
   const clubs=[...new Set(gdrSessions.map(s=>s.club).filter(Boolean))];
-  const ptabs=`<div class="p-tabs" style="display:flex;align-items:center">
-    <button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 훈련</button>
-    <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
-    <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
-    <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
-    <div style="margin-left:auto;display:flex;gap:.35rem;flex-shrink:0;align-items:center">
-      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:linear-gradient(135deg,rgba(200,137,58,.12),rgba(167,139,250,.12));border:1px solid rgba(200,137,58,.28);color:var(--wing2);padding:.3rem .7rem;border-radius:14px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
-      <button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+  const ptabs=`<div style="margin-bottom:.85rem">
+    <div class="p-tabs">
+      <button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 훈련</button>
+      <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
+      <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
+      <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-top:.45rem">
+      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
+      <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
     </div>
   </div>`;
   const srow=`<div class="stats-row">
@@ -7630,10 +7632,10 @@ window.openInstaCard = () => {
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:4000;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;padding-top:2rem';
 
   const RATIOS={'4:5':{w:1080,h:1350,label:'4:5 (권장)'},'1:1':{w:1080,h:1080,label:'1:1 정사각'},'9:16':{w:1080,h:1920,label:'스토리/릴스'}};
-  const HASHTAGS={dist:'#골프 #비거리 #Birdyard #골프기록',score:'#골프 #라운드기록 #Birdyard #스코어',practice:'#골프연습 #스윙연습 #Birdyard #골프향상',equip:'#골프장비 #클럽피팅 #Birdyard #마이셋업'};
-  const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.'};
+  const HASHTAGS={dist:'#골프 #비거리 #Birdyard #골프기록',score:'#골프 #라운드기록 #Birdyard #스코어',practice:'#골프연습 #스윙연습 #Birdyard #골프향상',equip:'#골프장비 #클럽피팅 #Birdyard #마이셋업',session:'#골프연습 #연습분석 #Birdyard #스윙분석'};
+  const CAPTIONS={dist:'버드야드로 클럽별 비거리를 기록하고 있어요. 데이터로 보니 어떤 클럽이 더 성장했는지 한눈에 보이네요 🏌️‍♂️\n\n#Birdyard 앱으로 골프 데이터를 분석해보세요.',score:'최근 라운드 스코어 흐름을 정리해봤어요. 꾸준히 데이터를 쌓으니 내 골프가 보이기 시작했어요 ⛳\n\n#Birdyard 앱으로 나만의 골프 기록을 남겨보세요.',practice:'오늘 연습 세션 데이터 기록 완료 💪 클럽별 평균 캐리와 스매시팩터를 체크하며 훈련 중이에요.\n\n#Birdyard 앱으로 연습 기록을 남겨보세요.',equip:'현재 사용 중인 나의 골프 셋업을 정리해봤어요. 클럽 구성이 내 스윙에 잘 맞는지 분석 중 🪶\n\n#Birdyard 앱으로 내 장비를 관리해보세요.',session:'오늘 연습 기록이에요 ✈️ 샷 데이터와 AI 분석으로 내 스윙을 점검하고 있어요.\n\n#Birdyard 앱으로 연습 분석을 남겨보세요.'};
   const ownedEquip=D.equip.filter(e=>e.status==='owned');
-  const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,5);
+  const recentSessions=D.sessions.filter(s=>(!s.gameType||s.gameType==='gdr')&&s.shots?.length>0).slice(0,20);
   const sessionOpts=recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''}</option>`).join('');
   const equipOpts=ownedEquip.map((e,i)=>`<label style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;cursor:pointer;font-size:.8rem;color:var(--dim)"><input type="checkbox" id="ic-equip-${i}" onchange="updateInstaEquip()" style="accent-color:var(--wing2)"><span>${esc(e.name)}</span><span style="font-size:.7rem;color:var(--muted)">${esc(e.cat)}</span></label>`).join('');
 
@@ -7643,7 +7645,7 @@ window.openInstaCard = () => {
       <button onclick="document.getElementById('insta-card-overlay').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem">✕</button>
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;flex-wrap:wrap">
-      ${/* TODO: equip 타입 준비 완료 후 ["equip","🪶 장비"] 추가 */ [["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:60px;padding:.4rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.75rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
+      ${/* TODO: equip 타입 준비 완료 후 ["equip","🪶 장비"] 추가 */ [["dist","📊 비거리"],["score","⛳ 스코어"],["practice","🏋️ 연습"],["session","✈️ 연습분석"]].map(([t,l])=>`<button id="ic-type-${t}" onclick="selectInstaType('${t}')" style="flex:1;min-width:50px;padding:.35rem .2rem;border-radius:6px;border:1px solid ${t==='dist'?'rgba(200,137,58,.4)':'var(--border)'};background:${t==='dist'?'rgba(200,137,58,.12)':'none'};color:${t==='dist'?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">${l}</button>`).join("")}
     </div>
     <div style="display:flex;gap:.3rem;margin-bottom:.65rem;align-items:center;flex-wrap:wrap">
       <span style="font-size:.7rem;color:var(--muted)">비율</span>
@@ -7668,6 +7670,30 @@ window.openInstaCard = () => {
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">사진 합성 스타일</div>
       <div style="display:flex;gap:.3rem;flex-wrap:wrap">
         ${[['card','🃏 카드형'],['showcase','✨ 쇼케이스'],['minimal','◻ 미니멀'],['dark-glow','🌑 다크글로우']].map(([v,l])=>`<button id="ic-style-${v}" onclick="selectEquipStyle('${v}')" style="padding:3px 9px;border-radius:8px;font-size:.7rem;cursor:pointer;font-family:var(--sans);border:1px solid ${v==='card'?'rgba(200,137,58,.4)':'var(--border)'};background:${v==='card'?'rgba(200,137,58,.12)':'none'};color:${v==='card'?'var(--wing2)':'var(--muted)'}">${l}</button>`).join('')}
+      </div>
+    </div>
+
+    <div id="ic-options-session" style="display:none;margin-bottom:.65rem;background:rgba(240,237,230,.03);border:1px solid var(--border);border-radius:6px;padding:.6rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">연습 분석 선택</div>
+      <select id="ic-session-single" onchange="updateInstaSessionSingle()" style="width:100%;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.35rem;border-radius:3px;font-size:.78rem;font-family:var(--sans);margin-bottom:.55rem"><option value="">연습 기록 선택...</option>${recentSessions.map((s,i)=>`<option value="${i}">${s.date} ${s.club||''} (${s.shots?.length||0}샷)</option>`).join('')}</select>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.3rem">카드에 포함할 항목 선택</div>
+      <div id="ic-session-blocks" style="display:flex;flex-direction:column;gap:.28rem">
+        ${[['scatter','📊 샷 분포 그래프'],['best','🏆 베스트 샷'],['improve','🎯 개선이 필요한 샷'],['stats','📈 핵심 수치'],['ai','🤖 AI 스윙 분석']].map(([v,l])=>`
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.28rem .4rem;border-radius:4px;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.06)">
+            <input type="checkbox" id="ic-block-${v}" value="${v}" checked onchange="updateInstaSessionSingle()" style="accent-color:var(--wing2);width:14px;height:14px;flex-shrink:0">
+            <span style="font-size:.78rem;color:var(--dim)">${l}</span>
+          </label>
+          ${v==='ai'?`<div id="ic-ai-section-wrap" style="padding:.25rem .4rem .1rem .4rem;display:flex;flex-direction:column;gap:.2rem">
+            <div style="font-size:.66rem;color:rgba(240,237,230,.3);margin-bottom:.1rem">표시할 AI 분석 항목</div>
+            <div id="ic-ai-sec-btns" style="display:flex;flex-wrap:wrap;gap:.25rem">
+              ${[['summary','총평'],['best_shot','잘 친 샷'],['improve_shot','개선 필요한 샷'],['improve_point','개선 포인트'],['next_tip','다음 연습 팁']].map(([sv,sl])=>'<button id="ic-ai-sec-'+sv+'" onclick="selectAISection(\''+sv+'\')" style="padding:2px 7px;border-radius:6px;font-size:.66rem;cursor:pointer;font-family:var(--sans);border:1px solid '+(sv==='summary'?'rgba(84,184,232,.4)':'rgba(240,237,230,.1)')+';background:'+(sv==='summary'?'rgba(84,184,232,.12)':'none')+';color:'+(sv==='summary'?'#54B8E8':'rgba(240,237,230,.35)')+'">'+sl+'</button>').join('')}
+            </div>
+            <div id="ic-ai-no-analysis" style="font-size:.7rem;color:rgba(255,160,80,.8);display:none;margin-top:.2rem">
+              ⚠ 아직 AI 분석이 없습니다.
+              <button onclick="runInstaAnalysis()" style="margin-left:.4rem;padding:1px 7px;border-radius:4px;font-size:.68rem;border:1px solid rgba(200,137,58,.35);background:rgba(200,137,58,.1);color:var(--wing2);cursor:pointer;font-family:var(--sans)">지금 분석</button>
+            </div>
+          </div>`:''}
+        `).join('')}
       </div>
     </div>
     <div style="display:flex;justify-content:center;margin-bottom:.7rem;background:rgba(0,0,0,.3);border-radius:6px;padding:.5rem">
@@ -7715,7 +7741,7 @@ window.selectInstaRatio = (ratio) => {
 
 window.selectInstaType = (type) => {
   window._instaType=type;
-  ['dist','score','practice'/* TODO: 'equip' 준비 완료 후 추가 */].forEach(t=>{
+  ['dist','score','practice','session'/* TODO: 'equip' 준비 완료 후 추가 */].forEach(t=>{
     const btn=document.getElementById(`ic-type-${t}`);
     if(!btn)return;
     const active=t===type;
@@ -7724,7 +7750,7 @@ window.selectInstaType = (type) => {
     btn.style.color=active?'var(--wing2)':'rgba(240,237,230,.35)';
   });
   // 패널 표시/숨김
-  ['practice','equip'].forEach(t=>{
+  ['practice','equip','session'].forEach(t=>{
     const panel=document.getElementById(`ic-options-${t}`);
     if(panel) panel.style.display=type===t?'block':'none';
   });
@@ -7772,6 +7798,58 @@ window.selectEquipStyle = (style) => {
 };
 
 // 세션 선택 변경 → 캐시 즉시 업데이트 → 렌더
+
+window._instaAISection = 'summary';
+
+window.selectAISection = (sec) => {
+  window._instaAISection = sec;
+  ['summary','best_shot','improve_shot','improve_point','next_tip'].forEach(s=>{
+    const btn=document.getElementById(`ic-ai-sec-${s}`);
+    if(!btn)return;
+    const active=s===sec;
+    btn.style.border=active?'1px solid rgba(84,184,232,.4)':'1px solid rgba(240,237,230,.1)';
+    btn.style.background=active?'rgba(84,184,232,.12)':'none';
+    btn.style.color=active?'#54B8E8':'rgba(240,237,230,.35)';
+  });
+  renderInstaCanvas();
+};
+
+window.runInstaAnalysis = async () => {
+  const sessions = window._instaRecentSessions || [];
+  const idx = window._instaSelSessionIdx ?? -1;
+  const s = idx >= 0 ? sessions[idx] : null;
+  if(!s) return;
+  const noEl = document.getElementById('ic-ai-no-analysis');
+  if(noEl) noEl.textContent = '⏳ 분석 중...';
+  try {
+    await window.analyzeSwing(s.id);
+    // D.sessions에서 최신 aiAnalysis 반영
+    const fresh = D.sessions.find(x=>x.id===s.id);
+    if(fresh && fresh.aiAnalysis) s.aiAnalysis = fresh.aiAnalysis;
+    updateInstaSessionSingle();
+  } catch(e) {
+    if(noEl){ noEl.textContent='⚠ 분석 실패. 다시 시도해주세요.'; }
+  }
+};
+
+window.updateInstaSessionSingle = () => {
+  const sel = document.getElementById('ic-session-single');
+  window._instaSelSessionIdx = sel ? parseInt(sel.value ?? '-1') : -1;
+  const sessions = window._instaRecentSessions || [];
+  const s = sessions[window._instaSelSessionIdx >= 0 ? window._instaSelSessionIdx : 0];
+  // AI 없음 안내 표시/숨김
+  const noEl = document.getElementById('ic-ai-no-analysis');
+  const aiWrap = document.getElementById('ic-ai-section-wrap');
+  const hasAI = !!(s?.aiAnalysis);
+  if(noEl) noEl.style.display = hasAI ? 'none' : 'flex';
+  if(aiWrap) {
+    // 버튼 row는 AI 있을 때만 활성화
+    const btnRow = aiWrap.querySelector('div[style*="flex-wrap"]');
+    if(btnRow) btnRow.style.opacity = hasAI ? '1' : '0.3';
+  }
+  // 체크 상태 반영 후 렌더
+  renderInstaCanvas();
+};
 window.updateInstaSession = () => {
   const s1=document.getElementById('ic-session1');
   const s2=document.getElementById('ic-session2');
@@ -7886,6 +7964,9 @@ async function _renderInstaCanvasCore(){
   if(type==='dist') drawDistCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='score') drawScoreCard(ctx,W,H,dark,pad,contentTop,contentH);
   else if(type==='practice') drawPracticeCard(ctx,W,H,dark,pad,contentTop,contentH);
+  else if(type==='session'){
+    drawSessionCard(ctx,W,H,dark,pad,contentTop,contentH);
+  }
   /* TODO: equip 타입 — 준비 완료 후 활성화
   else if(type==='equip'){
     await drawEquipCardAsync(ctx,W,H,dark,pad,contentTop,contentH);
@@ -7907,6 +7988,241 @@ async function _renderInstaCanvasCore(){
   });
   if(line) ctx.fillText(line,W/2,lineY);
   ctx.textAlign='left';
+}
+
+
+// ── 단일 비행 기록 카드 ──────────────────────────────────────
+function drawSessionCard(ctx,W,H,dark,pad,contentTop,contentH){
+  const chalk=dark?'#F0EDE6':'#1a1a1a';
+  const muted=dark?'rgba(240,237,230,.46)':'rgba(0,0,0,.4)';
+  const accent='#C8893A';
+
+  const sessions=window._instaRecentSessions||[];
+  const idx=window._instaSelSessionIdx??0;
+  const s=sessions[idx>=0?idx:0];
+  if(!s){
+    ctx.font=`400 ${Math.round(W*0.03)}px system-ui`;ctx.fillStyle=muted;
+    ctx.fillText('연습 기록을 선택해주세요',pad,contentTop+contentH/2);return;
+  }
+
+  // 체크된 블록
+  const blockIds=['scatter','best','improve','stats','ai'];
+  const active=new Set(blockIds.filter(b=>{const el=document.getElementById(`ic-block-${b}`);return el?el.checked:true;}));
+  const activeCount=active.size;
+
+  const shots=s.shots||[];
+  const st=ss(s);
+  const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
+  const dirs=shots.map(sh=>sh.direction).filter(v=>v!=null);
+
+  // ── 헤더: 클럽 + 날짜 (장소 제외)
+  ctx.font=`700 ${Math.round(W*0.052)}px Georgia,serif`;ctx.fillStyle=accent;ctx.textAlign='left';
+  ctx.fillText(s.club||'비행 기록',pad,contentTop+Math.round(H*0.014));
+  ctx.font=`400 ${Math.round(W*0.02)}px system-ui`;ctx.fillStyle=muted;
+  ctx.fillText(s.date+(shots.length?` · ${shots.length}샷`:''),pad,contentTop+Math.round(H*0.033));
+
+  // ── 가용 공간 균등 배분 (활성 블록 수 기준)
+  const totalAvail=contentH-Math.round(H*0.05);
+  const blockGap=Math.round(H*0.013);
+  // 블록별 상대 비중
+  const weights={scatter:2.4, stats:1.4, best:1.1, improve:1.1, ai:2.8};
+  const totalW=blockIds.filter(b=>active.has(b)).reduce((a,b)=>a+(weights[b]||1),0);
+  const unitH=totalW>0?(totalAvail-(active.size-1)*blockGap)/totalW:0;
+  const bH=b=>Math.round(unitH*(weights[b]||1));
+
+  let y=contentTop+Math.round(H*0.048);
+
+  // ── 블록: 핵심 수치
+  if(active.has('stats')&&shots.length){
+    const h=bH('stats');
+    const items=[];
+    if(st.avgCarry)       items.push({l:'캐리 평균',v:`${Math.round(st.avgCarry)}m`,c:accent});
+    if(st.topCarry)       items.push({l:'베스트3',v:`${Math.round(st.topCarry)}m`,c:'#E8C060'});
+    if(st.avgHs)          items.push({l:'헤드스피드',v:`${st.avgHs.toFixed(1)}`,c:'#54B8E8'});
+    if(st.avgSf)          items.push({l:'스매시팩터',v:`${st.avgSf.toFixed(2)}`,c:'#3D9E74'});
+    if(st.consistency!=null) items.push({l:'일관성',v:`${st.consistency}점`,c:'#A78BFA'});
+    const show=items.slice(0,4);
+    if(show.length){
+      ctx.fillStyle=dark?'rgba(240,237,230,.03)':'rgba(0,0,0,.03)';
+      ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.fill();
+      const cw=(W-pad*2)/show.length;
+      show.forEach((it,i)=>{
+        const cx=pad+i*cw+cw/2;
+        ctx.font=`700 ${Math.round(Math.min(h*0.38,W*0.042))}px system-ui`;ctx.fillStyle=it.c;ctx.textAlign='center';
+        ctx.fillText(it.v,cx,y+h*0.54);
+        ctx.font=`400 ${Math.round(W*0.017)}px system-ui`;ctx.fillStyle=muted;
+        ctx.fillText(it.l,cx,y+h*0.82);
+      });
+      ctx.textAlign='left';
+      y+=h+blockGap;
+    }
+  }
+
+  // ── 블록: 샷 분포 그래프
+  if(active.has('scatter')&&carries.length>=3){
+    const h=bH('scatter');
+    ctx.fillStyle=dark?'rgba(240,237,230,.022)':'rgba(0,0,0,.022)';
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.fill();
+    ctx.font=`500 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle=muted;
+    ctx.fillText('📊 샷 분포 (캐리 × 방향)',pad+Math.round(W*0.025),y+Math.round(h*0.14));
+
+    const gx=pad+Math.round(W*0.05), gy=y+Math.round(h*0.22);
+    const gw=W-pad*2-Math.round(W*0.1), gh=Math.round(h*0.6);
+    const cx2=gx+gw/2;
+
+    // 그리드 배경
+    ctx.fillStyle=dark?'rgba(240,237,230,.015)':'rgba(0,0,0,.015)';
+    ctx.fillRect(gx,gy,gw,gh);
+
+    // ── 중심 세로선 (방향=0 기준, 굵고 뚜렷하게)
+    ctx.strokeStyle=dark?'rgba(240,237,230,.28)':'rgba(0,0,0,.22)';ctx.lineWidth=1.5;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(cx2,gy);ctx.lineTo(cx2,gy+gh);ctx.stroke();
+    // 중심선 레이블 (목표)
+    ctx.font=`500 ${Math.round(W*0.014)}px system-ui`;ctx.fillStyle=dark?'rgba(240,237,230,.35)':'rgba(0,0,0,.3)';ctx.textAlign='center';
+    ctx.fillText('목표',cx2,gy-Math.round(h*0.02));
+    ctx.textAlign='left';
+
+    // 좌우 경계 세로 보조선
+    ctx.strokeStyle=dark?'rgba(240,237,230,.06)':'rgba(0,0,0,.06)';ctx.lineWidth=1;
+    [0.3,0.7].forEach(r=>{ctx.beginPath();ctx.moveTo(gx+gw*r,gy);ctx.lineTo(gx+gw*r,gy+gh);ctx.stroke();});
+
+    // ── 평균 가로선 (진하고 넓은 라벨)
+    const minC=Math.min(...carries),maxC=Math.max(...carries);
+    const rng=Math.max(maxC-minC,20);
+    const avgY=gy+gh-(((st.avgCarry||minC)-minC)/rng)*gh;
+    // 반투명 배경 띠
+    ctx.fillStyle='rgba(200,137,58,.08)';ctx.fillRect(gx,avgY-2,gw,5);
+    ctx.strokeStyle='rgba(200,137,58,.75)';ctx.lineWidth=1.5;ctx.setLineDash([6,3]);
+    ctx.beginPath();ctx.moveTo(gx,avgY);ctx.lineTo(gx+gw,avgY);ctx.stroke();
+    ctx.setLineDash([]);
+    // 평균 라벨 (배경 박스)
+    const avgLabel=`avg ${Math.round(st.avgCarry||0)}m`;
+    ctx.font=`600 ${Math.round(W*0.018)}px system-ui`;
+    const lw=ctx.measureText(avgLabel).width+8;
+    ctx.fillStyle=dark?'rgba(13,17,23,.85)':'rgba(245,240,232,.9)';
+    ctx.beginPath();ctx.roundRect(gx+gw-lw-2,avgY-Math.round(W*0.013),lw,Math.round(W*0.021),3);ctx.fill();
+    ctx.fillStyle='rgba(200,137,58,.9)';ctx.textAlign='right';
+    ctx.fillText(avgLabel,gx+gw-4,avgY-Math.round(W*0.002));ctx.textAlign='left';
+
+    // ── 샷 점 그리기
+    const maxDir=Math.max(...dirs.map(Math.abs),15);
+    shots.forEach(sh=>{
+      const cv=sh.carry,dv=sh.direction;
+      if(!cv||dv==null)return;
+      const px2=cx2+(dv/maxDir)*(gw/2);
+      const py2=gy+gh-(((cv-minC)/rng)*gh);
+      const rank=carries.filter(v=>v>=cv).length/carries.length;
+      const dotCol=rank<=0.28?'#E8C060':rank>=0.72?'rgba(138,155,170,.45)':'rgba(84,184,232,.72)';
+      const r2=Math.round(W*0.013);
+      ctx.beginPath();ctx.arc(px2,py2,r2,0,Math.PI*2);
+      ctx.fillStyle=dotCol;ctx.fill();
+    });
+
+    // 축 레이블
+    ctx.font=`400 ${Math.round(W*0.013)}px system-ui`;ctx.fillStyle=muted;ctx.textAlign='center';
+    ctx.fillText('◀ 좌',gx+gw*0.12,gy+gh+Math.round(h*0.09));
+    ctx.fillText('우 ▶',gx+gw*0.88,gy+gh+Math.round(h*0.09));
+    ctx.textAlign='left';
+    y+=h+blockGap;
+  }
+
+  // ── 블록: 베스트 샷
+  if(active.has('best')&&carries.length){
+    const h=bH('best');
+    const top=[...shots].filter(sh=>sh.carry>0).sort((a,b)=>b.carry-a.carry)[0];
+    ctx.fillStyle=dark?'rgba(232,192,96,.05)':'rgba(232,192,96,.06)';
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.fill();
+    ctx.strokeStyle='rgba(232,192,96,.18)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.stroke();
+    ctx.font=`500 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle='#E8C060';
+    ctx.fillText('🏆 베스트 샷',pad+Math.round(W*0.025),y+h*0.36);
+    const parts=[];
+    if(top.carry) parts.push(`캐리 ${top.carry}m`);
+    if(top.headSpeed) parts.push(`HS ${(+top.headSpeed).toFixed(1)}`);
+    if(top.smashFactor) parts.push(`SF ${(+top.smashFactor).toFixed(2)}`);
+    if(top.direction!=null) parts.push(`방향 ${top.direction>0?'+':''}${(+top.direction).toFixed(1)}°`);
+    ctx.font=`600 ${Math.round(W*0.028)}px system-ui`;ctx.fillStyle=chalk;
+    ctx.fillText(parts.slice(0,3).join('  ·  '),pad+Math.round(W*0.025),y+h*0.74);
+    y+=h+blockGap;
+  }
+
+  // ── 블록: 개선이 필요한 샷
+  if(active.has('improve')&&carries.length>=4){
+    const h=bH('improve');
+    const sortedAsc=[...shots].filter(sh=>sh.carry>0).sort((a,b)=>a.carry-b.carry);
+    const weakPool=sortedAsc.slice(0,Math.max(1,Math.floor(sortedAsc.length*0.3)));
+    const weak=weakPool.sort((a,b)=>Math.abs(b.direction||0)-Math.abs(a.direction||0))[0];
+    const avgDirVal=dirs.length?dirs.reduce((a,b)=>a+b,0)/dirs.length:0;
+    ctx.fillStyle=dark?'rgba(167,139,250,.04)':'rgba(167,139,250,.05)';
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.fill();
+    ctx.strokeStyle='rgba(167,139,250,.16)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.stroke();
+    ctx.font=`500 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle='#A78BFA';
+    ctx.fillText('🎯 개선 포인트',pad+Math.round(W*0.025),y+h*0.36);
+    const tips=[];
+    if(Math.abs(avgDirVal)>5) tips.push(`방향 편차 ${avgDirVal>0?'우':'좌'} ${Math.abs(avgDirVal).toFixed(1)}° 평균`);
+    if(weak&&Math.abs(weak.direction||0)>10) tips.push(`최대 편차 ${Math.abs(weak.direction).toFixed(0)}°`);
+    if(st.consistency!=null&&st.consistency<60) tips.push(`일관성 ${st.consistency}점 — 개선 권장`);
+    ctx.font=`500 ${Math.round(W*0.024)}px system-ui`;ctx.fillStyle=chalk;
+    ctx.fillText(tips.length?tips[0]:'방향 안정성을 집중 체크',pad+Math.round(W*0.025),y+h*0.72);
+    if(tips[1]){
+      ctx.font=`400 ${Math.round(W*0.018)}px system-ui`;ctx.fillStyle=muted;
+      ctx.fillText(tips[1],pad+Math.round(W*0.025),y+h*0.92);
+    }
+    y+=h+blockGap;
+  }
+
+  // ── 블록: AI 스윙 분석 (섹션 선택 반영)
+  if(active.has('ai')){
+    const h=bH('ai');
+    const hasAI=!!(s.aiAnalysis);
+    ctx.fillStyle=dark?'rgba(84,184,232,.03)':'rgba(84,184,232,.04)';
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.fill();
+    ctx.strokeStyle='rgba(84,184,232,.13)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(pad,y,W-pad*2,h,8);ctx.stroke();
+
+    if(!hasAI){
+      ctx.font=`500 ${Math.round(W*0.022)}px system-ui`;ctx.fillStyle='rgba(84,184,232,.55)';
+      ctx.textAlign='center';
+      ctx.fillText('🤖 AI 스윙 분석',W/2,y+h*0.42);
+      ctx.font=`400 ${Math.round(W*0.019)}px system-ui`;ctx.fillStyle=muted;
+      ctx.fillText('분석 패널에서 [지금 분석]을 눌러주세요',W/2,y+h*0.68);
+      ctx.textAlign='left';
+    } else {
+      // 선택한 섹션 텍스트 추출
+      const secKey=window._instaAISection||'summary';
+      const secLabels={summary:'✓ 총평',best_shot:'✓ 잘 친 샷',improve_shot:'✓ 개선 필요한 샷',improve_point:'✓ 개선 포인트',next_tip:'✓ 다음 연습 팁'};
+      const targetHeading=secLabels[secKey]||'✓ 총평';
+      // aiAnalysis에서 해당 섹션 추출
+      const plain=s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'$1');
+      const secReg=new RegExp(targetHeading.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[^✓]*','s');
+      const match=plain.match(secReg);
+      let secText=match?match[0].replace(targetHeading,'').trim():plain.split('\n').filter(l=>l.trim()).slice(0,4).join('\n');
+
+      // 섹션 레이블
+      const dispLabel={summary:'🤖 총평',best_shot:'🏆 잘 친 샷',improve_shot:'⚠️ 개선 필요',improve_point:'🎯 개선 포인트',next_tip:'📝 다음 연습 팁'}[secKey]||'🤖 AI 분석';
+      ctx.font=`500 ${Math.round(W*0.019)}px system-ui`;ctx.fillStyle='#54B8E8';
+      ctx.fillText(dispLabel,pad+Math.round(W*0.025),y+Math.round(h*0.18));
+
+      // 텍스트 렌더 (줄바꿈 + 말줄임)
+      const fs=Math.round(W*0.021);
+      ctx.font=`400 ${fs}px system-ui`;ctx.fillStyle=dark?'rgba(240,237,230,.68)':'rgba(0,0,0,.62)';
+      const lineH=Math.round(fs*1.52);
+      const maxLines=Math.floor((h*0.72)/lineH);
+      const rawLines=secText.split('\n').flatMap(l=>{
+        // 긴 줄 자동 개행
+        const words=l.trim().split('');let cur='';const out=[];
+        words.forEach(ch=>{
+          if(ctx.measureText(cur+ch).width>W-pad*2-Math.round(W*0.06)){out.push(cur);cur=ch;}
+          else cur+=ch;
+        });
+        if(cur)out.push(cur);return out;
+      }).filter(l=>l.trim()).slice(0,maxLines);
+      let ty=y+Math.round(h*0.32);
+      rawLines.forEach(ln=>{ctx.fillText(ln,pad+Math.round(W*0.025),ty);ty+=lineH;});
+    }
+    y+=h;
+  }
 }
 
 function drawDistCard(ctx,W,H,dark,pad,contentTop,contentH){
