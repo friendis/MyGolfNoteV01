@@ -196,8 +196,8 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .price-big{font-family:var(--mono);font-size:1.1rem;font-weight:500;color:var(--wing2)}
 
 /* PRACTICE */
-.p-tabs{display:flex;gap:.5rem;margin-bottom:1.1rem}
-.p-tab{padding:.4rem 1rem;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.p-tabs{display:flex;gap:.3rem;margin-bottom:0;flex-wrap:nowrap}
+.p-tab{padding:.38rem .7rem;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--sans);font-size:.73rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap;flex:1;text-align:center}
 .p-tab.on{background:rgba(200,137,58,.1);color:var(--wing2);border-color:rgba(200,137,58,.3)}
 .shot-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.45rem;background:rgba(13,17,23,.5);border:1px solid var(--border);border-radius:2px;padding:.7rem;margin-bottom:.4rem;position:relative}
 .shot-num{position:absolute;top:.45rem;left:.6rem;font-size:.70rem;color:var(--muted);font-weight:500;letter-spacing:.12em;text-transform:uppercase}
@@ -7067,14 +7067,16 @@ function pList(){
   const gameSessions = D.sessions.filter(s=>s.gameType==='screen'||s.gameType==='field');
   const totalShots=gdrSessions.reduce((a,s)=>a+(s.shots?.length||0),0);
   const clubs=[...new Set(gdrSessions.map(s=>s.club).filter(Boolean))];
-  const ptabs=`<div class="p-tabs" style="display:flex;align-items:center">
-    <button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 훈련</button>
-    <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
-    <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
-    <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
-    <div style="margin-left:auto;display:flex;gap:.35rem;flex-shrink:0;align-items:center">
-      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:linear-gradient(135deg,rgba(200,137,58,.12),rgba(167,139,250,.12));border:1px solid rgba(200,137,58,.28);color:var(--wing2);padding:.3rem .7rem;border-radius:14px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
-      <button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 기록 추가</button>
+  const ptabs=`<div style="margin-bottom:.85rem">
+    <div class="p-tabs">
+      <button class="p-tab ${pSub==='sessions'?'on':''}" onclick="setPSub('sessions')">비행 훈련</button>
+      <button class="p-tab ${pSub==='games'?'on':''}" onclick="setPSub('games')">게임 기록</button>
+      <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
+      <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-top:.45rem">
+      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
+      <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
     </div>
   </div>`;
   const srow=`<div class="stats-row">
