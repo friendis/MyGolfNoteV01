@@ -1189,6 +1189,8 @@ function ownedClubOptions(currentVal=''){
     .join('');
 }
 const today=()=>new Date().toISOString().split('T')[0];
+const promptDate=()=>{const d=new Date();return `${d.getFullYear()}년 ${d.getMonth()+1}월`;};
+const promptYearRange=()=>{const y=new Date().getFullYear();return `${y-1}~${y}년`;};
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const ea=s=>String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
@@ -5640,6 +5642,7 @@ ${overallStats}
 **✓ 방향 안정성** — 방향 편향 패턴에 맞는 조언
 **✓ 유지 또는 변경** — 이 장비를 계속 쓸지, 바꾼다면 어떤 스펙으로 변경하면 좋은지 구체적으로
 
+현재 날짜: ${promptDate()}. 최신 장비 정보를 검색해 반영해주세요.
 한국어, 간결·전문적으로.`;
 
     } else {
@@ -5661,6 +5664,7 @@ ${overallStats}
 **✓ 방향 안정성** — 내 방향 편향 패턴에 이 장비가 어떻게 도움이 되는지
 **✓ 구매 결론** — 지금 사도 될지, 아니면 어떤 조건이 충족되면 사면 좋은지 한 줄 판단
 
+현재 날짜: ${promptDate()}. 최신 장비 정보를 검색해 반영해주세요.
 한국어, 간결·전문적으로.`;
     }
 
@@ -5669,7 +5673,7 @@ ${overallStats}
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}` },
-        body: JSON.stringify({ prompt, type: 'swing' })
+        body: JSON.stringify({ prompt, type: 'swing', useSearch: true, maxOutputTokens: 3000 })
       }
     );
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
@@ -10310,13 +10314,14 @@ ${wishList}
 **✓ 잘 맞는 장비** — 보유 장비 중 실력에 잘 맞는 것과 이유 1~2문장
 **✓ 아쉬운 장비** — 실력에 비해 아쉽거나 더 활용하기 어려운 장비 1~2문장
 **✓ 관심 장비 평가** — 관심 목록의 장비가 현재 실력에 적합한지 1~2문장 (관심 장비가 없으면 생략)
-**✓ 업그레이드 제안** — 지금 실력에서 가장 효과적인 장비 변화 1~2문장
+**✓ 업그레이드 제안** — 지금 실력에서 가장 효과적인 장비 변화. 최신 시중 제품 1~2개를 브랜드/모델명 포함해 구체적으로 추천하고 이유를 1~2문장으로.
 
+* 현재 날짜는 ${promptDate()}입니다. 인터넷에서 ${promptYearRange()} 최신 골프 장비 정보, 신제품, 실사용 리뷰를 검색해서 내용에 반영해주세요.
 한국어, 친근한 전문가 말투.`;
 
     const resp = await fetch('https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body: JSON.stringify({prompt, type:'swing'})
+      body: JSON.stringify({prompt, type:'swing', useSearch:true, maxOutputTokens:3000})
     });
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
     const data = await resp.json();
@@ -10326,7 +10331,8 @@ ${wishList}
     const analyzedAt = today();
     setAiCache('equip_fit', text);
     const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-box-title">✦ 장비 궁합 분석</div><div class="analysis-content">${formatted}</div><div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash · ${analyzedAt} 분석</div></div>`;
+    const formattedFit = injectWishlistBtns(formatted);
+    resultEl.innerHTML = `<div class="analysis-box"><div class="analysis-box-title">✦ 장비 궁합 분석 <span style="font-size:.62rem;color:rgba(84,184,232,.5);font-weight:400;margin-left:.4rem">🔍 인터넷 검색 반영</span></div><div class="analysis-content">${formattedFit}</div><div style="margin-top:.75rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash + Google Search · ${analyzedAt} 분석</div></div>`;
     btn.textContent = `✦ 장비 궁합 (${analyzedAt.slice(5)}) ↺`;
   } catch(e) {
     resultEl.innerHTML = `<div class="analysis-box" style="border-color:rgba(193,123,106,.25)"><div style="color:var(--red);font-size:.84rem">분석 실패: ${esc(e.message)}</div></div>`;
@@ -10375,6 +10381,133 @@ const clubRecCache = {};
 function clubDataHash(club) {
   const sessions = D.sessions.filter(s=>normalizeClub(s.club)===club&&s.shots.length);
   return sessions.map(s=>s.id+s.shots.length).join('|');
+}
+
+
+// ── 분석 결과에서 추천 장비명 추출 + 관심 장비 빠른 추가 ──────────
+// 추천 섹션 키워드
+const REC_SECTION_MARKERS = ['권장 장비 사양', '추천', '업그레이드 제안', 'Upgrade'];
+
+// 장비 상세 페이지로 이동 (AI 추천 버튼 → 기존 장비 확인용)
+window.goEquipDetail = (id) => {
+  tab='equipment'; view='detail'; selId=id; render();
+};
+
+window.quickAddWishEquip = async (name, cat) => {
+  if(!name) return;
+  // 이미 보유/관심에 있는지 확인 → 옵션3: 상세 페이지로 이동
+  const exists = D.equip.find(e => e.name.toLowerCase() === name.toLowerCase());
+  if(exists){
+    // 이미 있으면 상세로 이동
+    tab='equipment'; view='detail'; selId=exists.id; render();
+    return;
+  }
+  try{
+    const newEquip = {
+      user_id: user?.id,
+      name: name.trim(),
+      category: cat || '기타',
+      status: 'wishlist',
+      memo: 'AI 분석 추천',
+    };
+    if(!isGuest){
+      const { data, error } = await sb.from('equipment').insert(newEquip).select().single();
+      if(error) throw error;
+      const mapped = {id:data.id, name:data.name, cat:data.category, status:data.status,
+        memo:data.memo||'', tags:data.tags||{}, ironSet:[], photoUrl:data.photo_url||'',
+        links:[], priceHistory:[], isPublic:false};
+      D.equip.push(mapped);
+    } else {
+      D.equip.push({id:'local_'+Date.now(), name:name.trim(), cat:cat||'기타',
+        status:'wishlist', memo:'AI 분석 추천', tags:{}, ironSet:[]});
+    }
+    toast(`⭐ 관심 장비 추가: ${name}`);
+    // 추가된 버튼 상태 업데이트
+    document.querySelectorAll(`[data-quickadd="${CSS.escape(name)}"]`).forEach(el=>{
+      el.textContent = '★ 관심 추가됨';
+      el.disabled = true;
+      el.style.borderColor = 'rgba(200,137,58,.5)';
+      el.style.background = 'rgba(200,137,58,.15)';
+      el.style.opacity = '0.7';
+    });
+  } catch(e){
+    toast(`추가 실패: ${e.message}`);
+  }
+};
+
+// 분석 텍스트에서 제품명을 찾아 클릭 버튼으로 변환
+function injectWishlistBtns(html, catHint=''){
+  // 패턴: 브랜드+모델 (예: "테일러메이드 Qi35", "캘러웨이 Paradym", "PING G430")
+  // **볼드** 안에 있거나, 추천 섹션 단락 내의 고유명사
+  // 전략: 분석 내용 전체에서 제품명처럼 보이는 구문 추출
+  // 제품명 패턴: 영문+숫자 조합 or 한글브랜드+영문모델
+  const productPattern = /([A-Z][a-zA-Z]+(?:\s+[A-Z0-9][a-zA-Z0-9\-\.]+){0,3}|(?:테일러메이드|캘러웨이|타이틀리스트|핑|PING|코브라|미즈노|스릭슨|클리블랜드|혼마|요넥스|던롭|나이키)(?:\s+[A-Za-z0-9\-\.]+){1,3})/g;
+  const found = new Set();
+  let m;
+  // 볼드 텍스트 안의 제품명 우선 추출
+  const boldReg = /<strong>(.*?)<\/strong>/g;
+  while((m = boldReg.exec(html)) !== null){
+    const inner = m[1].replace(/<[^>]*>/g,'');
+    const mProd = inner.match(productPattern);
+    if(mProd) mProd.forEach(p=>{ if(p.length>4) found.add(p.trim()); });
+  }
+  // 추천 섹션 단락에서도 추출
+  const recIdx = REC_SECTION_MARKERS.map(mk=>html.indexOf(mk)).filter(i=>i>=0);
+  if(recIdx.length){
+    const recHtml = html.slice(Math.min(...recIdx));
+    while((m = productPattern.exec(recHtml)) !== null){
+      if(m[0].length > 4 && m[0].length < 40) found.add(m[0].trim());
+    }
+  }
+  if(!found.size) return html;
+
+  // 추천 제품 버튼 블록 생성 — 전체 표시, 상태별 스타일 구분
+  const allItems = [...found].slice(0, 8);
+  const btns = allItems.map(name => {
+    const cat = catHint || guessEquipCat(name) || '기타';
+    const existing = D.equip.find(e => e.name.toLowerCase() === name.toLowerCase());
+
+    if(existing){
+      if(existing.status === 'owned'){
+        // 보유 중 → 초록, 클릭 시 상세 이동
+        return `<button data-quickadd="${esc(name)}" onclick="goEquipDetail('${esc(existing.id)}')"
+          style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;
+          border:1px solid rgba(61,158,116,.45);background:rgba(61,158,116,.1);
+          color:#3D9E74;font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0"
+          title="보유 중 — 클릭하면 장비 상세로 이동">✓ ${esc(name)} <span style="font-size:.65rem;opacity:.7">보유 중</span></button>`;
+      } else {
+        // 관심 목록에 있음 → 골드, 클릭 시 상세 이동
+        return `<button data-quickadd="${esc(name)}" onclick="goEquipDetail('${esc(existing.id)}')"
+          style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;
+          border:1px solid rgba(200,137,58,.45);background:rgba(200,137,58,.12);
+          color:var(--wing2);font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0"
+          title="관심 목록에 있음 — 클릭하면 장비 상세로 이동">★ ${esc(name)} <span style="font-size:.65rem;opacity:.7">관심 중</span></button>`;
+      }
+    }
+    // 새 장비 → 추가 버튼
+    return `<button data-quickadd="${esc(name)}" onclick="quickAddWishEquip('${esc(name)}','${esc(cat)}')"
+      style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;
+      border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.07);
+      color:#A78BFA;font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0"
+      title="클릭하면 관심 목록에 추가">⭐ ${esc(name)}</button>`;
+  }).join('');
+
+  return html + `<div style="margin-top:.7rem;padding:.5rem .6rem;background:rgba(200,137,58,.04);border:1px solid rgba(200,137,58,.1);border-radius:6px">
+    <div style="font-size:.67rem;color:rgba(200,137,58,.55);letter-spacing:.08em;margin-bottom:.4rem">AI 추천 장비</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.2rem">${btns}</div>
+    <div style="font-size:.63rem;color:rgba(240,237,230,.2);margin-top:.35rem">✓ 보유 중 &nbsp;★ 관심 중 &nbsp;⭐ 추가 가능 — 클릭하면 상세로 이동하거나 관심 목록에 추가합니다</div>
+  </div>`;
+}
+
+function guessEquipCat(name){
+  const n = name.toLowerCase();
+  if(/driver|드라이버|1w/.test(n)) return '드라이버';
+  if(/wood|우드|\dw$/.test(n)) return '우드';
+  if(/hybrid|하이브리드|utility|유틸|\dut$/.test(n)) return '하이브리드';
+  if(/iron|아이언|\di$/.test(n)) return '아이언';
+  if(/wedge|웨지|pw|sw|lw|aw|gw/.test(n)) return '웨지';
+  if(/putter|퍼터/.test(n)) return '퍼터';
+  return '기타';
 }
 
 window.analyzeClubRec = async (club, analysisType='equipment', forceReanalyze=false) => {
@@ -10479,6 +10612,7 @@ ${club}의 방향·스핀·발사각·일관성을 종합한 스윙 특성 설�
 **✓ 권장 장비 사양 및 추천**
 이 스윙에 맞는 샤프트 플렉스·로프트·헤드 특성. 업그레이드가 도움될 경우 시중 실제 제품명 2개를 간단한 이유와 함께 추천.
 
+* 현재 날짜는 ${promptDate()}입니다. 인터넷에서 ${promptYearRange()} 최신 장비 정보, 신제품, 실사용 리뷰를 검색해서 제품 추천에 반영해주세요.
 한국어, 친근한 말투.`;
     } else {
       const carryTrend = carries.length>=2?`${Math.round(carries[0])}m→${Math.round(carries[carries.length-1])}m`:'부족';
@@ -10508,7 +10642,7 @@ ${trendRows}
 
     const resp = await fetch('https://wmxccuceisvvocumgbfd.supabase.co/functions/v1/analyze-gdr',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},
-      body: JSON.stringify({prompt, type:'swing', maxOutputTokens: 8000})
+      body: JSON.stringify({prompt, type:'swing', useSearch: analysisType==='equipment', maxOutputTokens: 8000})
     });
     if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
     const data = await resp.json();
@@ -10536,17 +10670,22 @@ function updateAnalysisBtn(btn, analysisType, analyzedAt){
 function renderClubRecResult(club, analysisType, resultEl, btn, text, analyzedAt) {
   const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
   const title = analysisType==='equipment'?`✦ ${esc(club)} 장비·스윙 분석`:`✦ ${esc(club)} 성장 추이 분석`;
-  // 성장 추이 분석에는 키워드 + 드릴 태그 추가
   const tagHtml = analysisType==='growth' ? renderGrowthTags(text) : '';
+  // equipment 분석일 때 추천 제품 클릭 버튼 추가
+  const catHint = Object.entries(CAT_TO_CLUBS||{}).find(([cat,clubs])=>clubs.includes(club))?.[0]||'';
+  const formattedWithWish = analysisType==='equipment' ? injectWishlistBtns(formatted, catHint) : formatted;
   resultEl.innerHTML = `
     <div class="analysis-box analysis-cached" style="margin:.3rem 0">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
         <div class="analysis-box-title" style="margin-bottom:0">${title}</div>
-        <button onclick="analyzeClubRec('${esc(club)}','${analysisType}',true)" style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;font-family:var(--sans)">↺ 다시 분석</button>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          ${analysisType==='equipment'?'<span style="font-size:.62rem;color:rgba(84,184,232,.5)">🔍 인터넷 검색 반영</span>':''}
+          <button onclick="analyzeClubRec('${esc(club)}','${analysisType}',true)" style="background:rgba(74,143,168,.1);border:1px solid rgba(74,143,168,.2);color:var(--sky2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;font-family:var(--sans)">↺ 다시 분석</button>
+        </div>
       </div>
-      <div class="analysis-content">${formatted}</div>
+      <div class="analysis-content">${formattedWithWish}</div>
       ${tagHtml}
-      <div style="margin-top:.6rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash${analyzedAt?' · '+analyzedAt+' 분석':''}</div>
+      <div style="margin-top:.6rem;font-size:.7rem;color:var(--muted)">Powered by Gemini 2.5 Flash + Google Search${analyzedAt?' · '+analyzedAt+' 분석':''}</div>
     </div>`;
   updateAnalysisBtn(btn, analysisType, analyzedAt);
 }
