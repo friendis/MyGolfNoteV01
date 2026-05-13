@@ -10400,17 +10400,21 @@ window.quickAddWishEquip = async (name, cat) => {
     const newEquip = {
       user_id: user?.id,
       name: name.trim(),
-      cat: cat || '기타',
+      category: cat || '기타',   // equipment 테이블 실제 컬럼명
       status: 'wishlist',
       memo: 'AI 분석 추천',
-      created_at: new Date().toISOString()
     };
     if(!isGuest){
-      const { data, error } = await sb.from('user_equip').insert(newEquip).select().single();
+      const { data, error } = await sb.from('equipment').insert(newEquip).select().single();
       if(error) throw error;
-      D.equip.push({...newEquip, id: data.id, tags:{}, ironSet:[]});
+      // D.equip에 맞는 형태로 변환 (eR.data.map 참고)
+      const mapped = {id:data.id, name:data.name, cat:data.category, status:data.status,
+        memo:data.memo||'', tags:data.tags||{}, ironSet:[], photoUrl:data.photo_url||'',
+        links:[], priceHistory:[], isPublic:false};
+      D.equip.push(mapped);
     } else {
-      D.equip.push({...newEquip, id: 'local_'+Date.now(), tags:{}, ironSet:[]});
+      D.equip.push({id:'local_'+Date.now(), name:name.trim(), cat:cat||'기타',
+        status:'wishlist', memo:'AI 분석 추천', tags:{}, ironSet:[]});
     }
     toast(`⭐ 관심 장비 추가: ${name}`);
     // 관심 장비 목록 버튼 업데이트
