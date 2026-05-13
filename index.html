@@ -992,8 +992,10 @@ const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT
 const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
 const WOOD_NUMS_COMMON=['3W','5W','7W'];
-const WOOD_NUMS_RARE=['4W','9W','2W','6W','8W','11W'];
-const UTIL_NUMS=['2UT','3UT','4UT','5UT','6UT'];
+const WOOD_NUMS_RARE=['1W','2W','4W','6W','8W','9W','11W','13W'];
+const UTIL_NUMS_COMMON=['3UT','4UT','5UT'];
+const UTIL_NUMS_RARE=['1UT','2UT','6UT','7UT'];
+const UTIL_NUMS=[...UTIL_NUMS_COMMON,...UTIL_NUMS_RARE];
 const WOOD_NUMS=[...WOOD_NUMS_COMMON,...WOOD_NUMS_RARE];
 
 // 클럽별 기본 로프트 참고값
@@ -1046,17 +1048,28 @@ function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], select
 
   // 우드
   if(catKey==='우드') return`${modeToggle}
-    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:.3rem">주요 우드 번호</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.45rem">
       ${WOOD_NUMS_COMMON.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','200,137,58')).join('')}
+    </div>
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:.3rem">기타 우드 번호</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
       ${WOOD_NUMS_RARE.map(n=>mkChk(n,selectedWoods.includes(n),'wood_set','200,137,58')).join('')}
     </div>
+    <div style="font-size:.65rem;color:rgba(240,237,230,.3);margin-top:.2rem">※ 드라이버(1W)는 드라이버 카테고리로 따로 등록해주세요</div>
     ${expertMode?WOOD_NUMS.filter(n=>selectedWoods.includes(n)).map(n=>specRow(n,'var(--sky2)')).join(''):''}`;
 
-  // 하이브리드
+  // 하이브리드/유틸리티
   if(catKey==='하이브리드') return`${modeToggle}
-    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
-      ${UTIL_NUMS.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','167,139,250')).join('')}
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:.3rem">주요 번호 <span style="font-size:.63rem;color:rgba(240,237,230,.25)">(시중에서 가장 많이 판매)</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.45rem">
+      ${UTIL_NUMS_COMMON.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','167,139,250')).join('')}
     </div>
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:.3rem">기타 번호</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.25rem">
+      ${UTIL_NUMS_RARE.map(n=>mkChk(n,selectedUtils.includes(n),'util_set','167,139,250')).join('')}
+    </div>
+    <div style="font-size:.65rem;color:rgba(240,237,230,.3);margin-top:.2rem">※ 번호를 선택해야 비행 기록 추가 시 클럽 선택에 표시됩니다</div>
     ${expertMode?UTIL_NUMS.filter(n=>selectedUtils.includes(n)).map(n=>specRow(n,'rgba(167,139,250,.9)')).join(''):''}`;
 
   // 웨지
@@ -1128,49 +1141,52 @@ window.toggleSpecRow=(n)=>{
 function ownedClubOptions(currentVal=''){
   const owned=D.equip.filter(e=>e.status==='owned');
   if(!owned.length)return'';
-  const items=[];
+  // 카테고리별 그룹 {label, items[]}
+  const groups={
+    '드라이버':   {label:'🏌️ 드라이버',   items:[]},
+    '우드':        {label:'🌲 우드',          items:[]},
+    '하이브리드':  {label:'🔀 하이브리드',   items:[]},
+    '아이언':      {label:'🪐 아이언',        items:[]},
+    '웨지':        {label:'🌙 웨지',           items:[]},
+    '퍼터':        {label:'🎯 퍼터',           items:[]},
+  };
+  const pushItem=(grp,val,label)=>{
+    if(!groups[grp])return;
+    groups[grp].items.push({val,label,selected:currentVal===val||currentVal===val.split(' — ')[1]||currentVal===label.split(' — ')[1]});
+  };
   owned.forEach(e=>{
-    if(e.cat==='아이언'){
-      // 아이언 번호
-      const irons=e.ironSet&&e.ironSet.length?e.ironSet:CAT_TO_CLUBS['아이언'];
-      irons.forEach(n=>{
-        const val=`${e.name} — ${n}`;
-        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
-      });
-      // 아이언 세트에 포함된 웨지
-      const wedges=e.tags?.wedge_set||[];
-      wedges.forEach(n=>{
-        const val=`${e.name} — ${n}`;
-        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
-      });
-    } else if(e.cat==='웨지'){
-      const wedges=e.tags?.wedge_set&&e.tags.wedge_set.length?e.tags.wedge_set:CAT_TO_CLUBS['웨지']||[];
-      wedges.forEach(n=>{
-        const val=`${e.name} — ${n}`;
-        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
-      });
+    if(e.cat==='드라이버'){
+      pushItem('드라이버',`${e.name} — 드라이버`,`${e.name} — 드라이버`);
     } else if(e.cat==='우드'){
-      const woods=e.tags?.wood_set&&e.tags.wood_set.length?e.tags.wood_set:CAT_TO_CLUBS['우드']||[];
-      woods.forEach(n=>{
-        const val=`${e.name} — ${n}`;
-        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
-      });
+      const woods=e.tags?.wood_set?.length?e.tags.wood_set:CAT_TO_CLUBS['우드']||[];
+      if(!woods.length){
+        // 번호 미등록 — 장비명만 표시 + 안내
+        pushItem('우드',`${e.name}`,`⚠ ${e.name} (장비 창고에서 번호 등록 필요)`);
+      } else {
+        woods.forEach(n=>pushItem('우드',`${e.name} — ${n}`,`${e.name} — ${n}`));
+      }
     } else if(e.cat==='하이브리드'){
-      const utils=e.tags?.util_set&&e.tags.util_set.length?e.tags.util_set:CAT_TO_CLUBS['하이브리드']||[];
-      utils.forEach(n=>{
-        const val=`${e.name} — ${n}`;
-        items.push({val,label:`${e.name} — ${n}`,selected:currentVal===val||currentVal===n});
-      });
-    } else {
-      const clubs=CAT_TO_CLUBS[e.cat]||[];
-      const clubNum=clubs[0]||'';
-      if(!clubNum)return;
-      const val=`${e.name} — ${clubNum}`;
-      items.push({val,label:val,selected:currentVal===val||currentVal===clubNum});
+      const utils=e.tags?.util_set?.length?e.tags.util_set:CAT_TO_CLUBS['하이브리드']||[];
+      if(!utils.length){
+        pushItem('하이브리드',`${e.name}`,`⚠ ${e.name} (장비 창고에서 번호 등록 필요)`);
+      } else {
+        utils.forEach(n=>pushItem('하이브리드',`${e.name} — ${n}`,`${e.name} — ${n}`));
+      }
+    } else if(e.cat==='아이언'){
+      const irons=e.ironSet?.length?e.ironSet:CAT_TO_CLUBS['아이언'];
+      irons.forEach(n=>pushItem('아이언',`${e.name} — ${n}`,`${e.name} — ${n}`));
+      (e.tags?.wedge_set||[]).forEach(n=>pushItem('웨지',`${e.name} — ${n}`,`${e.name} — ${n}`));
+    } else if(e.cat==='웨지'){
+      const wedges=e.tags?.wedge_set?.length?e.tags.wedge_set:CAT_TO_CLUBS['웨지']||[];
+      wedges.forEach(n=>pushItem('웨지',`${e.name} — ${n}`,`${e.name} — ${n}`));
+    } else if(e.cat==='퍼터'){
+      pushItem('퍼터',`${e.name} — 퍼터`,`${e.name} — 퍼터`);
     }
   });
-  if(!items.length)return'';
-  return`<optgroup label="🪶 보유 장비">${items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`;
+  return Object.values(groups)
+    .filter(g=>g.items.length)
+    .map(g=>`<optgroup label="${g.label}">${g.items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`)
+    .join('');
 }
 const today=()=>new Date().toISOString().split('T')[0];
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -5024,6 +5040,8 @@ function eList(){
   if(eSub === 'sets') return eSetsView(subTabs);
 
   const owned=D.equip.filter(e=>e.status==='owned'),wish=D.equip.filter(e=>e.status==='wishlist'),past=D.equip.filter(e=>e.status==='past');
+  // 우드/하이브리드 별도 카운트
+  const ownedWoods=owned.filter(e=>e.cat==='우드'),ownedUtils=owned.filter(e=>e.cat==='하이브리드');
   const wishTot=wish.reduce((a,e)=>{const p=e.links.length?Math.min(...e.links.map(l=>l.price||Infinity)):0;return a+(p===Infinity?0:p)},0);
   const pt=e=>{if(!e.priceH||e.priceH.length<2)return'';const d=e.priceH[e.priceH.length-1].price-e.priceH[e.priceH.length-2].price;if(!d)return'';return`<div style="font-size:.7rem;color:${d<0?'var(--green)':'var(--red)'}">${d<0?'↓':'↑'}${Math.abs(d).toLocaleString()}원</div>`};
   const cards=D.equip.length?D.equip.map(e=>{
@@ -5053,7 +5071,7 @@ function eList(){
   </div>`:'';
 
   return`<div class="page">${subTabs}<div class="stats-row"><div class="stat"><div class="stat-n">${owned.length}</div><div class="stat-l">보유 중</div></div><div class="stat"><div class="stat-n" style="color:var(--amber)">${wish.length}</div><div class="stat-l">관심</div></div><div class="stat"><div class="stat-n" style="font-size:.9rem;color:rgba(138,155,170,.8)">${past.length}</div><div class="stat-l">이전 보유</div></div></div>
-  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유 중</option><option value="wishlist">관심</option><option value="past">이전 보유</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
+  <div class="filter-bar"><input class="inp" type="text" placeholder="🔍 검색..." oninput="filterE(this.value,document.getElementById('ecat').value,document.getElementById('estat').value,window._eActiveTag||'')" id="esrch"><select class="sel" id="ecat" onchange="filterE(document.getElementById('esrch').value,this.value,document.getElementById('estat').value,window._eActiveTag||'')"><option value="">전체 분류</option>${ECATS.map(c=>`<option value="${c}">${c==="우드"?"🌲 우드":c==="하이브리드"?"🔀 하이브리드(유틸)":c}</option>`).join('')}</select><select class="sel" id="estat" onchange="filterE(document.getElementById('esrch').value,document.getElementById('ecat').value,this.value,window._eActiveTag||'')"><option value="">전체</option><option value="owned">보유 중</option><option value="wishlist">관심</option><option value="past">이전 보유</option></select><button class="btn btn-p btn-sm" style="flex-shrink:0" onclick="goAdd()">+ 장비 추가</button></div>
   ${tagChips}
   <div id="ecards">${cards}</div>
   <div style="margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)">
@@ -6044,7 +6062,7 @@ function eAdd(){
 
     <div class="frow">
       <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
-      <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="onClubCatChange(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+      <div class="fg"><label class="fl-label">분류</label><select class="sel" id="ec" onchange="onClubCatChange(this.value)"><option value="">선택...</option>${ECATS.map(c=>`<option value="${c}">${c==="우드"?"🌲 우드":c==="하이브리드"?"🔀 하이브리드(유틸)":c}</option>`).join('')}</select></div>
     </div>
     <!-- 분류별 클럽 상세 UI -->
     <div id="club-spec-wrap" style="display:none"></div>
@@ -6836,7 +6854,10 @@ function clubSpecUI(cat){
         <button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${UTIL_NUMS.map(n=>mkChkSpec(n,'util_set','rgba(167,139,250,.9)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        <div style="font-size:.63rem;color:var(--muted);margin-bottom:.2rem">주요</div>
+        ${UTIL_NUMS_COMMON.map(n=>mkChkSpec(n,'util_set','rgba(167,139,250,.9)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        <div style="font-size:.63rem;color:var(--muted);margin:.3rem 0 .2rem">기타</div>
+        ${UTIL_NUMS_RARE.map(n=>mkChkSpec(n,'util_set','rgba(167,139,250,.9)',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
       </div>
     </div>`;
 
@@ -7690,7 +7711,7 @@ window.openInstaCard = () => {
             </div>
             <div id="ic-ai-no-analysis" style="font-size:.7rem;color:rgba(255,160,80,.8);display:none;margin-top:.2rem">
               ⚠ 아직 AI 분석이 없습니다.
-              <button onclick="runInstaAnalysis()" style="margin-left:.4rem;padding:1px 7px;border-radius:4px;font-size:.68rem;border:1px solid rgba(200,137,58,.35);background:rgba(200,137,58,.1);color:var(--wing2);cursor:pointer;font-family:var(--sans)">지금 분석</button>
+              <button id="ic-ai-analyze-btn" onclick="runInstaAnalysis()" style="margin-left:.4rem;padding:1px 7px;border-radius:4px;font-size:.68rem;border:1px solid rgba(200,137,58,.35);background:rgba(200,137,58,.1);color:var(--wing2);cursor:pointer;font-family:var(--sans)">지금 분석</button>
             </div>
           </div>`:''}
         `).join('')}
@@ -7818,17 +7839,102 @@ window.runInstaAnalysis = async () => {
   const sessions = window._instaRecentSessions || [];
   const idx = window._instaSelSessionIdx ?? -1;
   const s = idx >= 0 ? sessions[idx] : null;
-  if(!s) return;
+  if(!s) { return; }
+  if(!s.shots || !s.shots.length) {
+    const noEl = document.getElementById('ic-ai-no-analysis');
+    if(noEl) { noEl.style.display='flex'; noEl.textContent='⚠ 샷 데이터가 없어 분석할 수 없습니다.'; }
+    return;
+  }
+
   const noEl = document.getElementById('ic-ai-no-analysis');
-  if(noEl) noEl.textContent = '⏳ 분석 중...';
+  const analyzeBtn = document.getElementById('ic-ai-analyze-btn');
+  if(analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.textContent = '분석 중...'; }
+
+  // ── 분석 진행 상태 애니메이션 ──
+  const MSGS = [
+    '샷 데이터 읽는 중...',
+    '스윙 패턴 분석 중...',
+    '방향성 편차 계산 중...',
+    '코치 피드백 생성 중...',
+    'AI가 열심히 분석하고 있어요 🤖',
+    '거의 다 됐어요...',
+  ];
+  let _tick = 0, _secs = 0;
+  const _startMs = Date.now();
+  // noEl에 스피너 + 메시지 + 경과시간 표시
+  if(noEl){
+    noEl.style.display = 'flex';
+    noEl.style.flexDirection = 'column';
+    noEl.style.gap = '4px';
+    noEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:12px;height:12px;border:1.5px solid rgba(200,137,58,.2);border-top-color:var(--wing2);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></span>
+        <span id="ic-analysis-msg" style="font-size:.72rem;color:var(--wing2)">${MSGS[0]}</span>
+      </div>
+      <span id="ic-analysis-elapsed" style="font-size:.66rem;color:rgba(240,237,230,.28);padding-left:18px">0초 경과</span>`;
+  }
+  const _timer = setInterval(()=>{
+    _secs = Math.round((Date.now()-_startMs)/1000);
+    const msgEl = document.getElementById('ic-analysis-msg');
+    const elEl  = document.getElementById('ic-analysis-elapsed');
+    if(msgEl) msgEl.textContent = MSGS[Math.min(_tick++, MSGS.length-1)];
+    if(elEl)  elEl.textContent  = `${_secs}초 경과`;
+  }, 2200);
+
   try {
-    await window.analyzeSwing(s.id);
-    // D.sessions에서 최신 aiAnalysis 반영
-    const fresh = D.sessions.find(x=>x.id===s.id);
-    if(fresh && fresh.aiAnalysis) s.aiAnalysis = fresh.aiAnalysis;
+    const st = ss(s);
+    const prompt = `아래 GDR 데이터를 분석해 골프 코치처럼 피드백해주세요.
+
+클럽: ${s.club||'미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
+캐리 평균: ${fn(st.avgCarry,'m')} | 베스트: ${fn(st.bestCarry,'m')} | 헤드속도: ${fn(st.avgHs)} | 스매시팩터: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
+
+샷별 데이터:
+${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} 스매시${sh.smashFactor||0} 방향${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction):0}° 스핀${sh.spin||0}rpm`).join('\n')}
+
+다음 형식으로만 작성하세요. 인삿말·도입부 없이 바로 시작:
+
+**✓ 총평** — 1문장으로 이번 세션 핵심 평가
+**✓ 잘 친 샷** — 샷 번호(#N)와 수치 근거로 1~2문장 칭찬
+**✓ 개선 필요한 샷** — 샷 번호(#N)와 문제 수치(방향편차·스매시팩터·스핀 등) 1~2문장
+**✓ 개선 포인트** — 가장 시급한 문제 원인과 교정 방법을 3~4문장으로 구체적으로 설명. 어드레스·백스윙·임팩트 등 스윙 단계 중 어느 부분인지 짚어줄 것
+**✓ 다음 연습 팁** — 실전에서 바로 적용할 수 있는 구체적인 드릴이나 루틴을 3~4문장으로 설명. 반복 횟수나 집중할 감각 포인트도 포함할 것
+
+한국어, 친근한 코치 말투.`;
+
+    const resp = await fetch(
+      `${SB_URL}/functions/v1/analyze-gdr`,
+      { method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'X-Analysis-Type':'swing'},
+        body: JSON.stringify({prompt, type:'swing'}) }
+    );
+    if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error);
+    const text = data.content?.[0]?.text || data.text || '';
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
+
+    // DB 저장
+    if(!isGuest) {
+      await sb.from('practice_sessions')
+        .update({ai_analysis: text})
+        .eq('id', s.id).eq('user_id', user.id);
+    }
+    // 메모리 반영 (D.sessions + _instaRecentSessions 모두)
+    const dObj = D.sessions.find(x=>x.id===s.id);
+    if(dObj) dObj.aiAnalysis = text;
+    s.aiAnalysis = text;
+
+    clearInterval(_timer);
+    if(noEl) { noEl.style.display='none'; noEl.innerHTML=''; }
+    if(analyzeBtn) { analyzeBtn.disabled=false; analyzeBtn.textContent='지금 분석'; }
+    // 캔버스 재렌더
     updateInstaSessionSingle();
+    toast('✓ AI 분석 완료');
   } catch(e) {
-    if(noEl){ noEl.textContent='⚠ 분석 실패. 다시 시도해주세요.'; }
+    clearInterval(_timer);
+    if(noEl) { noEl.style.display='flex'; noEl.style.flexDirection='column'; noEl.style.gap='4px';
+      noEl.innerHTML=`<span style="font-size:.71rem;color:rgba(224,82,82,.85)">⚠ 분석 실패: ${e.message}</span>`; }
+    if(analyzeBtn) { analyzeBtn.disabled=false; analyzeBtn.textContent='다시 시도'; }
   }
 };
 
@@ -11169,7 +11275,12 @@ function pAdd() {
           <option value="">선택...</option>
           ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(s=>`<option value="🎒 ${esc(s.name)}" data-type="set">🎒 ${esc(s.name)}</option>`).join('')}</optgroup>`:'' }
           ${ownedClubOptions()}
-          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 드라이버">${['드라이버'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W','11W'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 하이브리드/유틸">${['1UT','2UT','3UT','4UT','5UT','6UT','7UT'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 아이언">${['1I','2I','3I','4I','5I','6I','7I','8I','9I'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 웨지">${['PW','AW/GW','SW','LW'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 퍼터">${['퍼터'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
         </select>
         ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`:''}
         <div id="pc-set-info" style="font-size:.72rem;color:var(--wing2);margin-top:.3rem;display:none"></div>
