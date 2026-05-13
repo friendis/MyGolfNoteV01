@@ -7848,12 +7848,40 @@ window.runInstaAnalysis = async () => {
 
   const noEl = document.getElementById('ic-ai-no-analysis');
   const analyzeBtn = document.getElementById('ic-ai-analyze-btn');
-  if(noEl) noEl.textContent = '⏳ 분석 중...';
   if(analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.textContent = '분석 중...'; }
 
+  // ── 분석 진행 상태 애니메이션 ──
+  const MSGS = [
+    '샷 데이터 읽는 중...',
+    '스윙 패턴 분석 중...',
+    '방향성 편차 계산 중...',
+    '코치 피드백 생성 중...',
+    'AI가 열심히 분석하고 있어요 🤖',
+    '거의 다 됐어요...',
+  ];
+  let _tick = 0, _secs = 0;
+  const _startMs = Date.now();
+  // noEl에 스피너 + 메시지 + 경과시간 표시
+  if(noEl){
+    noEl.style.display = 'flex';
+    noEl.style.flexDirection = 'column';
+    noEl.style.gap = '4px';
+    noEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:12px;height:12px;border:1.5px solid rgba(200,137,58,.2);border-top-color:var(--wing2);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></span>
+        <span id="ic-analysis-msg" style="font-size:.72rem;color:var(--wing2)">${MSGS[0]}</span>
+      </div>
+      <span id="ic-analysis-elapsed" style="font-size:.66rem;color:rgba(240,237,230,.28);padding-left:18px">0초 경과</span>`;
+  }
+  const _timer = setInterval(()=>{
+    _secs = Math.round((Date.now()-_startMs)/1000);
+    const msgEl = document.getElementById('ic-analysis-msg');
+    const elEl  = document.getElementById('ic-analysis-elapsed');
+    if(msgEl) msgEl.textContent = MSGS[Math.min(_tick++, MSGS.length-1)];
+    if(elEl)  elEl.textContent  = `${_secs}초 경과`;
+  }, 2200);
+
   try {
-    // analyzeSwing은 DOM 요소(btn-analyze-*, analysis-result-*)에 의존하므로
-    // 인스타 카드에서는 동일한 로직을 직접 실행
     const st = ss(s);
     const prompt = `아래 GDR 데이터를 분석해 골프 코치처럼 피드백해주세요.
 
@@ -7896,13 +7924,16 @@ ${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} 스매
     if(dObj) dObj.aiAnalysis = text;
     s.aiAnalysis = text;
 
-    if(noEl) { noEl.style.display='none'; noEl.textContent=''; }
+    clearInterval(_timer);
+    if(noEl) { noEl.style.display='none'; noEl.innerHTML=''; }
     if(analyzeBtn) { analyzeBtn.disabled=false; analyzeBtn.textContent='지금 분석'; }
     // 캔버스 재렌더
     updateInstaSessionSingle();
     toast('✓ AI 분석 완료');
   } catch(e) {
-    if(noEl) { noEl.style.display='flex'; noEl.textContent=`⚠ 분석 실패: ${e.message}`; }
+    clearInterval(_timer);
+    if(noEl) { noEl.style.display='flex'; noEl.style.flexDirection='column'; noEl.style.gap='4px';
+      noEl.innerHTML=`<span style="font-size:.71rem;color:rgba(224,82,82,.85)">⚠ 분석 실패: ${e.message}</span>`; }
     if(analyzeBtn) { analyzeBtn.disabled=false; analyzeBtn.textContent='다시 시도'; }
   }
 };
