@@ -10388,26 +10388,31 @@ function clubDataHash(club) {
 // 추천 섹션 키워드
 const REC_SECTION_MARKERS = ['권장 장비 사양', '추천', '업그레이드 제안', 'Upgrade'];
 
+// 장비 상세 페이지로 이동 (AI 추천 버튼 → 기존 장비 확인용)
+window.goEquipDetail = (id) => {
+  tab='equipment'; view='detail'; selId=id; render();
+};
+
 window.quickAddWishEquip = async (name, cat) => {
   if(!name) return;
-  // 이미 보유/관심에 있는지 확인
+  // 이미 보유/관심에 있는지 확인 → 옵션3: 상세 페이지로 이동
   const exists = D.equip.find(e => e.name.toLowerCase() === name.toLowerCase());
   if(exists){
-    toast(`이미 ${exists.status==='owned'?'보유':'관심'} 목록에 있습니다: ${name}`);
+    // 이미 있으면 상세로 이동
+    tab='equipment'; view='detail'; selId=exists.id; render();
     return;
   }
   try{
     const newEquip = {
       user_id: user?.id,
       name: name.trim(),
-      category: cat || '기타',   // equipment 테이블 실제 컬럼명
+      category: cat || '기타',
       status: 'wishlist',
       memo: 'AI 분석 추천',
     };
     if(!isGuest){
       const { data, error } = await sb.from('equipment').insert(newEquip).select().single();
       if(error) throw error;
-      // D.equip에 맞는 형태로 변환 (eR.data.map 참고)
       const mapped = {id:data.id, name:data.name, cat:data.category, status:data.status,
         memo:data.memo||'', tags:data.tags||{}, ironSet:[], photoUrl:data.photo_url||'',
         links:[], priceHistory:[], isPublic:false};
@@ -10417,11 +10422,13 @@ window.quickAddWishEquip = async (name, cat) => {
         status:'wishlist', memo:'AI 분석 추천', tags:{}, ironSet:[]});
     }
     toast(`⭐ 관심 장비 추가: ${name}`);
-    // 관심 장비 목록 버튼 업데이트
+    // 추가된 버튼 상태 업데이트
     document.querySelectorAll(`[data-quickadd="${CSS.escape(name)}"]`).forEach(el=>{
-      el.textContent = '✓ 추가됨';
+      el.textContent = '★ 관심 추가됨';
       el.disabled = true;
-      el.style.opacity = '0.5';
+      el.style.borderColor = 'rgba(200,137,58,.5)';
+      el.style.background = 'rgba(200,137,58,.15)';
+      el.style.opacity = '0.7';
     });
   } catch(e){
     toast(`추가 실패: ${e.message}`);
@@ -10454,19 +10461,41 @@ function injectWishlistBtns(html, catHint=''){
   }
   if(!found.size) return html;
 
-  // 추천 제품 버튼 블록 생성
-  const alreadyOwned = new Set(D.equip.map(e=>e.name.toLowerCase()));
-  const newItems = [...found].filter(p=>!alreadyOwned.has(p.toLowerCase())).slice(0,6);
-  if(!newItems.length) return html;
+  // 추천 제품 버튼 블록 생성 — 전체 표시, 상태별 스타일 구분
+  const allItems = [...found].slice(0, 8);
+  const btns = allItems.map(name => {
+    const cat = catHint || guessEquipCat(name) || '기타';
+    const existing = D.equip.find(e => e.name.toLowerCase() === name.toLowerCase());
 
-  const btns = newItems.map(name=>{
-    const cat = catHint||guessEquipCat(name)||'기타';
-    return `<button data-quickadd="${esc(name)}" onclick="quickAddWishEquip('${esc(name)}','${esc(cat)}')" style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;border:1px solid rgba(200,137,58,.3);background:rgba(200,137,58,.08);color:var(--wing2);font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0">⭐ ${esc(name)}</button>`;
+    if(existing){
+      if(existing.status === 'owned'){
+        // 보유 중 → 초록, 클릭 시 상세 이동
+        return `<button data-quickadd="${esc(name)}" onclick="goEquipDetail('${esc(existing.id)}')"
+          style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;
+          border:1px solid rgba(61,158,116,.45);background:rgba(61,158,116,.1);
+          color:#3D9E74;font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0"
+          title="보유 중 — 클릭하면 장비 상세로 이동">✓ ${esc(name)} <span style="font-size:.65rem;opacity:.7">보유 중</span></button>`;
+      } else {
+        // 관심 목록에 있음 → 골드, 클릭 시 상세 이동
+        return `<button data-quickadd="${esc(name)}" onclick="goEquipDetail('${esc(existing.id)}')"
+          style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;
+          border:1px solid rgba(200,137,58,.45);background:rgba(200,137,58,.12);
+          color:var(--wing2);font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0"
+          title="관심 목록에 있음 — 클릭하면 장비 상세로 이동">★ ${esc(name)} <span style="font-size:.65rem;opacity:.7">관심 중</span></button>`;
+      }
+    }
+    // 새 장비 → 추가 버튼
+    return `<button data-quickadd="${esc(name)}" onclick="quickAddWishEquip('${esc(name)}','${esc(cat)}')"
+      style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;
+      border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.07);
+      color:#A78BFA;font-size:.72rem;cursor:pointer;font-family:var(--sans);margin:.15rem .2rem .15rem 0"
+      title="클릭하면 관심 목록에 추가">⭐ ${esc(name)}</button>`;
   }).join('');
 
-  return html + `<div style="margin-top:.7rem;padding:.5rem .6rem;background:rgba(200,137,58,.05);border:1px solid rgba(200,137,58,.12);border-radius:6px">
-    <div style="font-size:.67rem;color:rgba(200,137,58,.6);letter-spacing:.08em;margin-bottom:.35rem">AI 추천 장비 — 관심 목록에 추가</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.15rem">${btns}</div>
+  return html + `<div style="margin-top:.7rem;padding:.5rem .6rem;background:rgba(200,137,58,.04);border:1px solid rgba(200,137,58,.1);border-radius:6px">
+    <div style="font-size:.67rem;color:rgba(200,137,58,.55);letter-spacing:.08em;margin-bottom:.4rem">AI 추천 장비</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.2rem">${btns}</div>
+    <div style="font-size:.63rem;color:rgba(240,237,230,.2);margin-top:.35rem">✓ 보유 중 &nbsp;★ 관심 중 &nbsp;⭐ 추가 가능 — 클릭하면 상세로 이동하거나 관심 목록에 추가합니다</div>
   </div>`;
 }
 
