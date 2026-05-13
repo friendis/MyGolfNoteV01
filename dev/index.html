@@ -7711,7 +7711,7 @@ window.openInstaCard = () => {
             </div>
             <div id="ic-ai-no-analysis" style="font-size:.7rem;color:rgba(255,160,80,.8);display:none;margin-top:.2rem">
               ⚠ 아직 AI 분석이 없습니다.
-              <button onclick="runInstaAnalysis()" style="margin-left:.4rem;padding:1px 7px;border-radius:4px;font-size:.68rem;border:1px solid rgba(200,137,58,.35);background:rgba(200,137,58,.1);color:var(--wing2);cursor:pointer;font-family:var(--sans)">지금 분석</button>
+              <button id="ic-ai-analyze-btn" onclick="runInstaAnalysis()" style="margin-left:.4rem;padding:1px 7px;border-radius:4px;font-size:.68rem;border:1px solid rgba(200,137,58,.35);background:rgba(200,137,58,.1);color:var(--wing2);cursor:pointer;font-family:var(--sans)">지금 분석</button>
             </div>
           </div>`:''}
         `).join('')}
@@ -7839,17 +7839,71 @@ window.runInstaAnalysis = async () => {
   const sessions = window._instaRecentSessions || [];
   const idx = window._instaSelSessionIdx ?? -1;
   const s = idx >= 0 ? sessions[idx] : null;
-  if(!s) return;
+  if(!s) { return; }
+  if(!s.shots || !s.shots.length) {
+    const noEl = document.getElementById('ic-ai-no-analysis');
+    if(noEl) { noEl.style.display='flex'; noEl.textContent='⚠ 샷 데이터가 없어 분석할 수 없습니다.'; }
+    return;
+  }
+
   const noEl = document.getElementById('ic-ai-no-analysis');
+  const analyzeBtn = document.getElementById('ic-ai-analyze-btn');
   if(noEl) noEl.textContent = '⏳ 분석 중...';
+  if(analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.textContent = '분석 중...'; }
+
   try {
-    await window.analyzeSwing(s.id);
-    // D.sessions에서 최신 aiAnalysis 반영
-    const fresh = D.sessions.find(x=>x.id===s.id);
-    if(fresh && fresh.aiAnalysis) s.aiAnalysis = fresh.aiAnalysis;
+    // analyzeSwing은 DOM 요소(btn-analyze-*, analysis-result-*)에 의존하므로
+    // 인스타 카드에서는 동일한 로직을 직접 실행
+    const st = ss(s);
+    const prompt = `아래 GDR 데이터를 분석해 골프 코치처럼 피드백해주세요.
+
+클럽: ${s.club||'미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
+캐리 평균: ${fn(st.avgCarry,'m')} | 베스트: ${fn(st.bestCarry,'m')} | 헤드속도: ${fn(st.avgHs)} | 스매시팩터: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
+
+샷별 데이터:
+${s.shots.map((sh,i)=>`#${i+1} 캐리${sh.carry||0}m HS${sh.headSpeed||0} 스매시${sh.smashFactor||0} 방향${sh.direction!=null?(sh.direction>0?'R+':'L')+Math.abs(sh.direction):0}° 스핀${sh.spin||0}rpm`).join('\n')}
+
+다음 형식으로만 작성하세요. 인삿말·도입부 없이 바로 시작:
+
+**✓ 총평** — 1문장으로 이번 세션 핵심 평가
+**✓ 잘 친 샷** — 샷 번호(#N)와 수치 근거로 1~2문장 칭찬
+**✓ 개선 필요한 샷** — 샷 번호(#N)와 문제 수치(방향편차·스매시팩터·스핀 등) 1~2문장
+**✓ 개선 포인트** — 가장 시급한 문제 원인과 교정 방법을 3~4문장으로 구체적으로 설명. 어드레스·백스윙·임팩트 등 스윙 단계 중 어느 부분인지 짚어줄 것
+**✓ 다음 연습 팁** — 실전에서 바로 적용할 수 있는 구체적인 드릴이나 루틴을 3~4문장으로 설명. 반복 횟수나 집중할 감각 포인트도 포함할 것
+
+한국어, 친근한 코치 말투.`;
+
+    const resp = await fetch(
+      `${SB_URL}/functions/v1/analyze-gdr`,
+      { method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'X-Analysis-Type':'swing'},
+        body: JSON.stringify({prompt, type:'swing'}) }
+    );
+    if(!resp.ok) throw new Error(`서버 오류 ${resp.status}`);
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error);
+    const text = data.content?.[0]?.text || data.text || '';
+    if(!text) throw new Error(data.finishReason?`응답 차단 (${data.finishReason})`:'응답이 비어있습니다');
+
+    // DB 저장
+    if(!isGuest) {
+      await sb.from('practice_sessions')
+        .update({ai_analysis: text})
+        .eq('id', s.id).eq('user_id', user.id);
+    }
+    // 메모리 반영 (D.sessions + _instaRecentSessions 모두)
+    const dObj = D.sessions.find(x=>x.id===s.id);
+    if(dObj) dObj.aiAnalysis = text;
+    s.aiAnalysis = text;
+
+    if(noEl) { noEl.style.display='none'; noEl.textContent=''; }
+    if(analyzeBtn) { analyzeBtn.disabled=false; analyzeBtn.textContent='지금 분석'; }
+    // 캔버스 재렌더
     updateInstaSessionSingle();
+    toast('✓ AI 분석 완료');
   } catch(e) {
-    if(noEl){ noEl.textContent='⚠ 분석 실패. 다시 시도해주세요.'; }
+    if(noEl) { noEl.style.display='flex'; noEl.textContent=`⚠ 분석 실패: ${e.message}`; }
+    if(analyzeBtn) { analyzeBtn.disabled=false; analyzeBtn.textContent='다시 시도'; }
   }
 };
 
