@@ -1139,7 +1139,8 @@ window.toggleSpecRow=(n)=>{
 };
 // 보유 장비 클럽 옵션 HTML 생성
 function ownedClubOptions(currentVal=''){
-  const owned=D.equip.filter(e=>e.status==='owned');
+  // 보유 중 + 이전 보유 모두 포함 (이전 보유도 기록에 남아야 하므로)
+  const owned=D.equip.filter(e=>e.status==='owned'||e.status==='past');
   if(!owned.length)return'';
   // 카테고리별 그룹 {label, items[]}
   const groups={
@@ -1155,38 +1156,41 @@ function ownedClubOptions(currentVal=''){
     groups[grp].items.push({val,label,selected:currentVal===val||currentVal===val.split(' — ')[1]||currentVal===label.split(' — ')[1]});
   };
   owned.forEach(e=>{
+    const pastMark = e.status==='past' ? ' ◇' : '';
     if(e.cat==='드라이버'){
-      pushItem('드라이버',`${e.name} — 드라이버`,`${e.name} — 드라이버`);
+      pushItem('드라이버',`${e.name} — 드라이버`,`${e.name} — 드라이버${pastMark}`);
     } else if(e.cat==='우드'){
       const woods=e.tags?.wood_set?.length?e.tags.wood_set:CAT_TO_CLUBS['우드']||[];
       if(!woods.length){
         // 번호 미등록 — 장비명만 표시 + 안내
         pushItem('우드',`${e.name}`,`⚠ ${e.name} (장비 창고에서 번호 등록 필요)`);
       } else {
-        woods.forEach(n=>pushItem('우드',`${e.name} — ${n}`,`${e.name} — ${n}`));
+        woods.forEach(n=>pushItem('우드',`${e.name} — ${n}`,`${e.name} — ${n}${pastMark}`));
       }
     } else if(e.cat==='하이브리드'){
       const utils=e.tags?.util_set?.length?e.tags.util_set:CAT_TO_CLUBS['하이브리드']||[];
       if(!utils.length){
         pushItem('하이브리드',`${e.name}`,`⚠ ${e.name} (장비 창고에서 번호 등록 필요)`);
       } else {
-        utils.forEach(n=>pushItem('하이브리드',`${e.name} — ${n}`,`${e.name} — ${n}`));
+        utils.forEach(n=>pushItem('하이브리드',`${e.name} — ${n}`,`${e.name} — ${n}${pastMark}`));
       }
     } else if(e.cat==='아이언'){
       const irons=e.ironSet?.length?e.ironSet:CAT_TO_CLUBS['아이언'];
-      irons.forEach(n=>pushItem('아이언',`${e.name} — ${n}`,`${e.name} — ${n}`));
+      irons.forEach(n=>pushItem('아이언',`${e.name} — ${n}`,`${e.name} — ${n}${pastMark}`));
       (e.tags?.wedge_set||[]).forEach(n=>pushItem('웨지',`${e.name} — ${n}`,`${e.name} — ${n}`));
     } else if(e.cat==='웨지'){
       const wedges=e.tags?.wedge_set?.length?e.tags.wedge_set:CAT_TO_CLUBS['웨지']||[];
-      wedges.forEach(n=>pushItem('웨지',`${e.name} — ${n}`,`${e.name} — ${n}`));
+      wedges.forEach(n=>pushItem('웨지',`${e.name} — ${n}`,`${e.name} — ${n}${pastMark}`));
     } else if(e.cat==='퍼터'){
-      pushItem('퍼터',`${e.name} — 퍼터`,`${e.name} — 퍼터`);
+      pushItem('퍼터',`${e.name} — 퍼터`,`${e.name} — 퍼터${pastMark}`);
     }
   });
+  // 이전 보유 장비가 있으면 헤더 레이블에 표시
+  const hasPast = owned.some(e=>e.status==='past');
   return Object.values(groups)
     .filter(g=>g.items.length)
     .map(g=>`<optgroup label="${g.label}">${g.items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`)
-    .join('');
+    .join('') + (hasPast ? '<optgroup label="" disabled><option disabled>◇ 이전 보유 장비는 ◇ 표시됩니다</option></optgroup>' : '');
 }
 const today=()=>new Date().toISOString().split('T')[0];
 const promptDate=()=>{const d=new Date();return `${d.getFullYear()}년 ${d.getMonth()+1}월`;};
