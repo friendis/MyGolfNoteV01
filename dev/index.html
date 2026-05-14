@@ -7417,7 +7417,7 @@ window.setPSub=t=>{
 };
 
 // ── 연습 플랜 AI 생성 ────────────────────────────────
-async function generatePracticePlan(forceRefresh=false){
+window.generatePracticePlan = async function generatePracticePlan(forceRefresh=false){
   const area=$('plan-area');
   if(!area) return;
 
@@ -10390,7 +10390,10 @@ const REC_SECTION_MARKERS = ['권장 장비 사양', '추천', '업그레이드 
 
 // 장비 상세 페이지로 이동 (AI 추천 버튼 → 기존 장비 확인용)
 window.goEquipDetail = (id) => {
-  tab='equipment'; view='detail'; selId=id; render();
+  // gotoTab으로 탭 전환 (네비 하이라이트 등 정상 처리)
+  gotoTab('equipment');
+  // gotoTab이 view='list'로 리셋하므로 이후에 detail로 설정
+  view='detail'; selId=id; render();
 };
 
 window.quickAddWishEquip = async (name, cat) => {
@@ -10399,7 +10402,7 @@ window.quickAddWishEquip = async (name, cat) => {
   const exists = D.equip.find(e => e.name.toLowerCase() === name.toLowerCase());
   if(exists){
     // 이미 있으면 상세로 이동
-    tab='equipment'; view='detail'; selId=exists.id; render();
+    gotoTab('equipment'); view='detail'; selId=exists.id; render();
     return;
   }
   try{
@@ -10441,7 +10444,12 @@ function injectWishlistBtns(html, catHint=''){
   // **볼드** 안에 있거나, 추천 섹션 단락 내의 고유명사
   // 전략: 분석 내용 전체에서 제품명처럼 보이는 구문 추출
   // 제품명 패턴: 영문+숫자 조합 or 한글브랜드+영문모델
-  const productPattern = /([A-Z][a-zA-Z]+(?:\s+[A-Z0-9][a-zA-Z0-9\-\.]+){0,3}|(?:테일러메이드|캘러웨이|타이틀리스트|핑|PING|코브라|미즈노|스릭슨|클리블랜드|혼마|요넥스|던롭|나이키)(?:\s+[A-Za-z0-9\-\.]+){1,3})/g;
+  // 제품명 패턴: 알려진 브랜드 + 모델명, 또는 영문 브랜드(4자 이상) + 모델번호 조합
+  const BRAND_KO = '(?:테일러메이드|캘러웨이|타이틀리스트|핑|코브라|미즈노|스릭슨|클리블랜드|혼마|요넥스|던롭|나이키|핑크|브리지스톤|스릭슨)';
+  const BRAND_EN = '(?:TaylorMade|Callaway|Titleist|PING|Cobra|Mizuno|Srixon|Cleveland|Honma|Yonex|Dunlop|Nike|Bridgestone|Odyssey|Ping)';
+  const MODEL    = '(?:[A-Za-z0-9][A-Za-z0-9\-\.]{1,12})(?:\s+[A-Za-z0-9\-\.]{1,12}){0,2}';
+  const productPattern = new RegExp(
+    `(${BRAND_KO}(?:\\s+${MODEL})|${BRAND_EN}\\s+${MODEL})`, 'g');
   const found = new Set();
   let m;
   // 볼드 텍스트 안의 제품명 우선 추출
@@ -10492,10 +10500,9 @@ function injectWishlistBtns(html, catHint=''){
       title="클릭하면 관심 목록에 추가">⭐ ${esc(name)}</button>`;
   }).join('');
 
-  return html + `<div style="margin-top:.7rem;padding:.5rem .6rem;background:rgba(200,137,58,.04);border:1px solid rgba(200,137,58,.1);border-radius:6px">
-    <div style="font-size:.67rem;color:rgba(200,137,58,.55);letter-spacing:.08em;margin-bottom:.4rem">AI 추천 장비</div>
-    <div style="display:flex;flex-wrap:wrap;gap:.2rem">${btns}</div>
-    <div style="font-size:.63rem;color:rgba(240,237,230,.2);margin-top:.35rem">✓ 보유 중 &nbsp;★ 관심 중 &nbsp;⭐ 추가 가능 — 클릭하면 상세로 이동하거나 관심 목록에 추가합니다</div>
+  return html + `<div style="margin-top:.5rem;padding:.35rem .55rem;background:rgba(200,137,58,.04);border:1px solid rgba(200,137,58,.1);border-radius:5px;display:flex;align-items:center;flex-wrap:wrap;gap:.2rem">
+    <span style="font-size:.63rem;color:rgba(200,137,58,.5);white-space:nowrap;margin-right:.25rem">AI 추천</span>${btns}
+    <span style="font-size:.6rem;color:rgba(240,237,230,.18);white-space:nowrap;margin-left:.15rem">✓보유 ★관심 ⭐추가</span>
   </div>`;
 }
 
