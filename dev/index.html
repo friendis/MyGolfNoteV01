@@ -7289,7 +7289,7 @@ function pList(){
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px">
             <div class="card-title">${s.date||''}</div>
-            ${s.club?`<span class="club-badge" title="${esc(s.club)}">${esc(nc)}</span>`:''}
+            ${s.club?`<span class="club-badge" title="${esc(s.club)}" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom">${esc(nc||s.club)}</span>`:''}
             ${needsReanalyze?`<span style="font-size:.65rem;background:rgba(200,137,58,.15);color:var(--wing2);border:1px solid rgba(200,137,58,.3);border-radius:2px;padding:1px 5px;white-space:nowrap">📡 재분석 필요</span>`:''}
           </div>
           ${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}
