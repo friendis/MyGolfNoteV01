@@ -1912,28 +1912,47 @@ function buildHomeRecHtml(){
   });
 
   // ── 2. 연습 플랜에서 추천 루틴 추출
+  // practice_plan.result는 JSON 객체 {priority_clubs, routines, youtube_keywords}
   const planCached = getAiCache('practice_plan');
   if(planCached?.result){
-    const plain = planCached.result.replace(/\*\*(.*?)\*\*/g,'$1');
-    // 루틴/드릴/연습 관련 줄 추출
-    const routineLines = plain.split('\n')
-      .filter(l => /드릴|루틴|연습|반복|스윙|어드레스|임팩트|세트/.test(l) && l.trim().length > 15)
-      .slice(0, 3);
-    routineLines.forEach((line, i) => {
-      const text = line.replace(/^[\d\-\•\*\s]+/, '').trim().slice(0, 90);
-      if(!text) return;
-      items.push({
-        type: 'plan',
-        icon: '🎯',
-        tag: `연습 플랜 · ${planCached.analyzedAt || ''}`,
-        text: text + (line.length > 90 ? '…' : ''),
-        action: "gotoTab('practice');setPSub('plan')",
-        actionLabel: '플랜 보기',
-        color: 'rgba(200,137,58,.7)',
-        bg: 'rgba(200,137,58,.05)',
-        border: 'rgba(200,137,58,.12)',
+    const plan = typeof planCached.result === 'string'
+      ? (() => { try{ return JSON.parse(planCached.result); } catch(e){ return null; } })()
+      : planCached.result;
+    if(plan){
+      // priority_clubs의 tip에서 추천 루틴 추출
+      const planDate = planCached.analyzedAt || '';
+      (plan.priority_clubs || []).slice(0, 2).forEach(pc => {
+        if(!pc.tip) return;
+        const text = pc.tip.trim().slice(0, 90);
+        if(!text) return;
+        items.push({
+          type: 'plan',
+          icon: '🎯',
+          tag: `연습 플랜 · ${pc.club} · ${planDate}`,
+          text: text + (pc.tip.length > 90 ? '…' : ''),
+          action: "gotoTab('practice');setPSub('plan')",
+          actionLabel: '플랜 보기',
+          color: 'rgba(200,137,58,.7)',
+          bg: 'rgba(200,137,58,.05)',
+          border: 'rgba(200,137,58,.12)',
+        });
       });
-    });
+      // routines에서 20분 루틴 항목 추출 (없으면 40분)
+      const routineItems = plan.routines?.['20'] || plan.routines?.['40'] || [];
+      routineItems.slice(0, 1).forEach(r => {
+        items.push({
+          type: 'plan',
+          icon: '⏱',
+          tag: `연습 루틴 · ${planDate}`,
+          text: (Array.isArray(routineItems) ? routineItems.slice(0,3).join(' → ') : r).slice(0, 90),
+          action: "gotoTab('practice');setPSub('plan')",
+          actionLabel: '플랜 보기',
+          color: 'rgba(200,137,58,.7)',
+          bg: 'rgba(200,137,58,.05)',
+          border: 'rgba(200,137,58,.12)',
+        });
+      });
+    }
   }
 
   // ── 3. 학습 노트 태그/키워드 기반 추천 노트
