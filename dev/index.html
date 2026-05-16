@@ -331,7 +331,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .public-toggle label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none}
 .public-toggle label:hover{color:var(--dim)}
 .public-toggle input[type=checkbox]:checked+span{color:var(--turf)}
-.session-nav-inner{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem 1rem;max-width:900px;margin:0 auto}
+.session-nav-inner{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.45rem 1rem;max-width:900px;margin:0 auto}
 .session-nav-btn{display:flex;align-items:center;gap:4px;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.18);color:var(--wing2);font-family:var(--sans);font-size:.72rem;font-weight:500;letter-spacing:.04em;padding:.38rem .7rem;border-radius:2px;cursor:pointer;transition:all .15s;white-space:nowrap;min-width:64px;justify-content:center}
 .session-nav-btn:hover{background:rgba(200,137,58,.16);border-color:rgba(200,137,58,.35)}
 .session-nav-btn:disabled{opacity:.28;cursor:default;pointer-events:none}
@@ -9740,36 +9740,43 @@ function pDetail(){
   return`<div class="page">
   <!-- Sticky 네비게이션 바 -->
   <div class="session-nav" id="session-nav">
-    <div class="session-nav-inner">
-      <button class="session-nav-btn" onclick="goDetail('${prev?.id}')" ${!prev?'disabled':''}>‹ ${prev?prev.date?.slice(5)||'이전':'이전'}</button>
-      <div class="session-nav-center">
-        <div style="color:var(--chalk);font-weight:500">${s.date||''}</div>
-        <div style="margin-top:1px;display:flex;align-items:center;justify-content:center;gap:.35rem">
-          ${nc?`<span class="club-badge" style="font-size:.68rem;padding:1px 5px">${esc(nc)}</span>`:''}
-          <span style="opacity:.5;font-size:.68rem">${idx+1} / ${navPool.length}${sameClubMode&&nc?` (${esc(nc)}만)`:'(전체)'}</span>
+    <div class="session-nav-inner" style="flex-direction:column;gap:.35rem;padding:.45rem 1rem">
+      <!-- 1행: 이전 / 클럽+날짜+순서 / 다음 -->
+      <div style="display:flex;align-items:center;gap:.4rem;width:100%">
+        <button class="session-nav-btn" onclick="goDetail('${prev?.id}')" ${!prev?'disabled':''} style="min-width:52px;flex-shrink:0">‹ 이전</button>
+        <div class="session-nav-center" style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;flex-wrap:nowrap">
+            ${nc?`<span class="club-badge" style="font-size:.74rem;padding:2px 8px;font-weight:700;flex-shrink:0">${esc(nc)}</span>`:''}
+            <span style="color:var(--chalk);font-size:.74rem;font-weight:500;white-space:nowrap">${(s.date||'').slice(5)}</span>
+            <span style="color:var(--muted);font-size:.68rem;white-space:nowrap">${idx+1}/${navPool.length}</span>
+          </div>
         </div>
+        <button class="session-nav-btn" onclick="goDetail('${next?.id}')" ${!next?'disabled':''} style="min-width:52px;flex-shrink:0">다음 ›</button>
       </div>
-      <button class="session-nav-btn" onclick="goDetail('${next?.id}')" ${!next?'disabled':''}>${next?next.date?.slice(5)||'다음':'다음'} ›</button>
-      <button class="session-nav-btn" onclick="window._navSameClub=!window._navSameClub;window._rerender()"
-        style="background:${sameClubMode&&nc?'rgba(200,137,58,.15)':'rgba(240,237,230,.04)'};border-color:${sameClubMode&&nc?'rgba(200,137,58,.35)':'rgba(240,237,230,.1)'};color:${sameClubMode&&nc?'var(--wing2)':'var(--muted)'};font-size:.68rem;min-width:auto;padding:.38rem .5rem"
-        title="${sameClubMode?'전체 기록 탐색으로 전환':'같은 클럽만 탐색으로 전환'}">
-        ${sameClubMode&&nc?`${esc(nc)}만`:'전체'}
-      </button>
-      <button class="session-nav-btn" style="background:none;border-color:rgba(240,237,230,.1);color:var(--muted)" onclick="goList()">목록</button>
-      <button class="session-nav-btn" style="background:none;border-color:rgba(167,139,250,.2);color:#A78BFA" onclick="gotoStats()">통계</button>
+      <!-- 2행: 필터 / 목록 / 통계 -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%">
+        <button onclick="window._navSameClub=!window._navSameClub;window._rerender()"
+          style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:${sameClubMode&&nc?'rgba(200,137,58,.12)':'rgba(240,237,230,.04)'};border:1px solid ${sameClubMode&&nc?'rgba(200,137,58,.3)':'rgba(240,237,230,.1)'};color:${sameClubMode&&nc?'var(--wing2)':'var(--muted)'};font-size:.68rem;padding:.28rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s">
+          ${sameClubMode&&nc?`<span class="club-badge" style="font-size:.64rem;padding:1px 5px">${esc(nc)}</span>만 보기`:'전체 보기'}
+        </button>
+        <button onclick="goList()"
+          style="flex:1;background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);font-size:.68rem;padding:.28rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans)">목록</button>
+        <button onclick="gotoStats()"
+          style="flex:1;background:none;border:1px solid rgba(167,139,250,.2);color:#A78BFA;font-size:.68rem;padding:.28rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans)">통계</button>
+      </div>
     </div>
   </div>
 
   <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:.9rem">
     <div class="sec-label" style="margin-bottom:.6rem">기록 정보 편집</div>
     <div class="frow">
-      <div class="fg">
+      <div class="fg" style="flex:0 0 140px">
         <label class="fl-label">날짜</label>
         <input class="inp" type="date" id="se-date" value="${ea(s.date||'')}" onblur="saveSessionField('${s.id}','date',this.value)">
       </div>
-      <div class="fg">
-        <label class="fl-label">클럽 세트 / 클럽</label>
-        <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)">
+      <div class="fg" style="flex:1;min-width:0">
+        <label class="fl-label">클럽</label>
+        <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)" style="width:100%;text-overflow:ellipsis">
           <option value="">선택...</option>
           ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(st=>`<option value="🎒 ${esc(st.name)}"${s.club===`🎒 ${st.name}`?' selected':''}>🎒 ${esc(st.name)}</option>`).join('')}</optgroup>`:''}
           ${ownedClubOptions(s.club||'')}
