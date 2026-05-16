@@ -1868,6 +1868,139 @@ window._resetChangelog = () => {
   checkChangelog();
 };
 
+
+window.switchHomeTab = (tab) => {
+  const perf = document.getElementById('home-tab-perf-content');
+  const rec  = document.getElementById('home-tab-rec-content');
+  const btnP = document.getElementById('home-tab-perf');
+  const btnR = document.getElementById('home-tab-rec');
+  if(!perf || !rec) return;
+  const isPerf = tab === 'perf';
+  perf.style.display = isPerf ? '' : 'none';
+  rec.style.display  = isPerf ? 'none' : '';
+  if(btnP){ btnP.style.borderBottomColor = isPerf ? 'var(--wing2)' : 'transparent'; btnP.style.color = isPerf ? 'var(--wing2)' : 'var(--muted)'; }
+  if(btnR){ btnR.style.borderBottomColor = isPerf ? 'transparent' : 'var(--wing2)'; btnR.style.color = isPerf ? 'var(--muted)' : 'var(--wing2)'; }
+};
+
+function buildHomeRecHtml(){
+  const items = [];
+
+  // ── 1. AI 다음 연습 팁 (최근 세션의 aiAnalysis에서 추출)
+  const aiSessions = D.sessions.filter(s=>s.aiAnalysis).slice(0,5);
+  aiSessions.forEach(s=>{
+    const plain = s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'$1');
+    // "✓ 다음 연습 팁" 섹션 추출
+    const m = plain.match(/✓ 다음 연습 팁[\s\S]*?(?=✓ |$)/);
+    if(!m) return;
+    const tipText = m[0].replace(/^✓ 다음 연습 팁\s*[-—]?\s*/, '').trim();
+    if(!tipText || tipText.length < 10) return;
+    // 첫 문장만
+    const firstSentence = tipText.split(/[.。!?]/)[0].trim().slice(0,80);
+    if(!firstSentence) return;
+    items.push({
+      type: 'tip',
+      icon: '💡',
+      tag: `AI 팁 · ${s.club||''} · ${s.date||''}`,
+      text: firstSentence + (tipText.length > 80 ? '…' : ''),
+      full: tipText,
+      action: `goSessionDetail('${s.id}')`,
+      actionLabel: '분석 보기',
+      color: 'rgba(84,184,232,.7)',
+      bg: 'rgba(84,184,232,.05)',
+      border: 'rgba(84,184,232,.15)',
+    });
+  });
+
+  // ── 2. 연습 플랜에서 추천 루틴 추출
+  const planCached = getAiCache('practice_plan');
+  if(planCached?.result){
+    const plain = planCached.result.replace(/\*\*(.*?)\*\*/g,'$1');
+    // 루틴/드릴/연습 관련 줄 추출
+    const routineLines = plain.split('\n')
+      .filter(l => /드릴|루틴|연습|반복|스윙|어드레스|임팩트|세트/.test(l) && l.trim().length > 15)
+      .slice(0, 3);
+    routineLines.forEach((line, i) => {
+      const text = line.replace(/^[\d\-\•\*\s]+/, '').trim().slice(0, 90);
+      if(!text) return;
+      items.push({
+        type: 'plan',
+        icon: '🎯',
+        tag: `연습 플랜 · ${planCached.analyzedAt || ''}`,
+        text: text + (line.length > 90 ? '…' : ''),
+        action: "gotoTab('practice');setPSub('plan')",
+        actionLabel: '플랜 보기',
+        color: 'rgba(200,137,58,.7)',
+        bg: 'rgba(200,137,58,.05)',
+        border: 'rgba(200,137,58,.12)',
+      });
+    });
+  }
+
+  // ── 3. 학습 노트 태그/키워드 기반 추천 노트
+  // 최근 세션 클럽과 연관된 키워드가 있는 노트 우선 표시
+  const recentClubs = new Set(D.sessions.slice(0,10).map(s=>normalizeClub(s.club)).filter(Boolean));
+  const clubKeywords = {
+    '드라이버':['드라이버','비거리','헤드스피드','스윙','임팩트'],
+    '7I':['아이언','컨트롤','임팩트','로프트'],
+    'PW':['어프로치','웨지','스핀','거리조절'],
+    'SW':['벙커','플롭샷','웨지'],
+  };
+  // 모든 세션 클럽과 매칭되는 키워드
+  const allMatchKw = new Set();
+  recentClubs.forEach(cl => {
+    Object.entries(clubKeywords).forEach(([k,kws]) => {
+      if(cl.includes(k.replace(/[0-9]/g,'').trim())) kws.forEach(kw=>allMatchKw.add(kw.toLowerCase()));
+    });
+  });
+
+  const recNotes = D.videos
+    .filter(v => {
+      const kwMatch = v.kw?.some(k => allMatchKw.has(k.toLowerCase()));
+      const memoMatch = v.memo && [...allMatchKw].some(kw => v.memo.toLowerCase().includes(kw));
+      return kwMatch || memoMatch;
+    })
+    .slice(0, 3);
+
+  // 매칭 노트가 없으면 최근 추가된 노트
+  const fallbackNotes = recNotes.length ? recNotes : D.videos.slice(0, 2);
+  fallbackNotes.forEach(v => {
+    const kwLabels = (v.kw || []).slice(0, 3).join(' · ');
+    items.push({
+      type: 'note',
+      icon: '📖',
+      tag: kwLabels || '학습 노트',
+      text: v.title ? v.title.slice(0, 70) : (v.memo?.slice(0, 70) || '노트'),
+      action: `goNoteDetail('${v.id}')`,
+      actionLabel: '노트 보기',
+      color: 'rgba(167,139,250,.7)',
+      bg: 'rgba(167,139,250,.05)',
+      border: 'rgba(167,139,250,.12)',
+    });
+  });
+
+  if(!items.length){
+    return `<div style="text-align:center;padding:1.2rem 0;color:var(--muted);font-size:.82rem">
+      <div>AI 분석이나 학습 노트가 아직 없습니다.</div>
+      <div style="margin-top:.4rem;font-size:.74rem">비행 기록 후 AI 분석을 실행하면 추천이 생성됩니다.</div>
+    </div>`;
+  }
+
+  return items.map(it => `
+    <div style="display:flex;align-items:flex-start;gap:.6rem;padding:.55rem .65rem;margin-bottom:.4rem;
+      background:${it.bg};border:1px solid ${it.border};border-radius:5px;cursor:pointer"
+      onclick="${it.action}">
+      <span style="font-size:1.1rem;flex-shrink:0;line-height:1.3">${it.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.64rem;color:${it.color};letter-spacing:.05em;margin-bottom:.15rem;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.tag)}</div>
+        <div style="font-size:.8rem;color:var(--chalk);line-height:1.45;
+          overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(it.text)}</div>
+      </div>
+      <span style="font-size:.65rem;color:${it.color};white-space:nowrap;flex-shrink:0;
+        padding:2px 7px;border:1px solid ${it.border};border-radius:8px;align-self:center">${it.actionLabel}</span>
+    </div>`).join('');
+}
+
 async function loadHomeSocial() {
   const wrap = $('home-social-wrap'); if(!wrap||!user||isGuest) return;
   try {
@@ -3678,12 +3811,17 @@ function homeView(){
     </div>
   </div>`:''}
 
-  <!-- 최근 성과 -->
+  <!-- 최근 성과 + 추천 학습 노트 탭 -->
   <div class="home-section">
-    <div class="home-section-title">📈 최근 비행 성과
-      <button onclick="gotoTab('practice')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">전체 보기 →</button>
+    <div style="display:flex;gap:0;margin-bottom:.65rem;border-bottom:1px solid rgba(240,237,230,.08)">
+      <button id="home-tab-perf" onclick="switchHomeTab('perf')"
+        style="padding:.3rem .7rem;border:none;border-bottom:2px solid var(--wing2);background:none;color:var(--wing2);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">📈 최근 성과</button>
+      <button id="home-tab-rec" onclick="switchHomeTab('rec')"
+        style="padding:.3rem .7rem;border:none;border-bottom:2px solid transparent;background:none;color:var(--muted);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">📚 추천 학습</button>
+      <button onclick="gotoTab('practice')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.66rem;cursor:pointer;font-family:var(--sans);padding:.3rem .4rem">전체 →</button>
     </div>
-    ${perfHtml}
+    <div id="home-tab-perf-content">${perfHtml}</div>
+    <div id="home-tab-rec-content" style="display:none">${buildHomeRecHtml()}</div>
   </div>
 
   <!-- 인기 학습 노트 -->
