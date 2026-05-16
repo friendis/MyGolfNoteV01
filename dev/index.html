@@ -980,16 +980,16 @@ const CLUB_BENCH={
   '8I':{carry:[{l:'프로',min:135,max:160,c:'rgba(228,168,85,.07)'},{l:'상급',min:112,max:135,c:'rgba(122,176,232,.06)'},{l:'중급',min:85,max:112,c:'rgba(167,139,250,.05)'},{l:'초급',min:58,max:85,c:'rgba(138,155,170,.04)'}]},
   '9I':{carry:[{l:'프로',min:122,max:148,c:'rgba(228,168,85,.07)'},{l:'상급',min:100,max:122,c:'rgba(122,176,232,.06)'},{l:'중급',min:75,max:100,c:'rgba(167,139,250,.05)'},{l:'초급',min:50,max:75,c:'rgba(138,155,170,.04)'}]},
   'PW':{carry:[{l:'프로',min:110,max:138,c:'rgba(228,168,85,.07)'},{l:'상급',min:90,max:110,c:'rgba(122,176,232,.06)'},{l:'중급',min:68,max:90,c:'rgba(167,139,250,.05)'},{l:'초급',min:45,max:68,c:'rgba(138,155,170,.04)'}]},
-  'AW/GW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
+  'AW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
   'SW':{carry:[{l:'프로',min:80,max:105,c:'rgba(228,168,85,.07)'},{l:'상급',min:64,max:80,c:'rgba(122,176,232,.06)'},{l:'중급',min:48,max:64,c:'rgba(167,139,250,.05)'},{l:'초급',min:32,max:48,c:'rgba(138,155,170,.04)'}]},
   'LW':{carry:[{l:'프로',min:65,max:88,c:'rgba(228,168,85,.07)'},{l:'상급',min:50,max:65,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:50,c:'rgba(167,139,250,.05)'},{l:'초급',min:22,max:36,c:'rgba(138,155,170,.04)'}]},
 };
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드','하이브리드','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUB_CATS=new Set(['드라이버','우드','하이브리드','아이언','웨지']);
-const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT','5UT','유틸리티','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
+const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT','5UT','유틸리티','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
-const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
+const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
 const WOOD_NUMS_COMMON=['3W','5W','7W'];
 const WOOD_NUMS_RARE=['1W','2W','4W','6W','8W','9W','11W','13W'];
@@ -999,11 +999,11 @@ const UTIL_NUMS=[...UTIL_NUMS_COMMON,...UTIL_NUMS_RARE];
 const WOOD_NUMS=[...WOOD_NUMS_COMMON,...WOOD_NUMS_RARE];
 
 // 클럽별 기본 로프트 참고값
-const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
+const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW':52,'SW':56,'LW':60};
 
 // 아이언/웨지/우드/유틸 세트 체크박스 HTML
 function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, cat='', expertMode=false){
-  const wedgeNums=['PW','AW/GW','SW','LW'];
+  const wedgeNums=['PW','AW','SW','LW'];
 
   // 전문가 모드 토글 버튼
   const modeToggle=`<div style="display:flex;justify-content:flex-end;margin-bottom:.4rem">
@@ -7038,7 +7038,7 @@ function clubSpecUI(cat){
       </div>
       <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem;margin-top:.6rem">웨지 포함</div>
       <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        ${['PW','AW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
       </div>
     </div>`;
 
@@ -7050,7 +7050,7 @@ function clubSpecUI(cat){
         <button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        ${['PW','AW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
       </div>
     </div>`;
 
@@ -7105,7 +7105,7 @@ window.aiAutoFillSpecs = async () => {
 검색된 공식 자료(제조사 사이트, 공식 카탈로그)를 기준으로 작성하고, 확실하지 않은 값은 null로 표시하세요.
 
 {"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":"","source":"출처"}
-- id: 7I 8I 9I PW SW LW AW/GW 3W 5W 3UT 등
+- id: 7I 8I 9I PW SW LW AW 3W 5W 3UT 등
 - loft: 공식 스펙 숫자만 (불확실하면 null)
 - flex: 기본 샤프트 강도 L A R SR S X (불확실하면 null)
 - source: 참고한 출처 URL 또는 사이트명
@@ -7373,7 +7373,7 @@ function pList(){
     const selCount = selectedChartKeys.size;
 
     // ── 클럽별 비거리 막대그래프 ─────────────────────
-    // X축: SW → LW → PW → AW/GW → 9I → ... → 드라이버 (오른쪽으로 갈수록 긴 클럽)
+    // X축: SW → LW → PW → AW → 9I → ... → 드라이버 (오른쪽으로 갈수록 긴 클럽)
     const distClubOrder = [...CLUBS].reverse(); // CLUBS가 드라이버→SW 순이므로 reverse
     const distClubs = distClubOrder.filter(c=>cm[normalizeClub(c)]?.c.length||cm[normalizeClub(c)]?.tot.length);
     const distChartSection = distClubs.length >= 2 ? `
@@ -8884,7 +8884,7 @@ const CLUB_COLORS = {
   '9I':        {line:'#78D0F4', bg:'rgba(120,208,244,.15)', group:'iron'},
   // ── 웨지 (보라~핑크 그라데이션)
   'PW':        {line:'#9878E8', bg:'rgba(152,120,232,.15)', group:'wedge'},
-  'AW/GW':     {line:'#B070D8', bg:'rgba(176,112,216,.15)', group:'wedge'},
+  'AW':     {line:'#B070D8', bg:'rgba(176,112,216,.15)', group:'wedge'},
   'SW':        {line:'#C868C8', bg:'rgba(200,104,200,.15)', group:'wedge'},
   'LW':        {line:'#E060B8', bg:'rgba(224,96,184,.15)',  group:'wedge'},
   // ── 퍼터 (회색)
@@ -11586,7 +11586,7 @@ function pAdd() {
           <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W','11W'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 하이브리드/유틸">${['1UT','2UT','3UT','4UT','5UT','6UT','7UT'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 아이언">${['1I','2I','3I','4I','5I','6I','7I','8I','9I'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
-          <optgroup label="── 웨지">${['PW','AW/GW','SW','LW'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 퍼터">${['퍼터'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
         </select>
         ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`:''}
