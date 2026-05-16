@@ -1098,8 +1098,9 @@ function normalizeClub(club){
   if(!club)return'';
   // "장비명 — 클럽번호" 형식 파싱
   const m=club.match(/—\s*([^\s]+)$/);
-  if(m)return m[1].trim();
-  return club;
+  const raw=m?m[1].trim():club;
+  // 표기 정규화: AW/GW → AW, GW → AW
+  return raw==='AW/GW'||raw==='GW'?'AW':raw;
 }
 // 카드/배지 표시용 라벨 (보유 장비면 장비명 포함, 아니면 클럽번호만)
 function clubLabel(club){
@@ -1611,7 +1612,7 @@ async function loadAll(){
       const ironSet = Array.isArray(tags.iron_set) ? tags.iron_set : [];
       return {id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags,ironSet,aiInfo:r.ai_info||'',photoUrl:r.photo_url||'',isPublic:r.is_public||false};
     });
-    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:(r.club||'').replace(/^AW\/GW$/,'AW').replace(/^GW$/,'AW'),memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.sets=(csR.data||[]).map(r=>({id:r.id,name:r.name,clubs:r.clubs||[],memo:r.memo||'',createdAt:r.created_at}));
     D.profile=pR.data||null;
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
@@ -7224,7 +7225,7 @@ window.aiAutoFillSpecs = async () => {
 
 window.applyVerifiedSpecs = (verifyText) => {
   // "수정 필요: 7I 로프트 34° → 실제 35°" 형태 파싱
-  const fixes=[...verifyText.matchAll(/([234-9]I|PW|SW|LW|AW|GW|AW\/GW|[3579]W|[2-6]UT)\s*로프트\s*[\d.]+°?\s*→\s*(?:실제\s*)?([\d.]+)°?/g)];
+  const fixes=[...verifyText.matchAll(/([234-9]I|PW|SW|LW|AW|[3579]W|[2-6]UT)\s*로프트\s*[\d.]+°?\s*→\s*(?:실제\s*)?([\d.]+)°?/g)];
   let count=0;
   fixes.forEach(m=>{
     const club=m[1], loft=m[2];
@@ -7657,7 +7658,7 @@ window.generatePracticePlan = async function generatePracticePlan(forceRefresh=f
 
   // 보유 클럽 목록
   const ownedClubNames=ownedClubs.map(e=>{
-    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW|GW/i);
+    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW/i);
     return m?m[0]:null;
   }).filter(Boolean);
 
@@ -7768,7 +7769,7 @@ function renderPracticePlanFromCache(cached, dataHash, hasNew){
     notesByKeyword[kl].push({id:v.id,title:v.title,url:v.url});
   }));
   const noDataClubs=CLUBS.filter(c=>!clubStats[c]&&ownedClubs.some(e=>{
-    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW|GW/i);
+    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW/i);
     return m&&(m[0]===c||c.includes(m[0]));
   }));
   renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, cached.analyzedAt, hasNew);
