@@ -980,16 +980,16 @@ const CLUB_BENCH={
   '8I':{carry:[{l:'프로',min:135,max:160,c:'rgba(228,168,85,.07)'},{l:'상급',min:112,max:135,c:'rgba(122,176,232,.06)'},{l:'중급',min:85,max:112,c:'rgba(167,139,250,.05)'},{l:'초급',min:58,max:85,c:'rgba(138,155,170,.04)'}]},
   '9I':{carry:[{l:'프로',min:122,max:148,c:'rgba(228,168,85,.07)'},{l:'상급',min:100,max:122,c:'rgba(122,176,232,.06)'},{l:'중급',min:75,max:100,c:'rgba(167,139,250,.05)'},{l:'초급',min:50,max:75,c:'rgba(138,155,170,.04)'}]},
   'PW':{carry:[{l:'프로',min:110,max:138,c:'rgba(228,168,85,.07)'},{l:'상급',min:90,max:110,c:'rgba(122,176,232,.06)'},{l:'중급',min:68,max:90,c:'rgba(167,139,250,.05)'},{l:'초급',min:45,max:68,c:'rgba(138,155,170,.04)'}]},
-  'AW/GW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
+  'AW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
   'SW':{carry:[{l:'프로',min:80,max:105,c:'rgba(228,168,85,.07)'},{l:'상급',min:64,max:80,c:'rgba(122,176,232,.06)'},{l:'중급',min:48,max:64,c:'rgba(167,139,250,.05)'},{l:'초급',min:32,max:48,c:'rgba(138,155,170,.04)'}]},
   'LW':{carry:[{l:'프로',min:65,max:88,c:'rgba(228,168,85,.07)'},{l:'상급',min:50,max:65,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:50,c:'rgba(167,139,250,.05)'},{l:'초급',min:22,max:36,c:'rgba(138,155,170,.04)'}]},
 };
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드','하이브리드','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
 const CLUB_CATS=new Set(['드라이버','우드','하이브리드','아이언','웨지']);
-const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT','5UT','유틸리티','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW/GW','SW','LW','퍼터'];
+const CLUBS=['드라이버','2W','3W','4W','5W','7W','9W','1UT','2UT','3UT','4UT','5UT','유틸리티','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
 // 장비 분류 → 대표 클럽 매핑
-const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW/GW','SW','LW'],'퍼터':['퍼터']};
+const CAT_TO_CLUBS={'드라이버':['드라이버'],'우드':['3W','5W','7W'],'하이브리드':['2UT','3UT','4UT','5UT'],'아이언':['5I','6I','7I','8I','9I'],'웨지':['PW','AW','SW','LW'],'퍼터':['퍼터']};
 const IRON_NUMS=['2I','3I','4I','5I','6I','7I','8I','9I'];
 const WOOD_NUMS_COMMON=['3W','5W','7W'];
 const WOOD_NUMS_RARE=['1W','2W','4W','6W','8W','9W','11W','13W'];
@@ -999,11 +999,11 @@ const UTIL_NUMS=[...UTIL_NUMS_COMMON,...UTIL_NUMS_RARE];
 const WOOD_NUMS=[...WOOD_NUMS_COMMON,...WOOD_NUMS_RARE];
 
 // 클럽별 기본 로프트 참고값
-const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW/GW':52,'SW':56,'LW':60};
+const CLUB_DEFAULT_LOFT={'1W':9.5,'3W':15,'4W':17,'5W':19,'6W':22,'7W':22,'8W':24,'9W':26,'11W':30,'2W':12,'2UT':17,'3UT':20,'4UT':23,'5UT':26,'6UT':29,'2I':18,'3I':21,'4I':24,'5I':27,'6I':31,'7I':35,'8I':39,'9I':43,'PW':47,'AW':52,'SW':56,'LW':60};
 
 // 아이언/웨지/우드/유틸 세트 체크박스 HTML
 function ironSetUI(selectedIrons=[], selectedWedges=[], selectedWoods=[], selectedUtils=[], clubSpecs={}, cat='', expertMode=false){
-  const wedgeNums=['PW','AW/GW','SW','LW'];
+  const wedgeNums=['PW','AW','SW','LW'];
 
   // 전문가 모드 토글 버튼
   const modeToggle=`<div style="display:flex;justify-content:flex-end;margin-bottom:.4rem">
@@ -1098,8 +1098,9 @@ function normalizeClub(club){
   if(!club)return'';
   // "장비명 — 클럽번호" 형식 파싱
   const m=club.match(/—\s*([^\s]+)$/);
-  if(m)return m[1].trim();
-  return club;
+  const raw=m?m[1].trim():club;
+  // 표기 정규화: AW/GW → AW, GW → AW
+  return raw==='AW/GW'||raw==='GW'?'AW':raw;
 }
 // 카드/배지 표시용 라벨 (보유 장비면 장비명 포함, 아니면 클럽번호만)
 function clubLabel(club){
@@ -1611,7 +1612,7 @@ async function loadAll(){
       const ironSet = Array.isArray(tags.iron_set) ? tags.iron_set : [];
       return {id:r.id,name:r.name,cat:r.category||'',status:r.status||'wishlist',buyPrice:r.purchase_price,buyDate:r.purchase_date,memo:r.memo||'',links:r.links||[],priceH:r.price_history||[],tags,ironSet,aiInfo:r.ai_info||'',photoUrl:r.photo_url||'',isPublic:r.is_public||false};
     });
-    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:r.club||'',memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
+    D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:(r.club||'').replace(/^AW\/GW$/,'AW').replace(/^GW$/,'AW'),memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.sets=(csR.data||[]).map(r=>({id:r.id,name:r.name,clubs:r.clubs||[],memo:r.memo||'',createdAt:r.created_at}));
     D.profile=pR.data||null;
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
@@ -1867,6 +1868,158 @@ window._resetChangelog = () => {
   _changelogChecked = false;
   checkChangelog();
 };
+
+
+window.switchHomeTab = (tab) => {
+  const perf = document.getElementById('home-tab-perf-content');
+  const rec  = document.getElementById('home-tab-rec-content');
+  const btnP = document.getElementById('home-tab-perf');
+  const btnR = document.getElementById('home-tab-rec');
+  if(!perf || !rec) return;
+  const isPerf = tab === 'perf';
+  perf.style.display = isPerf ? '' : 'none';
+  rec.style.display  = isPerf ? 'none' : '';
+  if(btnP){ btnP.style.borderBottomColor = isPerf ? 'var(--wing2)' : 'transparent'; btnP.style.color = isPerf ? 'var(--wing2)' : 'var(--muted)'; }
+  if(btnR){ btnR.style.borderBottomColor = isPerf ? 'transparent' : 'var(--wing2)'; btnR.style.color = isPerf ? 'var(--muted)' : 'var(--wing2)'; }
+};
+
+function buildHomeRecHtml(){
+  const items = [];
+
+  // ── 1. AI 다음 연습 팁 (최근 세션의 aiAnalysis에서 추출)
+  const aiSessions = D.sessions.filter(s=>s.aiAnalysis).slice(0,5);
+  aiSessions.forEach(s=>{
+    const plain = s.aiAnalysis.replace(/\*\*(.*?)\*\*/g,'$1');
+    // "✓ 다음 연습 팁" 섹션 추출
+    const m = plain.match(/✓ 다음 연습 팁[\s\S]*?(?=✓ |$)/);
+    if(!m) return;
+    const tipText = m[0].replace(/^✓ 다음 연습 팁\s*[-—]?\s*/, '').trim();
+    if(!tipText || tipText.length < 10) return;
+    // 첫 문장만
+    const firstSentence = tipText.split(/[.。!?]/)[0].trim().slice(0,80);
+    if(!firstSentence) return;
+    items.push({
+      type: 'tip',
+      icon: '💡',
+      tag: `AI 팁 · ${s.club||''} · ${s.date||''}`,
+      text: firstSentence + (tipText.length > 80 ? '…' : ''),
+      full: tipText,
+      action: `goSessionDetail('${s.id}')`,
+      actionLabel: '분석 보기',
+      color: 'rgba(84,184,232,.7)',
+      bg: 'rgba(84,184,232,.05)',
+      border: 'rgba(84,184,232,.15)',
+    });
+  });
+
+  // ── 2. 연습 플랜에서 추천 루틴 추출
+  // practice_plan.result는 JSON 객체 {priority_clubs, routines, youtube_keywords}
+  const planCached = getAiCache('practice_plan');
+  if(planCached?.result){
+    const plan = typeof planCached.result === 'string'
+      ? (() => { try{ return JSON.parse(planCached.result); } catch(e){ return null; } })()
+      : planCached.result;
+    if(plan){
+      // priority_clubs의 tip에서 추천 루틴 추출
+      const planDate = planCached.analyzedAt || '';
+      (plan.priority_clubs || []).slice(0, 2).forEach(pc => {
+        if(!pc.tip) return;
+        const text = pc.tip.trim().slice(0, 90);
+        if(!text) return;
+        items.push({
+          type: 'plan',
+          icon: '🎯',
+          tag: `연습 플랜 · ${pc.club} · ${planDate}`,
+          text: text + (pc.tip.length > 90 ? '…' : ''),
+          action: "gotoTab('practice');setPSub('plan')",
+          actionLabel: '플랜 보기',
+          color: 'rgba(200,137,58,.7)',
+          bg: 'rgba(200,137,58,.05)',
+          border: 'rgba(200,137,58,.12)',
+        });
+      });
+      // routines에서 20분 루틴 항목 추출 (없으면 40분)
+      const routineItems = plan.routines?.['20'] || plan.routines?.['40'] || [];
+      routineItems.slice(0, 1).forEach(r => {
+        items.push({
+          type: 'plan',
+          icon: '⏱',
+          tag: `연습 루틴 · ${planDate}`,
+          text: (Array.isArray(routineItems) ? routineItems.slice(0,3).join(' → ') : r).slice(0, 90),
+          action: "gotoTab('practice');setPSub('plan')",
+          actionLabel: '플랜 보기',
+          color: 'rgba(200,137,58,.7)',
+          bg: 'rgba(200,137,58,.05)',
+          border: 'rgba(200,137,58,.12)',
+        });
+      });
+    }
+  }
+
+  // ── 3. 학습 노트 태그/키워드 기반 추천 노트
+  // 최근 세션 클럽과 연관된 키워드가 있는 노트 우선 표시
+  const recentClubs = new Set(D.sessions.slice(0,10).map(s=>normalizeClub(s.club)).filter(Boolean));
+  const clubKeywords = {
+    '드라이버':['드라이버','비거리','헤드스피드','스윙','임팩트'],
+    '7I':['아이언','컨트롤','임팩트','로프트'],
+    'PW':['어프로치','웨지','스핀','거리조절'],
+    'SW':['벙커','플롭샷','웨지'],
+  };
+  // 모든 세션 클럽과 매칭되는 키워드
+  const allMatchKw = new Set();
+  recentClubs.forEach(cl => {
+    Object.entries(clubKeywords).forEach(([k,kws]) => {
+      if(cl.includes(k.replace(/[0-9]/g,'').trim())) kws.forEach(kw=>allMatchKw.add(kw.toLowerCase()));
+    });
+  });
+
+  const recNotes = D.videos
+    .filter(v => {
+      const kwMatch = v.kw?.some(k => allMatchKw.has(k.toLowerCase()));
+      const memoMatch = v.memo && [...allMatchKw].some(kw => v.memo.toLowerCase().includes(kw));
+      return kwMatch || memoMatch;
+    })
+    .slice(0, 3);
+
+  // 매칭 노트가 없으면 최근 추가된 노트
+  const fallbackNotes = recNotes.length ? recNotes : D.videos.slice(0, 2);
+  fallbackNotes.forEach(v => {
+    const kwLabels = (v.kw || []).slice(0, 3).join(' · ');
+    items.push({
+      type: 'note',
+      icon: '📖',
+      tag: kwLabels || '학습 노트',
+      text: v.title ? v.title.slice(0, 70) : (v.memo?.slice(0, 70) || '노트'),
+      action: `goNoteDetail('${v.id}')`,
+      actionLabel: '노트 보기',
+      color: 'rgba(167,139,250,.7)',
+      bg: 'rgba(167,139,250,.05)',
+      border: 'rgba(167,139,250,.12)',
+    });
+  });
+
+  if(!items.length){
+    return `<div style="text-align:center;padding:1.2rem 0;color:var(--muted);font-size:.82rem">
+      <div>AI 분석이나 학습 노트가 아직 없습니다.</div>
+      <div style="margin-top:.4rem;font-size:.74rem">비행 기록 후 AI 분석을 실행하면 추천이 생성됩니다.</div>
+    </div>`;
+  }
+
+  return items.map(it => `
+    <div style="display:flex;align-items:flex-start;gap:.6rem;padding:.55rem .65rem;margin-bottom:.4rem;
+      background:${it.bg};border:1px solid ${it.border};border-radius:5px;cursor:pointer"
+      onclick="${it.action}">
+      <span style="font-size:1.1rem;flex-shrink:0;line-height:1.3">${it.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.64rem;color:${it.color};letter-spacing:.05em;margin-bottom:.15rem;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.tag)}</div>
+        <div style="font-size:.8rem;color:var(--chalk);line-height:1.45;
+          overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(it.text)}</div>
+      </div>
+      <span style="font-size:.65rem;color:${it.color};white-space:nowrap;flex-shrink:0;
+        padding:2px 7px;border:1px solid ${it.border};border-radius:8px;align-self:center">${it.actionLabel}</span>
+    </div>`).join('');
+}
 
 async function loadHomeSocial() {
   const wrap = $('home-social-wrap'); if(!wrap||!user||isGuest) return;
@@ -3678,12 +3831,17 @@ function homeView(){
     </div>
   </div>`:''}
 
-  <!-- 최근 성과 -->
+  <!-- 최근 성과 + 추천 학습 노트 탭 -->
   <div class="home-section">
-    <div class="home-section-title">📈 최근 비행 성과
-      <button onclick="gotoTab('practice')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.68rem;cursor:pointer;font-family:var(--sans)">전체 보기 →</button>
+    <div style="display:flex;gap:0;margin-bottom:.65rem;border-bottom:1px solid rgba(240,237,230,.08)">
+      <button id="home-tab-perf" onclick="switchHomeTab('perf')"
+        style="padding:.3rem .7rem;border:none;border-bottom:2px solid var(--wing2);background:none;color:var(--wing2);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">📈 최근 성과</button>
+      <button id="home-tab-rec" onclick="switchHomeTab('rec')"
+        style="padding:.3rem .7rem;border:none;border-bottom:2px solid transparent;background:none;color:var(--muted);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">📚 추천 학습</button>
+      <button onclick="gotoTab('practice')" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:.66rem;cursor:pointer;font-family:var(--sans);padding:.3rem .4rem">전체 →</button>
     </div>
-    ${perfHtml}
+    <div id="home-tab-perf-content">${perfHtml}</div>
+    <div id="home-tab-rec-content" style="display:none">${buildHomeRecHtml()}</div>
   </div>
 
   <!-- 인기 학습 노트 -->
@@ -3740,7 +3898,7 @@ function vList(){
       : isInsta(v.url)
         ? `<div style="width:64px;height:44px;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);font-size:1.3rem">📸</div>`
         : `<div style="width:64px;height:44px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>`;
-    return `<div onclick="goDetail('${v.id}')"
+    return `<div onclick="goNoteDetail('${v.id}')"
       style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer">
       <div style="display:flex;gap:.65rem;align-items:flex-start;margin-bottom:${v.memo||tsHtml?'.5rem':'0'}">
         ${thumbEl}
@@ -3948,7 +4106,7 @@ window.filterV=(q,cat)=>{
     const thumbSrc=thumb(v.url);
     const thumbEl=thumbSrc?`<img src="${thumbSrc}" style="width:64px;height:44px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:isInsta(v.url)?`<div style="width:64px;height:44px;border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);font-size:1.3rem">📸</div>`:`<div style="width:64px;height:44px;background:var(--dusk2);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎬</div>`;
     const tsHtml=v.ts.slice(0,3).map(t=>`<span onclick="event.stopPropagation();playFrom('${t.time}','${v.id}')" style="display:inline-flex;align-items:center;gap:3px;background:rgba(200,137,58,.1);border:1px solid rgba(200,137,58,.2);border-radius:2px;padding:1px 6px;margin:2px 3px 2px 0;cursor:pointer;font-size:.72rem;color:var(--wing2)">⏱${esc(t.time)} <span style="color:var(--dim)">${esc(t.note)}</span></span>`).join('');
-    return`<div onclick="goDetail('${v.id}')" style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer">
+    return`<div onclick="goNoteDetail('${v.id}')" style="background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.1);border-radius:3px;padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer">
       <div style="display:flex;gap:.65rem;align-items:flex-start;margin-bottom:${v.memo||tsHtml?'.5rem':'0'}">${thumbEl}<div style="flex:1;min-width:0"><div style="font-size:.82rem;color:var(--chalk);font-weight:500;line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(v.title)}</div><div style="display:flex;flex-wrap:wrap;gap:2px">${v.kw.map(k=>`<span class="badge b-gold" style="cursor:pointer;font-size:.68rem" onclick="event.stopPropagation();filterNoteByTag(event,'${esc(k)}')">${esc(k)}</span>`).join('')}</div></div></div>
       ${v.memo?`<div style="font-size:.73rem;color:var(--dim);line-height:1.6;margin-bottom:.4rem;padding:.35rem .5rem;background:rgba(240,237,230,.04);border-left:2px solid rgba(200,137,58,.2);border-radius:0 2px 2px 0;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(v.memo)}</div>`:''}
       ${tsHtml?`<div onclick="event.stopPropagation()" style="margin-bottom:.35rem">${tsHtml}</div>`:''}
@@ -4171,9 +4329,33 @@ window.saveTermNote=async(termId,memo)=>{
   if(error){toast('메모 저장 실패');return;}
   D_TERMS.notes[termId]=data;toast('메모 저장됨');
 };
-window.filterNoteByTag=(e,kw)=>{e?.stopPropagation?.();dictKw=kw;_tagFilterMode='exact';window._rerender();};
+window.filterNoteByTag=(e,kw)=>{
+  e?.stopPropagation?.();
+  dictKw=kw; _tagFilterMode='exact';
+  window._noteNavPool=null; // 목록 재진입 시 갱신
+  window._rerender();
+};
 window.clearTagFilter=()=>{dictKw='';render();};
-window.goNoteDetail=id=>{tab='videos';view='detail';selId=id;render();};
+window.goNoteDetail = id => {
+  tab='videos'; view='detail'; selId=id;
+  // 현재 필터 상태로 네비 풀 구성
+  const q = document.getElementById('vsrch')?.value?.trim() || '';
+  const cat = document.getElementById('vcat')?.value || '';
+  let pool = D.videos.filter(v =>
+    (!q || v.title.includes(q) || v.kw.some(k=>k.includes(q))) &&
+    (!cat || v.kw.includes(cat))
+  );
+  if(dictKw){
+    pool = pool.filter(v => {
+      if(_tagFilterMode==='exact') return v.kw.includes(dictKw);
+      const kl=dictKw.toLowerCase();
+      return v.kw.some(k=>k.toLowerCase().includes(kl)) || v.title.toLowerCase().includes(kl);
+    });
+  }
+  window._noteNavPool = pool.length ? pool : D.videos;
+  window._noteNavFilter = dictKw ? `#${dictKw}` : (q||cat||'');
+  render();
+};
 window.goDict=(termId=null)=>{dictView=termId?'detail':'list';dictSelId=termId||null;view='dict';tab='videos';document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));const tb=$('tab-videos');if(tb)tb.classList.add('on');render();};
 // homeView에서 안전하게 용어 상세로 이동 (인라인 onclick에서 id 전달 문제 우회)
 window.goCurrentTerm=()=>{
@@ -4388,7 +4570,35 @@ function vDetail(){
   const likeCount = v.likeCount||0;
   const isOwnNote = v.userId===user?.id;
 
-  return `<div class="page"><div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="margin-bottom:.9rem"><textarea class="ta" id="vmemo-${v.id}" style="min-height:72px;font-size:.88rem;line-height:1.7;field-sizing:content" placeholder="메모를 입력하세요..." onblur="saveVMemo('${v.id}',this.value)">${ea(v.memo||'')}</textarea></div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div>
+  // 네비 풀 구성 (진입 경로에 무관하게 보장)
+  if(!window._noteNavPool) window._noteNavPool = D.videos;
+  const navPool = window._noteNavPool;
+  const navIdx = navPool.findIndex(x=>x.id===v.id);
+  const navFilter = window._noteNavFilter || '';
+  const hasPrev = navIdx > 0;
+  const hasNext = navIdx < navPool.length - 1;
+
+  // 이전/다음 이동 함수 등록
+  window._prevNote = hasPrev ? () => goNoteDetail(navPool[navIdx-1].id) : null;
+  window._nextNote = hasNext ? () => goNoteDetail(navPool[navIdx+1].id) : null;
+
+  const navBar = `<div style="position:sticky;top:0;z-index:200;background:var(--night);border-bottom:1px solid var(--border);display:flex;align-items:stretch;height:44px;margin:0 -1rem .9rem;padding:0 .5rem">
+    <button onclick="goList()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.82rem;padding:0 .5rem;display:flex;align-items:center;gap:.3rem;flex-shrink:0">
+      ← 목록
+    </button>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;padding:0 .25rem">
+      <div style="font-size:.72rem;color:var(--chalk);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${navIdx+1} / ${navPool.length}</div>
+      ${navFilter?`<div style="font-size:.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(navFilter)}</div>`:''}
+    </div>
+    <div style="display:flex;align-items:center;gap:.2rem;flex-shrink:0">
+      <button onclick="${hasPrev?'window._prevNote()':''}" ${hasPrev?'':'disabled'}
+        style="background:none;border:1px solid var(--border);border-radius:4px;color:${hasPrev?'var(--chalk)':'var(--border)'};cursor:${hasPrev?'pointer':'default'};font-size:.78rem;width:32px;height:28px;display:flex;align-items:center;justify-content:center">‹</button>
+      <button onclick="${hasNext?'window._nextNote()':''}" ${hasNext?'':'disabled'}
+        style="background:none;border:1px solid var(--border);border-radius:4px;color:${hasNext?'var(--chalk)':'var(--border)'};cursor:${hasNext?'pointer':'default'};font-size:.78rem;width:32px;height:28px;display:flex;align-items:center;justify-content:center">›</button>
+    </div>
+  </div>`;
+
+  return `<div class="page">${navBar}<div class="inline-edit" style="margin-bottom:.5rem"><span class="e-label">제목</span><input id="et" value="${ea(v.title)}" onblur="saveVTitle('${v.id}',this.value)"><span style="font-size:.72rem;color:var(--muted)">✎</span></div><div class="inline-edit"><span class="e-label">URL</span><input id="eu" value="${ea(v.url)}" placeholder="YouTube / Instagram URL"><button class="btn btn-s btn-sm" onclick="saveVUrl('${v.id}',$('eu').value)">적용</button></div><div class="sec-label">태그</div>${tagsH}${mediaH}<div class="sec-label">메모</div><div style="margin-bottom:.9rem"><textarea class="ta" id="vmemo-${v.id}" style="min-height:72px;font-size:.88rem;line-height:1.7;field-sizing:content" placeholder="메모를 입력하세요..." onblur="saveVMemo('${v.id}',this.value)">${ea(v.memo||'')}</textarea></div><div class="sec-label">구간 타임스탬프</div><div>${tsH}</div><div style="display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap"><input class="inp" style="width:72px;flex:none" placeholder="0:00" id="ts-t"><input class="inp" style="flex:1;min-width:140px" placeholder="이 구간의 핵심 내용..." id="ts-n"><button class="btn btn-p btn-sm" onclick="addTs('${v.id}')">추가</button></div><div class="divider"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
     <div style="display:flex;gap:.4rem;align-items:center">
       ${!isOwnNote?`<button onclick="toggleNoteLike('${v.id}','${ea(v.title)}','${v.userId||''}')"
@@ -4585,7 +4795,7 @@ window.delSession = async id => {
     }
   });
 };
-function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">새 노트 추가</div>
+function vAdd(){return`<div class="page"><button class="back-btn" onclick="goList()">← 노트 목록</button><div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2)">새 노트 추가</div><div style="display:flex;gap:.4rem;align-items:center"><label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap;border:1px solid rgba(61,158,116,.2);border-radius:10px;padding:3px 9px;background:rgba(61,158,116,.04)"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label><button class="btn btn-p btn-sm" id="vsavebtn-top" onclick="saveVideo()">저장</button></div></div>
 <div class="fg"><label class="fl-label">YouTube / Instagram URL</label><input class="inp" id="vu" placeholder="https://www.youtube.com/watch?v=... 또는 https://www.instagram.com/reel/..." oninput="prevThumb();onVUrlInput()"><img id="vthumb" style="margin-top:.5rem;width:110px;border-radius:2px;display:none;border:1px solid var(--border)" src="" alt=""><div id="vu-dup"></div></div>
 <!-- AI 자동 분석 버튼 (YouTube일 때만 표시) -->
 <div id="yt-analyze-wrap" style="display:none;margin-bottom:.85rem">
@@ -4612,10 +4822,7 @@ function vAdd(){return`<div class="page"><button class="back-btn" onclick="goLis
 </div>
 <div class="brow" style="display:flex;align-items:center;gap:.5rem">
   <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
-    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap"><input type="checkbox" id="v-is-public" style="accent-color:var(--turf)"><span>공개</span></label>
-    <button class="btn btn-p" id="vsavebtn" onclick="saveVideo()">저장</button>
-  </div>
+  <button class="btn btn-p" id="vsavebtn" onclick="saveVideo()" style="margin-left:auto">저장</button>
 </div></div></div>`}
 window.prevThumb=()=>{
   const url=$('vu').value.trim();
@@ -6055,7 +6262,7 @@ window.saveEquip=async()=>{
        ...(driverSpecs?{driver_specs:driverSpecs}:{})}
     :null;
   const photoUrl=$('eadd-photo-url')?.value||'';
-  const btn=$('esavebtn');btn.disabled=true;btn.textContent='저장 중...';
+  const btn=$('esavebtn'),btnT=$('esavebtn-top');btn.disabled=true;btn.textContent='저장 중...';if(btnT){btnT.disabled=true;btnT.textContent='저장 중...';}
   sync('busy');
   const isPublic=$('e-is-public')?.checked||false;
   const{error}=await sb.from('equipment').insert({user_id:user.id,name,category:cat,status,memo,links,price_history:priceH,purchase_price:pp?Number(pp):null,purchase_date:pd||null,tags:tagsData,photo_url:photoUrl||null,is_public:isPublic});
@@ -6066,7 +6273,7 @@ window.saveEquip=async()=>{
 function eAdd(){
   return`<div class="page"><button class="back-btn" onclick="goList()">← 장비 목록</button>
   <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.15);border-radius:2px;padding:1.2rem">
-    <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2);margin-bottom:.8rem">장비 추가</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem"><div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2)">장비 추가</div><div style="display:flex;gap:.4rem;align-items:center"><label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap;border:1px solid rgba(61,158,116,.2);border-radius:10px;padding:3px 9px;background:rgba(61,158,116,.04)"><input type="checkbox" id="e-is-public" style="accent-color:var(--turf)"><span>공개</span></label><button class="btn btn-p btn-sm" id="esavebtn-top" onclick="saveEquip()">저장</button></div></div>
 
     <div class="frow">
       <div class="fg"><label class="fl-label">장비명</label><input class="inp" id="en" placeholder="예: Titleist TSR3" oninput="eAddAutoSearch()"></div>
@@ -6116,11 +6323,8 @@ function eAdd(){
     </div>
 
     <div class="brow" style="margin-top:.9rem;display:flex;align-items:center;gap:.5rem">
-      <button class="btn btn-p" id="esavebtn" onclick="saveEquip()">저장</button>
-      <button class="btn btn-s" onclick="goList()">취소</button>
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap">
-        <input type="checkbox" id="e-is-public" style="accent-color:var(--turf)"><span>공개</span>
-      </label>
+      <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
+      <button class="btn btn-p" id="esavebtn" onclick="saveEquip()" style="margin-left:auto">저장</button>
     </div>
   </div></div>`;
 }
@@ -6881,7 +7085,7 @@ function clubSpecUI(cat){
       </div>
       <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem;margin-top:.6rem">웨지 포함</div>
       <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        ${['PW','AW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
       </div>
     </div>`;
 
@@ -6893,7 +7097,7 @@ function clubSpecUI(cat){
         <button type="button" onclick="aiAutoFillSpecs()" style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.08);color:#A78BFA;cursor:pointer;font-family:var(--sans)">✦ AI 자동 채우기</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${['PW','AW/GW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
+        ${['PW','AW','SW','LW'].map(n=>mkChkSpec(n,'wedge_set','#4A9E74',String(CLUB_DEFAULT_LOFT[n]||''))).join('')}
       </div>
     </div>`;
 
@@ -6948,7 +7152,7 @@ window.aiAutoFillSpecs = async () => {
 검색된 공식 자료(제조사 사이트, 공식 카탈로그)를 기준으로 작성하고, 확실하지 않은 값은 null로 표시하세요.
 
 {"clubs":[{"id":"7I","loft":35,"flex":"S"},{"id":"8I","loft":39,"flex":"S"}],"driver":null,"summary":"","source":"출처"}
-- id: 7I 8I 9I PW SW LW AW/GW 3W 5W 3UT 등
+- id: 7I 8I 9I PW SW LW AW 3W 5W 3UT 등
 - loft: 공식 스펙 숫자만 (불확실하면 null)
 - flex: 기본 샤프트 강도 L A R SR S X (불확실하면 null)
 - source: 참고한 출처 URL 또는 사이트명
@@ -7021,7 +7225,7 @@ window.aiAutoFillSpecs = async () => {
 
 window.applyVerifiedSpecs = (verifyText) => {
   // "수정 필요: 7I 로프트 34° → 실제 35°" 형태 파싱
-  const fixes=[...verifyText.matchAll(/([234-9]I|PW|SW|LW|AW|GW|AW\/GW|[3579]W|[2-6]UT)\s*로프트\s*[\d.]+°?\s*→\s*(?:실제\s*)?([\d.]+)°?/g)];
+  const fixes=[...verifyText.matchAll(/([234-9]I|PW|SW|LW|AW|[3579]W|[2-6]UT)\s*로프트\s*[\d.]+°?\s*→\s*(?:실제\s*)?([\d.]+)°?/g)];
   let count=0;
   fixes.forEach(m=>{
     const club=m[1], loft=m[2];
@@ -7216,7 +7420,7 @@ function pList(){
     const selCount = selectedChartKeys.size;
 
     // ── 클럽별 비거리 막대그래프 ─────────────────────
-    // X축: SW → LW → PW → AW/GW → 9I → ... → 드라이버 (오른쪽으로 갈수록 긴 클럽)
+    // X축: SW → LW → PW → AW → 9I → ... → 드라이버 (오른쪽으로 갈수록 긴 클럽)
     const distClubOrder = [...CLUBS].reverse(); // CLUBS가 드라이버→SW 순이므로 reverse
     const distClubs = distClubOrder.filter(c=>cm[normalizeClub(c)]?.c.length||cm[normalizeClub(c)]?.tot.length);
     const distChartSection = distClubs.length >= 2 ? `
@@ -7454,7 +7658,7 @@ window.generatePracticePlan = async function generatePracticePlan(forceRefresh=f
 
   // 보유 클럽 목록
   const ownedClubNames=ownedClubs.map(e=>{
-    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW|GW/i);
+    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW/i);
     return m?m[0]:null;
   }).filter(Boolean);
 
@@ -7565,7 +7769,7 @@ function renderPracticePlanFromCache(cached, dataHash, hasNew){
     notesByKeyword[kl].push({id:v.id,title:v.title,url:v.url});
   }));
   const noDataClubs=CLUBS.filter(c=>!clubStats[c]&&ownedClubs.some(e=>{
-    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW|GW/i);
+    const m=e.name.match(/[237-9]I|드라이버|퍼터|[35]W|PW|SW|LW|AW/i);
     return m&&(m[0]===c||c.includes(m[0]));
   }));
   renderPracticePlan(plan, clubStats, notesByKeyword, noDataClubs, cached.analyzedAt, hasNew);
@@ -8727,7 +8931,7 @@ const CLUB_COLORS = {
   '9I':        {line:'#78D0F4', bg:'rgba(120,208,244,.15)', group:'iron'},
   // ── 웨지 (보라~핑크 그라데이션)
   'PW':        {line:'#9878E8', bg:'rgba(152,120,232,.15)', group:'wedge'},
-  'AW/GW':     {line:'#B070D8', bg:'rgba(176,112,216,.15)', group:'wedge'},
+  'AW':     {line:'#B070D8', bg:'rgba(176,112,216,.15)', group:'wedge'},
   'SW':        {line:'#C868C8', bg:'rgba(200,104,200,.15)', group:'wedge'},
   'LW':        {line:'#E060B8', bg:'rgba(224,96,184,.15)',  group:'wedge'},
   // ── 퍼터 (회색)
@@ -11396,7 +11600,8 @@ function pAdd() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
       <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--wing2)">비행 기록 추가</div>
       <div style="display:flex;gap:.4rem">
-        <button class="btn btn-s btn-sm" onclick="goList()">취소</button>
+        <button class="btn btn-s btn-sm" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none">취소</button>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;white-space:nowrap;border:1px solid rgba(61,158,116,.2);border-radius:10px;padding:3px 9px;background:rgba(61,158,116,.04)"><input type="checkbox" id="p-is-public" style="accent-color:var(--turf)"><span>공개</span></label>
         <button class="btn btn-p btn-sm" id="psavebtn-top" onclick="saveSession()">저장</button>
       </div>
     </div>
@@ -11429,7 +11634,7 @@ function pAdd() {
           <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W','11W'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 하이브리드/유틸">${['1UT','2UT','3UT','4UT','5UT','6UT','7UT'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 아이언">${['1I','2I','3I','4I','5I','6I','7I','8I','9I'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
-          <optgroup label="── 웨지">${['PW','AW/GW','SW','LW'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 퍼터">${['퍼터'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
         </select>
         ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`:''}
@@ -11596,11 +11801,8 @@ function pAdd() {
 
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
     <div class="brow" style="display:flex;align-items:center;gap:.5rem">
-      <button class="btn btn-p" id="psavebtn" onclick="saveSession()">저장</button>
-      <button class="btn btn-s" onclick="goList()">취소</button>
-      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--muted);user-select:none;margin-left:auto;white-space:nowrap">
-        <input type="checkbox" id="p-is-public" style="accent-color:var(--turf)"><span>공개</span>
-      </label>
+      <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
+      <button class="btn btn-p" id="psavebtn" onclick="saveSession()" style="margin-left:auto">저장</button>
     </div>
   </div></div>`;
 }
