@@ -204,8 +204,8 @@ async function startCompress(){
       }
 
       // 3. 재업로드
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, compBlob, {
-        contentType: 'image/jpeg', upsert: true
+      const { error: upErr } = await sb.storage.from(BUCKET).update(path, compBlob, {
+        contentType: 'image/jpeg'
       });
       if(upErr){ log(`업로드 실패: ${path.split('/').pop()} — ${upErr.message}`, 'err'); totalDone++; updateUI(); continue; }
 
