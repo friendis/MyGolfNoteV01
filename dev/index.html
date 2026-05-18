@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Birdyard 이미지 압축 도구</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#0D1117;color:#F0EDE6;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem}
@@ -80,8 +80,13 @@ const BUCKET = 'gdr-images';
 const MAX_PX = 1200;
 const QUALITY = 0.78;
 
-const { createClient } = supabase;
-const sb = createClient(SB_URL, SB_KEY);
+// 라이브러리 로드 확인
+if(typeof supabase === 'undefined' || typeof supabase.createClient !== 'function'){
+  document.getElementById('login-log').innerHTML = '<span class="err">오류: Supabase 라이브러리 로드 실패. 페이지를 새로고침 해주세요.</span>';
+  throw new Error('supabase not loaded');
+}
+
+const sb = supabase.createClient(SB_URL, SB_KEY);
 
 let running = false;
 let totalDone = 0, totalOk = 0, totalSavedBytes = 0;
