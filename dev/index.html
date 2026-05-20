@@ -11363,6 +11363,7 @@ window.handleGamePhoto = async function(input) {
       const pl = $('pl');
       if(knownPlace && pl && !pl.value) {
         pl.value = knownPlace;
+        const plT=$('pl-top');if(plT&&!plT.value)plT.value=knownPlace;
         toast(`📍 ${knownPlace}`);
       } else if(!knownPlace) {
         const addr = await gpsToAddress(lat, lon);
@@ -11650,6 +11651,9 @@ function pAdd() {
     <div class="fg" style="margin-bottom:.8rem">
       <label class="fl-label">기록 타입</label>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.35rem">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
+          <input type="radio" name="rec-type" value="memo" onchange="toggleRecType(this.value)"> 📝 연습 메모
+        </label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid rgba(200,137,58,.3);background:rgba(200,137,58,.08)">
           <input type="radio" name="rec-type" value="gdr" checked onchange="toggleRecType(this.value)"> 📡 GDR 분석
         </label>
@@ -11659,15 +11663,17 @@ function pAdd() {
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
           <input type="radio" name="rec-type" value="field" onchange="toggleRecType(this.value)"> ⛳ 필드 골프
         </label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
-          <input type="radio" name="rec-type" value="memo" onchange="toggleRecType(this.value)"> 📝 연습 메모
-        </label>
       </div>
     </div>
 
     <div class="frow">
-      <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
-      <div class="fg" id="club-wrap">
+      <div class="fg" style="flex:0 0 140px"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
+      <div class="fg" style="flex:1;min-width:0"><label class="fl-label">연습장 · 장소</label>
+        <input class="inp" id="pl-top" placeholder="연습장 이름" list="pl-datalist" autocomplete="off" onfocus="fillPlDatalist()">
+        <datalist id="pl-datalist-top"></datalist>
+      </div>
+    </div>
+    <div class="fg" id="club-wrap">
         <label class="fl-label">클럽 세트 / 클럽</label>
         <select class="sel" id="pc" onchange="showSetInfo(this.value)">
           <option value="">선택...</option>
@@ -11747,10 +11753,8 @@ function pAdd() {
       <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
-    <div class="fg"><label class="fl-label">연습장 · 장소</label>
-      <input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력" list="pl-datalist" autocomplete="off" onfocus="fillPlDatalist()">
-      <datalist id="pl-datalist"></datalist>
-    </div>
+    <!-- pl: 기존 GPS 자동입력용 hidden 필드 (pl-top과 동기화) -->
+    <input type="hidden" id="pl" value="">
 
     <!-- GDR 전용 입력 -->
     <div id="gdr-fields">
@@ -11880,22 +11884,21 @@ window.addMemoClub = () => {
   const wrap = $('memo-clubs-wrap'); if(!wrap) return;
   const idx = _memoClubs.length;
   _memoClubs.push({club:'', memo:''});
-  const clubOpts = ['드라이버','2W','3W','5W','7W','1UT','2UT','3UT','4UT','5UT',
-    '1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
-  // 보유 클럽 우선 제안
-  const ownedNums = D.equip.filter(e=>e.status==='owned').flatMap(e=>[
-    ...(e.ironSet||[]), ...(e.tags?.wedge_set||[]), ...(e.tags?.wood_set||[]),
-    ...(e.tags?.util_set||[]), e.cat==='드라이버'?['드라이버']:[], e.cat==='퍼터'?['퍼터']:[]
-  ]).flat();
-  const allClubs = [...new Set([...ownedNums, ...clubOpts])];
+  // pc select와 동일한 클럽 목록 구성
   const row = document.createElement('div');
   row.id = `memo-club-row-${idx}`;
   row.style.cssText = 'display:flex;gap:.4rem;align-items:flex-start;margin-bottom:.5rem;background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.1);border-radius:4px;padding:.5rem .55rem';
   row.innerHTML = `
     <select id="mc-club-${idx}" onchange="_memoClubs[${idx}].club=this.value"
       style="width:90px;flex-shrink:0;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.3rem .4rem;border-radius:3px;font-size:.82rem;font-family:var(--sans)">
-      <option value="">클럽</option>
-      ${allClubs.map(cl=>`<option value="${cl}">${cl}</option>`).join('')}
+      <option value="">클럽 선택...</option>
+      ${ownedClubOptions('').replace(/optgroup/g,'optgroup')||''}
+      <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
+      <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
     </select>
     <textarea id="mc-memo-${idx}" oninput="_memoClubs[${idx}].memo=this.value"
       placeholder="이 클럽으로 연습한 내용, 느낌점..."
@@ -11959,7 +11962,9 @@ window.saveSession = async () => {
     }
   }
   const club = recType==='gdr'||isMemo?($('pc')?.value||''):'';
-  const loc = $('pl').value.trim(), memo = $('pm').value.trim();
+  // pl-top(상단 장소 입력) 값을 hidden pl에 동기화
+  const plTop=$('pl-top');const plHid=$('pl');if(plTop&&plHid&&plTop.value)plHid.value=plTop.value;
+  const loc = ($('pl-top')?.value||$('pl')?.value||'').trim(), memo = $('pm').value.trim();
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
   const gameSet = recType!=='gdr'?($('p-game-set')?.value.trim()||''):'';
