@@ -4871,7 +4871,7 @@ window.prevThumb=()=>{
         <div style="font-size:.75rem;color:var(--amber);font-weight:600">이미 저장된 영상입니다</div>
         <div style="font-size:.72rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(dup.title)}</div>
       </div>
-      <button onclick="view='detail';selId='${dup.id}';render()" style="background:rgba(228,168,85,.15);border:1px solid rgba(228,168,85,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;white-space:nowrap;font-family:var(--sans)">노트 보기</button>
+      <button onclick="goNoteDetail('${esc(dup.id)}')" style="background:rgba(228,168,85,.15);border:1px solid rgba(228,168,85,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;white-space:nowrap;font-family:var(--sans)">노트 보기</button>
     </div>`;
   } else {
     dupWrap.innerHTML='';
