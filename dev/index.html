@@ -102,9 +102,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .sel{background-color:var(--dusk)}
 .ta{resize:vertical;min-height:72px;line-height:1.65;field-sizing:content}
 /* 메모 툴바 */
-.memo-toolbar{display:none;gap:2px;padding:3px 4px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
+.memo-toolbar{display:none;gap:3px;padding:5px 6px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
 .memo-toolbar.active{display:flex}
-.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.75rem;padding:3px 9px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
+.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.82rem;padding:5px 12px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
 .mt-btn:active{background:rgba(200,137,58,.15);border-color:rgba(200,137,58,.3);color:var(--wing2)}
 .mt-sep{width:1px;background:rgba(240,237,230,.1);margin:2px 3px}
 .ta::-webkit-resizer{background:transparent}
@@ -11694,16 +11694,8 @@ function pAdd() {
 
     <!-- 연습 메모 타입: 첫 번째 클럽 메모 -->
     <div id="pc-memo-wrap" style="display:none;margin-bottom:.75rem">
-      <div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center;margin-bottom:.3rem;padding:.3rem .4rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.06);border-radius:4px 4px 0 0">
-        <span style="font-size:.65rem;color:var(--muted);letter-spacing:.06em;margin-right:.15rem">서식</span>
-        <button type="button" onclick="memoFmt('pc-memo','bold')" title="굵게" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:26px;height:22px;border-radius:3px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:serif">B</button>
-        <button type="button" onclick="memoFmt('pc-memo','bullet')" title="불릿" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:26px;height:22px;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">•</button>
-        <button type="button" onclick="memoFmt('pc-memo','number')" title="번호" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:26px;height:22px;border-radius:3px;font-size:.72rem;cursor:pointer;font-family:var(--sans)">1.</button>
-        <button type="button" onclick="memoFmt('pc-memo','indent')" title="들여쓰기" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:26px;height:22px;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">→</button>
-        <button type="button" onclick="memoFmt('pc-memo','outdent')" title="내어쓰기" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:26px;height:22px;border-radius:3px;font-size:.78rem;cursor:pointer;font-family:var(--sans)">←</button>
-      </div>
-      <textarea id="pc-memo" placeholder="이 클럽으로 연습한 내용, 느낀 점..."
-        style="width:100%;min-height:72px;resize:vertical;background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-top:none;border-radius:0 0 4px 4px;color:var(--chalk);padding:.45rem .55rem;font-size:.82rem;font-family:var(--sans);line-height:1.6;box-sizing:border-box"></textarea>
+      <textarea id="pc-memo" placeholder="이 클럽으로 연습한 내용, 느낀 점..." rows="3"
+        style="width:100%;min-height:72px;resize:vertical;background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;color:var(--chalk);padding:.45rem .55rem;font-size:.82rem;font-family:var(--sans);line-height:1.6;box-sizing:border-box"></textarea>
     </div>
 
     <!-- 스크린/필드 전용 입력 -->
@@ -11968,18 +11960,9 @@ window.addMemoClub = () => {
       <button onclick="removeMemoClub(${idx})"
         style="flex-shrink:0;background:none;border:none;color:rgba(240,237,230,.25);font-size:1rem;cursor:pointer;padding:.1rem .3rem">✕</button>
     </div>
-    <div style="display:flex;gap:.25rem;flex-wrap:wrap;align-items:center;padding:.25rem .35rem;background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.06);border-radius:4px 4px 0 0">
-      <span style="font-size:.63rem;color:var(--muted);letter-spacing:.05em;margin-right:.1rem">서식</span>
-      <button type="button" onclick="memoFmt('mc-memo-${idx}','bold')" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:24px;height:20px;border-radius:3px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:serif">B</button>
-      <button type="button" onclick="memoFmt('mc-memo-${idx}','bullet')" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:24px;height:20px;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">•</button>
-      <button type="button" onclick="memoFmt('mc-memo-${idx}','number')" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:24px;height:20px;border-radius:3px;font-size:.68rem;cursor:pointer;font-family:var(--sans)">1.</button>
-      <button type="button" onclick="memoFmt('mc-memo-${idx}','indent')" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:24px;height:20px;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">→</button>
-      <button type="button" onclick="memoFmt('mc-memo-${idx}','outdent')" style="background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);width:24px;height:20px;border-radius:3px;font-size:.75rem;cursor:pointer;font-family:var(--sans)">←</button>
-    </div>
     <textarea id="mc-memo-${idx}" oninput="_memoClubs[${idx}].memo=this.value"
-      placeholder="이 클럽으로 연습한 내용, 느낀 점..."
-      style="width:100%;min-height:64px;resize:vertical;background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-top:none;border-radius:0 0 4px 4px;color:var(--chalk);padding:.4rem .5rem;font-size:.82rem;font-family:var(--sans);line-height:1.6;box-sizing:border-box"></textarea>`;
-  wrap.appendChild(row);
+      placeholder="이 클럽으로 연습한 내용, 느낀 점..." rows="3"
+      style="width:100%;min-height:64px;resize:vertical;background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;color:var(--chalk);padding:.4rem .5rem;font-size:.82rem;font-family:var(--sans);line-height:1.6;box-sizing:border-box"></textarea>`;
 };
 
 window.removeMemoClub = (idx) => {
