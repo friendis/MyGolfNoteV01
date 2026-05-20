@@ -4528,7 +4528,7 @@ function _visitPList(sessions, nickname){
     const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
     const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
     const isGame=s.game_type==='screen'||s.game_type==='field';
-    const icon=s.game_type==='screen'?'🖥️':s.game_type==='field'?'⛳':'🪶';
+    const icon=s.game_type==='screen'?'🖥️':s.game_type==='field'?'⛳':s.game_type==='memo'?'📝':'🪶';
     return`<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -6357,12 +6357,18 @@ function eAdd(){
 }
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'||v==='past'?'block':'none';};
 window.toggleRecType=v=>{
-  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
-  if(gdr)gdr.style.display=v==='gdr'?'block':'none';
-  if(game)game.style.display=v==='gdr'?'none':'block';
-  if(club)club.style.display=v==='gdr'?'block':'none';
-  if(gamePhoto)gamePhoto.style.display=v==='gdr'?'none':'block';
-  if(v!=='gdr'){ _parEditMode=false; setTimeout(renderHoleInputs, 0); }
+  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),
+        gamePhoto=$('game-photo-fields'),memoF=$('memo-fields');
+  const isMemo=v==='memo', isGdr=v==='gdr', isGame=!isGdr&&!isMemo;
+  if(gdr)      gdr.style.display      = isGdr  ?'block':'none';
+  if(game)     game.style.display     = isGame ?'block':'none';
+  if(club)     club.style.display     = (isGdr||isMemo)?'block':'none';
+  if(gamePhoto)gamePhoto.style.display= isGame ?'block':'none';
+  if(memoF)    memoF.style.display    = isMemo ?'block':'none';
+  // memo 타입이면 club-wrap 레이블 변경
+  const clubLabel=club?.querySelector('.fl-label');
+  if(clubLabel) clubLabel.textContent=isMemo?'연습 클럽 (첫 번째)':'클럽 세트 / 클럽';
+  if(isGame){ _parEditMode=false; setTimeout(renderHoleInputs, 0); }
 };
 
 let _holeScoresData = [];
@@ -11653,6 +11659,9 @@ function pAdd() {
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
           <input type="radio" name="rec-type" value="field" onchange="toggleRecType(this.value)"> ⛳ 필드 골프
         </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
+          <input type="radio" name="rec-type" value="memo" onchange="toggleRecType(this.value)"> 📝 연습 메모
+        </label>
       </div>
     </div>
 
@@ -11833,6 +11842,28 @@ function pAdd() {
       <div id="game-photo-status" style="font-size:.75rem;color:var(--muted)"></div>
     </div>
 
+    <!-- 연습 메모 전용: 클럽별 메모 + 사진 -->
+    <div id="memo-fields" style="display:none">
+      <div id="memo-clubs-wrap">
+        <!-- 클럽별 메모 행: addMemoClub()으로 추가 -->
+      </div>
+      <button class="btn btn-s btn-sm" style="margin-bottom:.75rem" onclick="addMemoClub()">+ 클럽 추가</button>
+
+      <!-- 사진 업로드 -->
+      <div class="sec-label" style="margin-bottom:.35rem">사진 업로드 (선택)</div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">연습 중 찍은 사진이나 관련 이미지를 올려주세요.</div>
+      <label for="pmemoimg" style="display:block;cursor:pointer;margin-bottom:.5rem">
+        <div style="border:1px dashed rgba(167,139,250,.3);border-radius:3px;padding:.75rem;text-align:center;background:rgba(167,139,250,.04)">
+          <div style="font-size:1.3rem;margin-bottom:.2rem">🖼️</div>
+          <div style="font-size:.85rem;color:#A78BFA;font-weight:500">사진 선택</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">여러 장 선택 가능</div>
+        </div>
+      </label>
+      <input type="file" id="pmemoimg" accept="image/*" multiple style="display:none" onchange="handleMemoPhoto(this)">
+      <div id="memo-photo-preview" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem"></div>
+      <div id="memo-photo-status" style="font-size:.75rem;color:var(--muted)"></div>
+    </div>
+
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
     <div class="brow" style="display:flex;align-items:center;gap:.5rem">
       <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
@@ -11840,6 +11871,65 @@ function pAdd() {
     </div>
   </div></div>`;
 }
+
+
+// ── 연습 메모: 클럽별 메모 행 추가 ───────────────────────────
+let _memoClubs = [];
+
+window.addMemoClub = () => {
+  const wrap = $('memo-clubs-wrap'); if(!wrap) return;
+  const idx = _memoClubs.length;
+  _memoClubs.push({club:'', memo:''});
+  const clubOpts = ['드라이버','2W','3W','5W','7W','1UT','2UT','3UT','4UT','5UT',
+    '1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
+  // 보유 클럽 우선 제안
+  const ownedNums = D.equip.filter(e=>e.status==='owned').flatMap(e=>[
+    ...(e.ironSet||[]), ...(e.tags?.wedge_set||[]), ...(e.tags?.wood_set||[]),
+    ...(e.tags?.util_set||[]), e.cat==='드라이버'?['드라이버']:[], e.cat==='퍼터'?['퍼터']:[]
+  ]).flat();
+  const allClubs = [...new Set([...ownedNums, ...clubOpts])];
+  const row = document.createElement('div');
+  row.id = `memo-club-row-${idx}`;
+  row.style.cssText = 'display:flex;gap:.4rem;align-items:flex-start;margin-bottom:.5rem;background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.1);border-radius:4px;padding:.5rem .55rem';
+  row.innerHTML = `
+    <select id="mc-club-${idx}" onchange="_memoClubs[${idx}].club=this.value"
+      style="width:90px;flex-shrink:0;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.3rem .4rem;border-radius:3px;font-size:.82rem;font-family:var(--sans)">
+      <option value="">클럽</option>
+      ${allClubs.map(cl=>`<option value="${cl}">${cl}</option>`).join('')}
+    </select>
+    <textarea id="mc-memo-${idx}" oninput="_memoClubs[${idx}].memo=this.value"
+      placeholder="이 클럽으로 연습한 내용, 느낌점..."
+      style="flex:1;min-height:52px;resize:vertical;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.3rem .5rem;border-radius:3px;font-size:.82rem;font-family:var(--sans);line-height:1.5"></textarea>
+    <button onclick="removeMemoClub(${idx})"
+      style="flex-shrink:0;background:none;border:none;color:rgba(240,237,230,.25);font-size:1rem;cursor:pointer;padding:.1rem .2rem;margin-top:.1rem">✕</button>`;
+  wrap.appendChild(row);
+};
+
+window.removeMemoClub = (idx) => {
+  const row = $(`memo-club-row-${idx}`);
+  if(row) row.remove();
+  _memoClubs[idx] = null;
+};
+
+// ── 연습 메모 사진 업로드 ───────────────────────────────────
+let _memoPhotos = [];
+
+window.handleMemoPhoto = async (input) => {
+  const preview = $('memo-photo-preview'), status = $('memo-photo-status');
+  if(!input.files?.length) return;
+  if(status) status.textContent = '사진 준비 중...';
+  for(const file of Array.from(input.files)){
+    const url = URL.createObjectURL(file);
+    _memoPhotos.push({file, url});
+    if(preview){
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:3px;border:1px solid var(--border)';
+      preview.appendChild(img);
+    }
+  }
+  if(status) status.textContent = `${_memoPhotos.length}장 선택됨`;
+};
 
 window.showSetInfo = (val) => {
   const infoEl = $('pc-set-info');
@@ -11858,7 +11948,17 @@ window.saveSession = async () => {
   const date = $('pd').value; if(!date){ toast('날짜를 선택하세요'); return; }
   if(overLimit('sessions')){ toast(limitMsg('sessions')); return; }
   const recType=(document.querySelector('input[name="rec-type"]:checked')||{}).value||'gdr';
-  const club = recType==='gdr'?($('pc')?.value||''):'';
+  const isMemo = recType==='memo';
+  // memo 타입: 첫 번째 클럽을 대표 클럽으로, 클럽별 메모를 pm에 병합
+  if(isMemo){
+    const clubMemos = (_memoClubs||[]).filter(Boolean).filter(m=>m.club||m.memo);
+    if(clubMemos.length){
+      const merged = clubMemos.map(m=>'[' + (m.club||'클럽') + '] ' + m.memo).join('\n');
+      const pmEl=$('pm');if(pmEl&&!pmEl.value.trim())pmEl.value=merged;
+      if(!$('pc').value && clubMemos[0].club) $('pc').value=clubMemos[0].club;
+    }
+  }
+  const club = recType==='gdr'||isMemo?($('pc')?.value||''):'';
   const loc = $('pl').value.trim(), memo = $('pm').value.trim();
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
@@ -11889,7 +11989,9 @@ window.saveSession = async () => {
   if(!isGuest) {
     const filesToUpload = recType==='gdr'
       ? multiFiles.map(f=>f.file)
-      : (window.gameFiles||[]);
+      : recType==='memo'
+        ? (_memoPhotos||[]).map(p=>p.file)
+        : (window.gameFiles||[]);
     for(const rawFile of filesToUpload) {
       const file = await compressImageToFile(rawFile);
       const ext = file.name.split('.').pop();
