@@ -102,9 +102,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .sel{background-color:var(--dusk)}
 .ta{resize:vertical;min-height:72px;line-height:1.65;field-sizing:content}
 /* 메모 툴바 */
-.memo-toolbar{display:none;gap:2px;padding:3px 4px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
+.memo-toolbar{display:none;gap:2px;padding:4px 5px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
 .memo-toolbar.active{display:flex}
-.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.75rem;padding:3px 9px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
+.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.76rem;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
 .mt-btn:active{background:rgba(200,137,58,.15);border-color:rgba(200,137,58,.3);color:var(--wing2)}
 .mt-sep{width:1px;background:rgba(240,237,230,.1);margin:2px 3px}
 .ta::-webkit-resizer{background:transparent}
@@ -789,6 +789,32 @@ const IS_DEV = location.pathname.includes('/dev/') || location.pathname.includes
 const sb=createClient(SB_URL,SB_KEY,{db:{schema:IS_DEV?'dev':'public'}});
 let user=null,D={videos:[],equip:[],sessions:[],sets:[],profile:null},tab='home',view='list',selId=null,pSub='stats',vSub='mine',shotCnt=1,upFile=null,charts={},rtCh=null,authMode='login';
 let isGuest=false;
+
+// ── 전역 이미지 압축 함수 (Canvas API) ─────────────────
+// 업로드 전 모든 이미지에 적용. 1200px / WebP 80% → 평균 ~150KB
+// File 객체를 반환하므로 기존 upload() 코드와 호환
+window.compressImageToFile = (file, maxPx=1200, quality=0.80) => new Promise(res => {
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if(w > maxPx) { h = Math.round(h * maxPx / w); w = maxPx; }
+    else if(h > maxPx) { w = Math.round(w * maxPx / h); h = maxPx; }
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    const useWebP = cv.toDataURL('image/webp').startsWith('data:image/webp');
+    const mime = useWebP ? 'image/webp' : 'image/jpeg';
+    const ext  = useWebP ? 'webp' : 'jpg';
+    cv.toBlob(blob => {
+      const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.' + ext, {type: mime});
+      res(compressed);
+    }, mime, quality);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); res(file); }; // 실패 시 원본 사용
+  img.src = url;
+});
 
 // ── 공용 테스트 계정 설정 ──────────────────────────────
 const GUEST_LIMITS = { videos:10, equip:10, sessions:5 };
@@ -4502,7 +4528,7 @@ function _visitPList(sessions, nickname){
     const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
     const avgC=carries.length?Math.round(carries.reduce((a,b)=>a+b,0)/carries.length):null;
     const isGame=s.game_type==='screen'||s.game_type==='field';
-    const icon=s.game_type==='screen'?'🖥️':s.game_type==='field'?'⛳':'🪶';
+    const icon=s.game_type==='screen'?'🖥️':s.game_type==='field'?'⛳':s.game_type==='memo'?'📝':'🪶';
     return`<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -4845,7 +4871,7 @@ window.prevThumb=()=>{
         <div style="font-size:.75rem;color:var(--amber);font-weight:600">이미 저장된 영상입니다</div>
         <div style="font-size:.72rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(dup.title)}</div>
       </div>
-      <button onclick="view='detail';selId='${dup.id}';render()" style="background:rgba(228,168,85,.15);border:1px solid rgba(228,168,85,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;white-space:nowrap;font-family:var(--sans)">노트 보기</button>
+      <button onclick="goNoteDetail('${esc(dup.id)}')" style="background:rgba(228,168,85,.15);border:1px solid rgba(228,168,85,.3);color:var(--wing2);padding:2px 8px;border-radius:2px;font-size:.68rem;cursor:pointer;white-space:nowrap;font-family:var(--sans)">노트 보기</button>
     </div>`;
   } else {
     dupWrap.innerHTML='';
@@ -5681,10 +5707,10 @@ window.confirmEquipPhoto=async()=>{
     let photoUrl='';
     if(_ePhotoSelected.type==='file'){
       // Supabase Storage 업로드
-      const file=_ePhotoSelected.value;
+      const file=await compressImageToFile(_ePhotoSelected.value);
       const ext=file.name.split('.').pop();
       const path=`equip/${user.id}/${Date.now()}.${ext}`;
-      const{error:ue}=await sb.storage.from('gdr-images').upload(path,file,{upsert:true});
+      const{error:ue}=await sb.storage.from('gdr-images').upload(path,file,{upsert:true,contentType:file.type});
       if(ue)throw ue;
       const{data:sd}=sb.storage.from('gdr-images').getPublicUrl(path);
       photoUrl=sd?.publicUrl||'';
@@ -5945,7 +5971,8 @@ window.uploadEquipMemoryPhotos = async (id, input) => {
   toast('📸 업로드 중...');
   try{
     const urls = [];
-    for(const file of files.slice(0,5)){ // 최대 5장
+    for(const rawFile of files.slice(0,5)){ // 최대 5장
+      const file = await compressImageToFile(rawFile);
       const ext = (file.name?.split('.').pop()||'jpg').toLowerCase();
       const path = `${user.id}/equip_mem_${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
       const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType:file.type||'image/jpeg'});
@@ -6330,12 +6357,17 @@ function eAdd(){
 }
 window.toggleOwned=v=>{const f=$('owned-f');if(f)f.style.display=v==='owned'||v==='past'?'block':'none';};
 window.toggleRecType=v=>{
-  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),gamePhoto=$('game-photo-fields');
-  if(gdr)gdr.style.display=v==='gdr'?'block':'none';
-  if(game)game.style.display=v==='gdr'?'none':'block';
-  if(club)club.style.display=v==='gdr'?'block':'none';
-  if(gamePhoto)gamePhoto.style.display=v==='gdr'?'none':'block';
-  if(v!=='gdr'){ _parEditMode=false; setTimeout(renderHoleInputs, 0); }
+  const gdr=$('gdr-fields'),game=$('game-fields'),club=$('club-wrap'),
+        gamePhoto=$('game-photo-fields'),memoF=$('memo-fields');
+  const isMemo=v==='memo', isGdr=v==='gdr', isGame=!isGdr&&!isMemo;
+  if(gdr)      gdr.style.display      = isGdr  ?'block':'none';
+  if(game)     game.style.display     = isGame ?'block':'none';
+  if(club)     club.style.display     = (isGdr||isMemo)?'block':'none';
+  if(gamePhoto)gamePhoto.style.display= isGame ?'block':'none';
+  if(memoF)    memoF.style.display    = isMemo ?'block':'none';
+  const gdrWrap=$('club-wrap-gdr'); if(gdrWrap) gdrWrap.style.display=isMemo?'none':'block';
+  const pcMemoW=$('pc-memo-wrap'); if(pcMemoW) pcMemoW.style.display=isMemo?'block':'none';
+  if(isGame){ _parEditMode=false; setTimeout(renderHoleInputs, 0); }
 };
 
 let _holeScoresData = [];
@@ -11330,6 +11362,7 @@ window.handleGamePhoto = async function(input) {
       const pl = $('pl');
       if(knownPlace && pl && !pl.value) {
         pl.value = knownPlace;
+        const plT=$('pl-top');if(plT&&!plT.value)plT.value=knownPlace;
         toast(`📍 ${knownPlace}`);
       } else if(!knownPlace) {
         const addr = await gpsToAddress(lat, lon);
@@ -11617,6 +11650,9 @@ function pAdd() {
     <div class="fg" style="margin-bottom:.8rem">
       <label class="fl-label">기록 타입</label>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.35rem">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid var(--border)">
+          <input type="radio" name="rec-type" value="memo" onchange="toggleRecType(this.value)"> 📝 연습 메모
+        </label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.84rem;padding:.3rem .65rem;border-radius:2px;border:1px solid rgba(200,137,58,.3);background:rgba(200,137,58,.08)">
           <input type="radio" name="rec-type" value="gdr" checked onchange="toggleRecType(this.value)"> 📡 GDR 분석
         </label>
@@ -11630,8 +11666,16 @@ function pAdd() {
     </div>
 
     <div class="frow">
-      <div class="fg"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
-      <div class="fg" id="club-wrap">
+      <div class="fg" style="flex:0 0 140px"><label class="fl-label">날짜</label><input class="inp" type="date" id="pd" value="${today()}"></div>
+      <div class="fg" style="flex:1;min-width:0"><label class="fl-label">연습장 · 장소</label>
+        <input class="inp" id="pl-top" placeholder="연습장 이름" list="pl-datalist" autocomplete="off" onfocus="fillPlDatalist()">
+        <datalist id="pl-datalist-top"></datalist>
+      </div>
+    </div>
+    <!-- 연습 메모 타입: 클럽+메모 통합 섹션 -->
+    <div id="club-wrap">
+      <!-- GDR/게임 타입: 기존 클럽 select만 -->
+      <div id="club-wrap-gdr" class="fg">
         <label class="fl-label">클럽 세트 / 클럽</label>
         <select class="sel" id="pc" onchange="showSetInfo(this.value)">
           <option value="">선택...</option>
@@ -11646,6 +11690,23 @@ function pAdd() {
         </select>
         ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`:''}
         <div id="pc-set-info" style="font-size:.72rem;color:var(--wing2);margin-top:.3rem;display:none"></div>
+      </div>
+      <!-- 연습 메모 타입: 클럽+메모 통합 -->
+      <div id="pc-memo-wrap" style="display:none;background:var(--dusk2);border:1px solid rgba(200,137,58,.1);border-radius:4px;padding:.85rem .9rem;margin-bottom:.7rem">
+        <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">연습 클럽</div>
+        <select class="sel" id="pc-memo-club" style="width:100%;margin-bottom:.55rem" onchange="document.getElementById('pc').value=this.value;showSetInfo(this.value)">
+          <option value="">클럽 선택...</option>
+          ${ownedClubOptions()}
+          <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
+          <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W','11W'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
+          <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT','7UT'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
+          <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
+          <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
+          <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
+        </select>
+        <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">메모</div>
+        <textarea id="pc-memo" class="ta" placeholder="이 클럽으로 연습한 내용, 느낀 점..."
+          style="min-height:72px;margin-bottom:0"></textarea>
       </div>
     </div>
 
@@ -11711,10 +11772,8 @@ function pAdd() {
       <div id="hole-inputs-wrap" style="overflow-x:auto;margin-bottom:.5rem"></div>
     </div>
 
-    <div class="fg"><label class="fl-label">연습장 · 장소</label>
-      <input class="inp" id="pl" placeholder="GPS에서 자동 입력되거나 직접 입력" list="pl-datalist" autocomplete="off" onfocus="fillPlDatalist()">
-      <datalist id="pl-datalist"></datalist>
-    </div>
+    <!-- pl: 기존 GPS 자동입력용 hidden 필드 (pl-top과 동기화) -->
+    <input type="hidden" id="pl" value="">
 
     <!-- GDR 전용 입력 -->
     <div id="gdr-fields">
@@ -11806,6 +11865,26 @@ function pAdd() {
       <div id="game-photo-status" style="font-size:.75rem;color:var(--muted)"></div>
     </div>
 
+    <!-- 연습 메모 전용: 클럽별 메모 + 사진 -->
+    <div id="memo-fields" style="display:none">
+      <div id="memo-clubs-wrap" style="display:flex;flex-direction:column;gap:.5rem"></div>
+      <button class="btn btn-s btn-sm" style="margin-bottom:.75rem;margin-top:.35rem" onclick="addMemoClub()">+ 클럽 추가</button>
+
+      <!-- 사진 업로드 -->
+      <div class="sec-label" style="margin-bottom:.35rem">사진 업로드 (선택)</div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">연습 중 찍은 사진이나 관련 이미지를 올려주세요.</div>
+      <label for="pmemoimg" style="display:block;cursor:pointer;margin-bottom:.5rem">
+        <div style="border:1px dashed rgba(167,139,250,.3);border-radius:3px;padding:.75rem;text-align:center;background:rgba(167,139,250,.04)">
+          <div style="font-size:1.3rem;margin-bottom:.2rem">🖼️</div>
+          <div style="font-size:.85rem;color:#A78BFA;font-weight:500">사진 선택</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">여러 장 선택 가능</div>
+        </div>
+      </label>
+      <input type="file" id="pmemoimg" accept="image/*" multiple style="display:none" onchange="handleMemoPhoto(this)">
+      <div id="memo-photo-preview" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem"></div>
+      <div id="memo-photo-status" style="font-size:.75rem;color:var(--muted)"></div>
+    </div>
+
     <div class="fg"><label class="fl-label">메모</label><textarea class="ta" id="pm" placeholder="이번 비행의 기록, 개선점..."></textarea></div>
     <div class="brow" style="display:flex;align-items:center;gap:.5rem">
       <button class="btn btn-s" onclick="goList()" style="color:var(--muted);border-color:rgba(240,237,230,.1);background:none;min-width:auto;padding:.45rem .75rem">취소</button>
@@ -11813,6 +11892,117 @@ function pAdd() {
     </div>
   </div></div>`;
 }
+
+
+// ── 연습 메모: 클럽별 메모 행 추가 ───────────────────────────
+let _memoClubs = [];
+
+
+// ── 메모 서식 적용 함수 ────────────────────────────────────
+window.memoFmt = (id, type) => {
+  const ta = document.getElementById(id);
+  if(!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const val = ta.value;
+  const sel = val.slice(start, end);
+  const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+  let newVal = val, newCaret = end;
+
+  if(type === 'bold'){
+    const wrapped = '**' + (sel || '텍스트') + '**';
+    newVal = val.slice(0, start) + wrapped + val.slice(end);
+    newCaret = start + wrapped.length;
+  } else if(type === 'bullet'){
+    const line = val.slice(lineStart, end);
+    const hasBullet = line.startsWith('• ');
+    const newLine = hasBullet ? line.slice(2) : '• ' + line;
+    newVal = val.slice(0, lineStart) + newLine + val.slice(end);
+    newCaret = lineStart + newLine.length;
+  } else if(type === 'number'){
+    const lines = val.split('\n');
+    let li = 0; let pos = 0;
+    for(let i=0;i<lines.length;i++){pos+=lines[i].length+1;if(pos>start){li=i;break;}}
+    const m = lines[li].match(/^(\d+)\. /);
+    lines[li] = m ? lines[li].slice(m[0].length) : (li+1) + '. ' + lines[li];
+    newVal = lines.join('\n'); newCaret = end + (m?-(m[0].length):(String(li+1)+'. ').length);
+  } else if(type === 'indent'){
+    const line = val.slice(lineStart, end);
+    newVal = val.slice(0, lineStart) + '  ' + line + val.slice(end);
+    newCaret = end + 2;
+  } else if(type === 'outdent'){
+    const line = val.slice(lineStart, end);
+    const stripped = line.startsWith('  ') ? line.slice(2) : line.startsWith(' ') ? line.slice(1) : line;
+    const diff = line.length - stripped.length;
+    newVal = val.slice(0, lineStart) + stripped + val.slice(end);
+    newCaret = Math.max(lineStart, end - diff);
+  }
+
+  ta.value = newVal;
+  ta.setSelectionRange(newCaret, newCaret);
+  ta.focus();
+  // _memoClubs 캐시 업데이트
+  const m = id.match(/^mc-memo-(\d+)$/);
+  if(m) { const i=parseInt(m[1]); if(_memoClubs[i]) _memoClubs[i].memo = newVal; }
+  if(id==='pc-memo') { /* 첫 번째 클럽 메모는 saveSession에서 직접 읽음 */ }
+};
+
+window.addMemoClub = () => {
+  const wrap = $('memo-clubs-wrap'); if(!wrap) return;
+  const idx = _memoClubs.length;
+  _memoClubs.push({club:'', memo:''});
+  // pc select와 동일한 클럽 목록 구성
+  const row = document.createElement('div');
+  row.id = `memo-club-row-${idx}`;
+  row.style.cssText = 'background:var(--dusk2);border:1px solid rgba(200,137,58,.1);border-radius:4px;padding:.85rem .9rem;margin-bottom:.7rem';
+  row.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem">
+      <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;flex:1;margin-bottom:0">클럽</div>
+      <button onclick="removeMemoClub(${idx})"
+        style="background:none;border:none;color:rgba(240,237,230,.2);font-size:.9rem;cursor:pointer;padding:.1rem .25rem;line-height:1">✕</button>
+    </div>
+    <select id="mc-club-${idx}" onchange="_memoClubs[${idx}].club=this.value"
+      style="width:100%;background:var(--dusk);border:1px solid rgba(240,237,230,.1);color:var(--chalk);padding:.38rem .5rem;border-radius:3px;font-size:.84rem;font-family:var(--sans);margin-bottom:.55rem">
+      <option value="">클럽 선택...</option>
+      ${ownedClubOptions('')||''}
+      <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
+      <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
+    </select>
+    <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;margin-bottom:.35rem">메모</div>
+    <textarea id="mc-memo-${idx}" class="ta" oninput="_memoClubs[${idx}].memo=this.value"
+      placeholder="이 클럽으로 연습한 내용, 느낀 점..."
+      style="min-height:64px;margin-bottom:0"></textarea>`;
+  wrap.appendChild(row);
+};
+
+window.removeMemoClub = (idx) => {
+  const row = $(`memo-club-row-${idx}`);
+  if(row) row.remove();
+  _memoClubs[idx] = null;
+};
+
+// ── 연습 메모 사진 업로드 ───────────────────────────────────
+let _memoPhotos = [];
+
+window.handleMemoPhoto = async (input) => {
+  const preview = $('memo-photo-preview'), status = $('memo-photo-status');
+  if(!input.files?.length) return;
+  if(status) status.textContent = '사진 준비 중...';
+  for(const file of Array.from(input.files)){
+    const url = URL.createObjectURL(file);
+    _memoPhotos.push({file, url});
+    if(preview){
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:3px;border:1px solid var(--border)';
+      preview.appendChild(img);
+    }
+  }
+  if(status) status.textContent = `${_memoPhotos.length}장 선택됨`;
+};
 
 window.showSetInfo = (val) => {
   const infoEl = $('pc-set-info');
@@ -11831,8 +12021,24 @@ window.saveSession = async () => {
   const date = $('pd').value; if(!date){ toast('날짜를 선택하세요'); return; }
   if(overLimit('sessions')){ toast(limitMsg('sessions')); return; }
   const recType=(document.querySelector('input[name="rec-type"]:checked')||{}).value||'gdr';
-  const club = recType==='gdr'?($('pc')?.value||''):'';
-  const loc = $('pl').value.trim(), memo = $('pm').value.trim();
+  const isMemo = recType==='memo';
+  // memo 타입: 첫 번째 클럽을 대표 클럽으로, 클럽별 메모를 pm에 병합
+  if(isMemo){
+    // pc-memo(첫 번째 클럽 메모)도 _memoClubs에 병합
+    const pcMemoVal=$('pc-memo')?.value?.trim()||'';
+    const pcClubVal=$('pc')?.value?.trim()||'';
+    if(pcMemoVal||pcClubVal){const existing=(_memoClubs||[]).find(m=>m&&m.club===pcClubVal);if(!existing)_memoClubs.unshift({club:pcClubVal,memo:pcMemoVal});else if(!existing.memo)existing.memo=pcMemoVal;}
+    const clubMemos = (_memoClubs||[]).filter(Boolean).filter(m=>m.club||m.memo);
+    if(clubMemos.length){
+      const merged = clubMemos.map(m=>'[' + (m.club||'클럽') + '] ' + m.memo).join('\n');
+      const pmEl=$('pm');if(pmEl&&!pmEl.value.trim())pmEl.value=merged;
+      if(!$('pc').value && clubMemos[0].club) $('pc').value=clubMemos[0].club;
+    }
+  }
+  const club = recType==='gdr'||isMemo?($('pc')?.value||''):'';
+  // pl-top(상단 장소 입력) 값을 hidden pl에 동기화
+  const plTop=$('pl-top');const plHid=$('pl');if(plTop&&plHid&&plTop.value)plHid.value=plTop.value;
+  const loc = ($('pl-top')?.value||$('pl')?.value||'').trim(), memo = $('pm').value.trim();
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
   const courseName = recType!=='gdr'?($('p-course')?.value.trim()||''):'';
   const gameSet = recType!=='gdr'?($('p-game-set')?.value.trim()||''):'';
@@ -11862,20 +12068,24 @@ window.saveSession = async () => {
   if(!isGuest) {
     const filesToUpload = recType==='gdr'
       ? multiFiles.map(f=>f.file)
-      : (window.gameFiles||[]);
-    for(const file of filesToUpload) {
+      : recType==='memo'
+        ? (_memoPhotos||[]).map(p=>p.file)
+        : (window.gameFiles||[]);
+    for(const rawFile of filesToUpload) {
+      const file = await compressImageToFile(rawFile);
       const ext = file.name.split('.').pop();
       const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: ue } = await sb.storage.from('gdr-images').upload(path, file);
+      const { error: ue } = await sb.storage.from('gdr-images').upload(path, file, {contentType: file.type});
       if(!ue) {
         const { data: sd } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
         if(sd?.signedUrl) imageUrls.push(sd.signedUrl);
       }
     }
     if(!imageUrls.length && upFile) {
-      const ext = upFile.name.split('.').pop();
+      const file = await compressImageToFile(upFile);
+      const ext = file.name.split('.').pop();
       const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: ue } = await sb.storage.from('gdr-images').upload(path, upFile);
+      const { error: ue } = await sb.storage.from('gdr-images').upload(path, file, {contentType: file.type});
       if(!ue) {
         const { data: sd } = await sb.storage.from('gdr-images').createSignedUrl(path, 60*60*24*365);
         if(sd?.signedUrl) imageUrls.push(sd.signedUrl);
@@ -12410,8 +12620,9 @@ window.confirmEquipPhoto = async () => {
     let finalUrl = null;
     // _ePhotoSelected: {type:'file'|'url', value: File|string, preview?, meta?}
     if(_ePhotoSelected.type === 'file'){
-      const file = _ePhotoSelected.value;
-      if(!file) throw new Error('파일을 찾을 수 없습니다');
+      const rawFile = _ePhotoSelected.value;
+      if(!rawFile) throw new Error('파일을 찾을 수 없습니다');
+      const file = await compressImageToFile(rawFile);
       const ext = (file.name?.split('.').pop()||'jpg').toLowerCase();
       const path = `${user.id}/equip_${Date.now()}.${ext}`;
       const{error:ue}=await sb.storage.from('gdr-images').upload(path, file, {contentType: file.type||'image/jpeg'});
