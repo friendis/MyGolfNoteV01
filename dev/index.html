@@ -102,9 +102,9 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .sel{background-color:var(--dusk)}
 .ta{resize:vertical;min-height:72px;line-height:1.65;field-sizing:content}
 /* 메모 툴바 */
-.memo-toolbar{display:none;gap:3px;padding:5px 6px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
+.memo-toolbar{display:none;gap:2px;padding:4px 5px;background:rgba(13,17,23,.95);border:1px solid var(--border);border-bottom:none;border-radius:2px 2px 0 0;flex-wrap:wrap}
 .memo-toolbar.active{display:flex}
-.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.82rem;padding:5px 12px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
+.mt-btn{background:rgba(240,237,230,.07);border:1px solid rgba(240,237,230,.1);color:var(--dim);font-size:.76rem;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:var(--mono);line-height:1.4;touch-action:manipulation;user-select:none}
 .mt-btn:active{background:rgba(200,137,58,.15);border-color:rgba(200,137,58,.3);color:var(--wing2)}
 .mt-sep{width:1px;background:rgba(240,237,230,.1);margin:2px 3px}
 .ta::-webkit-resizer{background:transparent}
@@ -11692,10 +11692,14 @@ function pAdd() {
       </div>
     </div>
 
-    <!-- 연습 메모 타입: 첫 번째 클럽 메모 -->
-    <div id="pc-memo-wrap" style="display:none;margin-bottom:.75rem">
-      <textarea id="pc-memo" placeholder="이 클럽으로 연습한 내용, 느낀 점..." rows="3"
-        style="width:100%;min-height:72px;resize:vertical;background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;color:var(--chalk);padding:.45rem .55rem;font-size:.82rem;font-family:var(--sans);line-height:1.6;box-sizing:border-box"></textarea>
+    <!-- 연습 메모: 날짜/장소 아래 구분선 -->
+    <div id="pc-memo-wrap" style="display:none">
+      <div style="height:1px;background:rgba(200,137,58,.12);margin:.2rem 0 .75rem"></div>
+      <div style="background:var(--dusk2);border:1px solid rgba(200,137,58,.1);border-radius:4px;padding:.85rem .9rem;margin-bottom:.7rem">
+        <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">클럽 메모</div>
+        <textarea id="pc-memo" class="ta" placeholder="이 클럽으로 연습한 내용, 느낀 점..."
+          style="min-height:72px;margin-bottom:0"></textarea>
+      </div>
     </div>
 
     <!-- 스크린/필드 전용 입력 -->
@@ -11855,10 +11859,8 @@ function pAdd() {
 
     <!-- 연습 메모 전용: 클럽별 메모 + 사진 -->
     <div id="memo-fields" style="display:none">
-      <div id="memo-clubs-wrap">
-        <!-- 클럽별 메모 행: addMemoClub()으로 추가 -->
-      </div>
-      <button class="btn btn-s btn-sm" style="margin-bottom:.75rem" onclick="addMemoClub()">+ 클럽 추가</button>
+      <div id="memo-clubs-wrap" style="display:flex;flex-direction:column;gap:.5rem"></div>
+      <button class="btn btn-s btn-sm" style="margin-bottom:.75rem;margin-top:.35rem" onclick="addMemoClub()">+ 클럽 추가</button>
 
       <!-- 사진 업로드 -->
       <div class="sec-label" style="margin-bottom:.35rem">사진 업로드 (선택)</div>
@@ -11943,26 +11945,29 @@ window.addMemoClub = () => {
   // pc select와 동일한 클럽 목록 구성
   const row = document.createElement('div');
   row.id = `memo-club-row-${idx}`;
-  row.style.cssText = 'display:block;margin-bottom:.55rem;background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.12);border-radius:5px;padding:.5rem .55rem';
+  row.style.cssText = 'background:var(--dusk2);border:1px solid rgba(200,137,58,.1);border-radius:4px;padding:.85rem .9rem;margin-bottom:.7rem';
   row.innerHTML = `
-    <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem">
-      <select id="mc-club-${idx}" onchange="_memoClubs[${idx}].club=this.value"
-        style="flex:1;background:var(--dusk2);border:1px solid var(--border);color:var(--chalk);padding:.3rem .5rem;border-radius:3px;font-size:.82rem;font-family:var(--sans)">
-        <option value="">클럽 선택...</option>
-        ${ownedClubOptions('')||''}
-        <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
-        <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
-        <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
-        <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
-        <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
-        <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
-      </select>
+    <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem">
+      <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;flex:1;margin-bottom:0">클럽</div>
       <button onclick="removeMemoClub(${idx})"
-        style="flex-shrink:0;background:none;border:none;color:rgba(240,237,230,.25);font-size:1rem;cursor:pointer;padding:.1rem .3rem">✕</button>
+        style="background:none;border:none;color:rgba(240,237,230,.2);font-size:.9rem;cursor:pointer;padding:.1rem .25rem;line-height:1">✕</button>
     </div>
-    <textarea id="mc-memo-${idx}" oninput="_memoClubs[${idx}].memo=this.value"
-      placeholder="이 클럽으로 연습한 내용, 느낀 점..." rows="3"
-      style="width:100%;min-height:64px;resize:vertical;background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;color:var(--chalk);padding:.4rem .5rem;font-size:.82rem;font-family:var(--sans);line-height:1.6;box-sizing:border-box"></textarea>`;
+    <select id="mc-club-${idx}" onchange="_memoClubs[${idx}].club=this.value"
+      style="width:100%;background:var(--dusk);border:1px solid rgba(240,237,230,.1);color:var(--chalk);padding:.38rem .5rem;border-radius:3px;font-size:.84rem;font-family:var(--sans);margin-bottom:.55rem">
+      <option value="">클럽 선택...</option>
+      ${ownedClubOptions('')||''}
+      <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
+      <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
+      <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
+    </select>
+    <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;margin-bottom:.35rem">메모</div>
+    <textarea id="mc-memo-${idx}" class="ta" oninput="_memoClubs[${idx}].memo=this.value"
+      placeholder="이 클럽으로 연습한 내용, 느낀 점..."
+      style="min-height:64px;margin-bottom:0"></textarea>`;
+  wrap.appendChild(row);
 };
 
 window.removeMemoClub = (idx) => {
