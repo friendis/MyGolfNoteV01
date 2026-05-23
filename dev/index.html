@@ -2064,13 +2064,8 @@ window.toggleCompareMode=()=>{
   const fab=document.getElementById('compare-fab');if(fab)fab.classList.add('visible');
   // DOM이 준비된 후 버튼 주입
   requestAnimationFrame(()=>{
-    document.querySelectorAll('[data-session-id]').forEach(card=>{
-      if(card.querySelector('.compare-sel-btn'))return;
-      const sid=card.dataset.sessionId;
-      const b=document.createElement('button');
-      b.className='compare-sel-btn';b.dataset.sid=sid;b.innerHTML='○';
-      b.onclick=(e)=>{e.stopPropagation();toggleCompareSelect(sid,card,b);};
-      card.style.position='relative';card.appendChild(b);
+    document.querySelectorAll('[data-session-id] .compare-sel-btn').forEach(b=>{
+      b.style.display='flex';
     });
   });
 };
@@ -2079,7 +2074,7 @@ window.clearCompareMode=()=>{
   const btn=document.getElementById('compare-toggle-btn');
   if(btn){btn.style.background='none';btn.style.borderColor='rgba(240,237,230,.15)';btn.style.color='var(--muted)';}
   const fab=document.getElementById('compare-fab');if(fab)fab.classList.remove('visible');
-  document.querySelectorAll('.compare-sel-btn').forEach(b=>b.remove());
+  document.querySelectorAll('.compare-sel-btn').forEach(b=>{b.style.display='none';b.className='compare-sel-btn';b.innerHTML='○';});
   document.querySelectorAll('[data-session-id]').forEach(cd=>{cd.style.outline='';});
 };
 window.toggleCompareSelect=(sid,card,btn)=>{
@@ -7520,10 +7515,12 @@ function pList(){
       <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
       <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-top:.45rem">
-      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
-      <button id="compare-toggle-btn" onclick="toggleCompareMode()" style="display:flex;align-items:center;gap:.25rem;background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">⚖ 비교</button>
-      <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
+    <div style="display:flex;align-items:center;gap:.4rem;margin-top:.45rem">
+      ${pSub==='sessions'?`<button id="compare-toggle-btn" onclick="toggleCompareMode()" style="display:flex;align-items:center;gap:.25rem;background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">⚖ 비교</button>`:''}
+      <div style="margin-left:auto;display:flex;gap:.4rem">
+        <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
+        <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
+      </div>
     </div>
   </div>`;
   const srow=`<div class="stats-row">
@@ -7542,6 +7539,7 @@ function pList(){
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
       return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="position:relative">
+        <button class="compare-sel-btn" style="display:none;position:absolute;top:.45rem;right:.45rem;z-index:2" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
