@@ -2062,13 +2062,16 @@ window.toggleCompareMode=()=>{
   const btn=document.getElementById('compare-toggle-btn');
   if(btn){btn.style.background='rgba(200,137,58,.12)';btn.style.borderColor='rgba(200,137,58,.3)';btn.style.color='var(--wing2)';}
   const fab=document.getElementById('compare-fab');if(fab)fab.classList.add('visible');
-  document.querySelectorAll('[data-session-id]').forEach(card=>{
-    if(card.querySelector('.compare-sel-btn'))return;
-    const sid=card.dataset.sessionId;
-    const b=document.createElement('button');
-    b.className='compare-sel-btn';b.dataset.sid=sid;b.innerHTML='○';
-    b.onclick=(e)=>{e.stopPropagation();toggleCompareSelect(sid,card,b);};
-    card.style.position='relative';card.appendChild(b);
+  // DOM이 준비된 후 버튼 주입
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('[data-session-id]').forEach(card=>{
+      if(card.querySelector('.compare-sel-btn'))return;
+      const sid=card.dataset.sessionId;
+      const b=document.createElement('button');
+      b.className='compare-sel-btn';b.dataset.sid=sid;b.innerHTML='○';
+      b.onclick=(e)=>{e.stopPropagation();toggleCompareSelect(sid,card,b);};
+      card.style.position='relative';card.appendChild(b);
+    });
   });
 };
 window.clearCompareMode=()=>{
@@ -7538,7 +7541,7 @@ function pList(){
       const overStr=over!=null?(over>0?`+${over}`:over===0?'E':`${over}`):'';
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
-      return`<div class="card" onclick="goDetail('${s.id}')">
+      return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="position:relative">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
