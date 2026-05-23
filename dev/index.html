@@ -2054,11 +2054,11 @@ function buildHomeRecHtml(){
 
 
 // ══ 비교 분석 ══════════════════════════════════════════
-let _compareMode=false,_compareSelected=[];
+window._compareMode=false;window._compareSelected=[];
 window.toggleCompareMode=()=>{
-  _compareMode=!_compareMode;
-  if(!_compareMode){clearCompareMode();return;}
-  _compareSelected=[];
+  window._compareMode=!window._compareMode;
+  if(!window._compareMode){clearCompareMode();return;}
+  window._compareSelected=[];
   const btn=document.getElementById('compare-toggle-btn');
   if(btn){btn.style.background='rgba(200,137,58,.12)';btn.style.borderColor='rgba(200,137,58,.3)';btn.style.color='var(--wing2)';}
   const fab=document.getElementById('compare-fab');if(fab)fab.classList.add('visible');
@@ -2072,7 +2072,7 @@ window.toggleCompareMode=()=>{
   });
 };
 window.clearCompareMode=()=>{
-  _compareMode=false;_compareSelected=[];
+  window._compareMode=false;window._compareSelected=[];
   const btn=document.getElementById('compare-toggle-btn');
   if(btn){btn.style.background='none';btn.style.borderColor='rgba(240,237,230,.15)';btn.style.color='var(--muted)';}
   const fab=document.getElementById('compare-fab');if(fab)fab.classList.remove('visible');
@@ -2080,22 +2080,29 @@ window.clearCompareMode=()=>{
   document.querySelectorAll('[data-session-id]').forEach(cd=>{cd.style.outline='';});
 };
 window.toggleCompareSelect=(sid,card,btn)=>{
-  const already=_compareSelected.findIndex(x=>x.id===sid);
-  if(already>=0){_compareSelected.splice(already,1);btn.className='compare-sel-btn';btn.innerHTML='○';card.style.outline='';}
+  const already=window._compareSelected.findIndex(x=>x.id===sid);
+  if(already>=0){window._compareSelected.splice(already,1);btn.className='compare-sel-btn';btn.innerHTML='○';card.style.outline='';}
   else{
-    if(_compareSelected.length>=2)return;
-    const label=_compareSelected.length===0?'A':'B';
-    _compareSelected.push({id:sid,label});
+    if(window._compareSelected.length>=2)return;
+    const label=window._compareSelected.length===0?'A':'B';
+    window._compareSelected.push({id:sid,label});
     btn.className='compare-sel-btn '+label.toLowerCase();btn.innerHTML=label;
     card.style.outline=label==='A'?'2px solid rgba(84,184,232,.6)':'2px solid rgba(167,139,250,.6)';
   }
   const fl=document.getElementById('compare-fab-label'),fb=document.getElementById('compare-fab-btn');
-  if(fl)fl.textContent=_compareSelected.length===2?'2/2 선택 완료! 비교하기 →':_compareSelected.length+'/2 선택됨';
-  if(fb){fb.disabled=_compareSelected.length<2;fb.style.opacity=_compareSelected.length<2?'.45':'1';fb.style.cursor=_compareSelected.length<2?'not-allowed':'pointer';}
+  if(fl)fl.textContent=window._compareSelected.length===2?'2/2 선택 완료! 비교하기 →':window._compareSelected.length+'/2 선택됨';
+  if(fb){
+    const ready=window._compareSelected.length>=2;
+    fb.disabled=!ready;
+    fb.style.background=ready?'rgba(200,137,58,.22)':'rgba(200,137,58,.08)';
+    fb.style.borderColor=ready?'rgba(200,137,58,.5)':'rgba(200,137,58,.2)';
+    fb.style.color=ready?'var(--wing2)':'rgba(200,137,58,.4)';
+    fb.style.cursor=ready?'pointer':'not-allowed';
+  }
 };
 window.launchCompare=()=>{
-  if(_compareSelected.length<2)return;
-  const[a,b]=_compareSelected;clearCompareMode();showComparePanel(a.id,b.id);
+  if(window._compareSelected.length<2)return;
+  const[a,b]=window._compareSelected;clearCompareMode();showComparePanel(a.id,b.id);
 };
 window.showComparePanel=(id1,id2)=>{
   const s1=D.sessions.find(x=>x.id===id1),s2=D.sessions.find(x=>x.id===id2);
@@ -7539,7 +7546,7 @@ function pList(){
       const overStr=over!=null?(over>0?`+${over}`:over===0?'E':`${over}`):'';
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
-      return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+      return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
         <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
         <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -7703,7 +7710,7 @@ function pList(){
     <div id="compare-fab" class="compare-fab">
       <span id="compare-fab-label" style="font-size:.72rem;color:var(--muted);flex:1">0/2 선택됨</span>
       <button id="compare-fab-btn" onclick="launchCompare()" disabled
-        style="background:rgba(200,137,58,.18);border:1px solid rgba(200,137,58,.45);color:var(--wing2);padding:.28rem .85rem;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all .15s;opacity:.45">⚖ 비교하기</button>
+        style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:rgba(200,137,58,.4);padding:.28rem .85rem;border-radius:8px;font-size:.72rem;font-weight:700;cursor:not-allowed;font-family:var(--sans);transition:all .2s">⚖ 비교하기</button>
     </div>
   </div>` : '';
   const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
@@ -7716,7 +7723,7 @@ function pList(){
     const st=ss(s); const con=st.consistency; const nc=normalizeClub(s.club);
     const imgs=s.imageUrls?.length||0;
     const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
-    return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+    return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
       <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
       <div style="flex:1;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
