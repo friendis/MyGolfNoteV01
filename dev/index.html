@@ -2066,6 +2066,8 @@ window.toggleCompareMode=()=>{
   requestAnimationFrame(()=>{
     document.querySelectorAll('[data-session-id] .compare-sel-btn').forEach(b=>{
       b.style.display='flex';
+      b.style.alignItems='center';
+      b.style.justifyContent='center';
     });
   });
 };
@@ -2807,7 +2809,7 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
         ${isGame&&s.score?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${s.score}타</span>`:avgC?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
       </div>
       ${s.memo?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
-    </div>`;
+    </div></div>`;
   }).join('');
 
   const noteCards=notes.map(n=>{
@@ -7516,7 +7518,6 @@ function pList(){
       <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
     </div>
     <div style="display:flex;align-items:center;gap:.4rem;margin-top:.45rem">
-      ${pSub==='sessions'?`<button id="compare-toggle-btn" onclick="toggleCompareMode()" style="display:flex;align-items:center;gap:.25rem;background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">⚖ 비교</button>`:''}
       <div style="margin-left:auto;display:flex;gap:.4rem">
         <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
         <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
@@ -7538,8 +7539,9 @@ function pList(){
       const overStr=over!=null?(over>0?`+${over}`:over===0?'E':`${over}`):'';
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
-      return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="position:relative">
-        <button class="compare-sel-btn" style="display:none;position:absolute;top:.45rem;right:.45rem;z-index:2" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
+      return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+        <button class="compare-sel-btn" style="display:none;flex-shrink:0;width:28px;align-self:center;height:28px;border-radius:50%;border:2px solid rgba(240,237,230,.2);background:rgba(13,17,23,.5);cursor:pointer;font-size:.8rem;align-items:center;justify-content:center" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
+        <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
@@ -7694,6 +7696,11 @@ function pList(){
   const sessionClubs = [...new Set(gdrSessions.map(s=>normalizeClub(s.club)).filter(Boolean))].sort((a,b)=>{
     const ia=CLUBS.indexOf(a),ib=CLUBS.indexOf(b); return(ia<0?999:ia)-(ib<0?999:ib);
   });
+  // sessions 탭 전용: 비교 버튼
+  const compareBarHtml = pSub==='sessions' ? `<div style="display:flex;align-items:center;margin-bottom:.5rem">
+    <button id="compare-toggle-btn" onclick="toggleCompareMode()"
+      style="background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.3rem .9rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans)">⚖ 비교 분석</button>
+  </div>` : '';
   const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
     <span style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">클럽</span>
     <button onclick="setPClubFilter('')" style="padding:2px 9px;border-radius:2px;border:1px solid ${!pClubFilter?'rgba(200,137,58,.4)':'var(--border)'};background:${!pClubFilter?'rgba(200,137,58,.08)':'none'};color:${!pClubFilter?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">전체</button>
@@ -7725,7 +7732,7 @@ function pList(){
       </div>
     </div>`;
   }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 훈련 기록이 없습니다.'}</div>`;
-  return`<div class="page">${srow}${ptabs}${filterBar}${cards}</div>`;
+  return`<div class="page">${srow}${ptabs}${compareBarHtml}${filterBar}${cards}</div>`;
 }
 window.toggleChart=key=>{
   const isOn = selectedChartKeys.has(key);
