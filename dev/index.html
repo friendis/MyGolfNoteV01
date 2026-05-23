@@ -232,10 +232,10 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .skill-bar-label{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px}
 .skill-bar-track{height:7px;background:rgba(240,237,230,.08);border-radius:4px;overflow:hidden}
 .skill-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
-.compare-sel-btn{position:absolute;top:.4rem;right:.4rem;width:20px;height:20px;border-radius:50%;border:2px solid rgba(240,237,230,.2);background:rgba(13,17,23,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.7rem;transition:all .15s;z-index:2}
+.compare-sel-btn{width:28px;height:28px;border-radius:50%;border:2px solid rgba(240,237,230,.2);background:rgba(13,17,23,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0;align-self:center}
 .compare-sel-btn.a{border-color:rgba(84,184,232,.8);background:rgba(84,184,232,.2);color:#54B8E8}
 .compare-sel-btn.b{border-color:rgba(167,139,250,.8);background:rgba(167,139,250,.2);color:#A78BFA}
-.compare-fab{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:300;display:none;gap:.5rem;background:var(--dusk);border:1px solid rgba(200,137,58,.3);border-radius:20px;padding:.5rem 1rem;box-shadow:0 4px 20px rgba(0,0,0,.5);align-items:center}
+.compare-fab{display:none;gap:.5rem;align-items:center;margin-top:.45rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.25);border-radius:10px;padding:.45rem .85rem;transition:all .2s}
 .compare-fab.visible{display:flex}
 .perf-card{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem}
 .perf-icon{font-size:1.4rem;flex-shrink:0;width:36px;text-align:center}
@@ -2090,8 +2090,8 @@ window.toggleCompareSelect=(sid,card,btn)=>{
     card.style.outline=label==='A'?'2px solid rgba(84,184,232,.6)':'2px solid rgba(167,139,250,.6)';
   }
   const fl=document.getElementById('compare-fab-label'),fb=document.getElementById('compare-fab-btn');
-  if(fl)fl.textContent=_compareSelected.length===2?'비교 준비 완료!':_compareSelected.length+'/2 선택됨';
-  if(fb)fb.disabled=_compareSelected.length<2;
+  if(fl)fl.textContent=_compareSelected.length===2?'2/2 선택 완료! 비교하기 →':_compareSelected.length+'/2 선택됨';
+  if(fb){fb.disabled=_compareSelected.length<2;fb.style.opacity=_compareSelected.length<2?'.45':'1';fb.style.cursor=_compareSelected.length<2?'not-allowed':'pointer';}
 };
 window.launchCompare=()=>{
   if(_compareSelected.length<2)return;
@@ -7540,7 +7540,7 @@ function pList(){
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
       return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
-        <button class="compare-sel-btn" style="display:none;flex-shrink:0;width:28px;align-self:center;height:28px;border-radius:50%;border:2px solid rgba(240,237,230,.2);background:rgba(13,17,23,.5);cursor:pointer;font-size:.8rem;align-items:center;justify-content:center" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
+        <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
         <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;min-width:0">
@@ -7697,9 +7697,14 @@ function pList(){
     const ia=CLUBS.indexOf(a),ib=CLUBS.indexOf(b); return(ia<0?999:ia)-(ib<0?999:ib);
   });
   // sessions 탭 전용: 비교 버튼
-  const compareBarHtml = pSub==='sessions' ? `<div style="display:flex;align-items:center;margin-bottom:.5rem">
+  const compareBarHtml = pSub==='sessions' ? `<div style="margin-bottom:.65rem">
     <button id="compare-toggle-btn" onclick="toggleCompareMode()"
       style="background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.3rem .9rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans)">⚖ 비교 분석</button>
+    <div id="compare-fab" class="compare-fab">
+      <span id="compare-fab-label" style="font-size:.72rem;color:var(--muted);flex:1">0/2 선택됨</span>
+      <button id="compare-fab-btn" onclick="launchCompare()" disabled
+        style="background:rgba(200,137,58,.18);border:1px solid rgba(200,137,58,.45);color:var(--wing2);padding:.28rem .85rem;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all .15s;opacity:.45">⚖ 비교하기</button>
+    </div>
   </div>` : '';
   const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
     <span style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">클럽</span>
@@ -7712,7 +7717,7 @@ function pList(){
     const imgs=s.imageUrls?.length||0;
     const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
     return`<div class="card" data-session-id="${s.id}" onclick="_compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
-      <button class="compare-sel-btn" style="display:none;flex-shrink:0;width:28px;align-self:center;height:28px;border-radius:50%;border:2px solid rgba(240,237,230,.2);background:rgba(13,17,23,.5);cursor:pointer;font-size:.8rem;align-items:center;justify-content:center" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
+      <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
       <div style="flex:1;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
