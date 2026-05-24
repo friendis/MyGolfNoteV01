@@ -232,6 +232,11 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .skill-bar-label{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px}
 .skill-bar-track{height:7px;background:rgba(240,237,230,.08);border-radius:4px;overflow:hidden}
 .skill-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.compare-sel-btn{width:28px;height:28px;border-radius:50%;border:2px solid rgba(240,237,230,.2);background:rgba(13,17,23,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0;align-self:center}
+.compare-sel-btn.a{border-color:rgba(84,184,232,.8);background:rgba(84,184,232,.2);color:#54B8E8}
+.compare-sel-btn.b{border-color:rgba(167,139,250,.8);background:rgba(167,139,250,.2);color:#A78BFA}
+.compare-fab{display:none;gap:.5rem;align-items:center;margin-top:.45rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.25);border-radius:10px;padding:.45rem .85rem;transition:all .2s}
+.compare-fab.visible{display:flex}
 .perf-card{background:var(--dusk);border:1px solid var(--border);border-radius:3px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem}
 .perf-icon{font-size:1.4rem;flex-shrink:0;width:36px;text-align:center}
 .perf-val{font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--chalk)}
@@ -2047,6 +2052,186 @@ function buildHomeRecHtml(){
     </div>`).join('');
 }
 
+
+// ══ 비교 분석 ══════════════════════════════════════════
+window._compareMode=false;window._compareSelected=[];
+window.toggleCompareMode=()=>{
+  window._compareMode=!window._compareMode;
+  if(!window._compareMode){clearCompareMode();return;}
+  window._compareSelected=[];
+  const btn=document.getElementById('compare-toggle-btn');
+  if(btn){btn.style.background='rgba(200,137,58,.12)';btn.style.borderColor='rgba(200,137,58,.3)';btn.style.color='var(--wing2)';}
+  const fab=document.getElementById('compare-fab');if(fab)fab.classList.add('visible');
+  // DOM이 준비된 후 버튼 주입
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('[data-session-id] .compare-sel-btn').forEach(b=>{
+      b.style.display='flex';
+      b.style.alignItems='center';
+      b.style.justifyContent='center';
+    });
+  });
+};
+window.clearCompareMode=()=>{
+  window._compareMode=false;window._compareSelected=[];
+  const btn=document.getElementById('compare-toggle-btn');
+  if(btn){btn.style.background='none';btn.style.borderColor='rgba(240,237,230,.15)';btn.style.color='var(--muted)';}
+  const fab=document.getElementById('compare-fab');if(fab)fab.classList.remove('visible');
+  document.querySelectorAll('.compare-sel-btn').forEach(b=>{b.style.display='none';b.className='compare-sel-btn';b.innerHTML='○';});
+  document.querySelectorAll('[data-session-id]').forEach(cd=>{cd.style.outline='';});
+};
+window.toggleCompareSelect=(sid,card,btn)=>{
+  const already=window._compareSelected.findIndex(x=>x.id===sid);
+  if(already>=0){window._compareSelected.splice(already,1);btn.className='compare-sel-btn';btn.innerHTML='○';card.style.outline='';}
+  else{
+    if(window._compareSelected.length>=2)return;
+    const label=window._compareSelected.length===0?'A':'B';
+    window._compareSelected.push({id:sid,label});
+    btn.className='compare-sel-btn '+label.toLowerCase();btn.innerHTML=label;
+    card.style.outline=label==='A'?'2px solid rgba(84,184,232,.6)':'2px solid rgba(167,139,250,.6)';
+  }
+  const fl=document.getElementById('compare-fab-label'),fb=document.getElementById('compare-fab-btn');
+  if(fl)fl.textContent=window._compareSelected.length===2?'2/2 선택 완료! 비교하기 →':window._compareSelected.length+'/2 선택됨';
+  if(fb){
+    const ready=window._compareSelected.length>=2;
+    fb.disabled=!ready;
+    fb.style.background=ready?'rgba(200,137,58,.22)':'rgba(200,137,58,.08)';
+    fb.style.borderColor=ready?'rgba(200,137,58,.5)':'rgba(200,137,58,.2)';
+    fb.style.color=ready?'var(--wing2)':'rgba(200,137,58,.4)';
+    fb.style.cursor=ready?'pointer':'not-allowed';
+  }
+};
+window.launchCompare=()=>{
+  if(window._compareSelected.length<2)return;
+  const[a,b]=window._compareSelected;clearCompareMode();showComparePanel(a.id,b.id);
+};
+window.showComparePanel=(id1,id2)=>{
+  const s1=D.sessions.find(x=>x.id===id1),s2=D.sessions.find(x=>x.id===id2);
+  if(!s1||!s2)return;
+  document.getElementById('compare-overlay')?.remove();
+  const ov=document.createElement('div');ov.id='compare-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:var(--night);overflow-y:auto;padding:1rem 1rem 4rem';
+  const nc1=normalizeClub(s1.club),nc2=normalizeClub(s2.club);
+  const A='rgba(84,184,232,.85)',B='rgba(167,139,250,.85)';
+  ov.innerHTML=`<div style="max-width:600px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem">
+      <button onclick="document.getElementById('compare-overlay').remove()" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer">← 닫기</button>
+      <span style="flex:1;text-align:center;font-size:.78rem;color:var(--muted)">세션 비교 분석</span>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:center;margin-bottom:.8rem">
+      <div style="display:flex;align-items:center;gap:.35rem"><span style="width:11px;height:11px;border-radius:50%;background:${A};display:inline-block"></span><b style="font-size:.75rem;color:var(--chalk)">A</b><span style="font-size:.7rem;color:var(--muted)">${esc(nc1||s1.club)} · ${s1.date}</span></div>
+      <div style="display:flex;align-items:center;gap:.35rem"><span style="width:11px;height:11px;border-radius:3px;background:${B};display:inline-block"></span><b style="font-size:.75rem;color:var(--chalk)">B</b><span style="font-size:.7rem;color:var(--muted)">${esc(nc2||s2.club)} · ${s2.date}</span></div>
+    </div>
+    ${buildCompareStats(s1,s2,nc1,nc2,A,B)}
+    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:4px;padding:.55rem;margin-bottom:.65rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">📍 캐리 × 방향 분포</div>
+      ${buildCompareSvg(s1,s2,A,B)}
+    </div>
+    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:4px;padding:.55rem;margin-bottom:.65rem">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">📊 방향 분포</div>
+      ${buildCompareDirSvg(s1,s2,A,B)}
+    </div>
+    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:4px;padding:.65rem;margin-bottom:2.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.45rem">
+        <span style="font-size:.7rem;color:var(--muted)">🤖 AI 비교 분석</span>
+        <button id="compare-ai-btn" onclick="runCompareAI('${id1}','${id2}')" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:#A78BFA;padding:.22rem .75rem;border-radius:8px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">✦ 분석 시작</button>
+      </div>
+      <div id="compare-ai-result" style="font-size:.82rem;color:var(--dim);line-height:1.75;white-space:pre-wrap;word-break:keep-all;overflow:visible"></div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+};
+function buildCompareSvg(s1,s2,c1,c2){
+  const sh1=(s1.shots||[]).filter(s=>s.carry>0),sh2=(s2.shots||[]).filter(s=>s.carry>0);
+  if(!sh1.length&&!sh2.length)return'<p style="color:var(--muted);font-size:.8rem;text-align:center">샷 데이터 없음</p>';
+  const all=[...sh1,...sh2];
+  const ac=all.map(s=>s.carry).filter(v=>v>0);
+  const ad=all.map(s=>s.direction).filter(v=>v!=null);
+  if(!ac.length)return'';
+  const cMin=Math.max(0,Math.min(...ac)-15),cMax=Math.max(...ac)+15;
+  const dAbs=ad.length?Math.max(Math.max(...ad.map(Math.abs))+3,12):15;
+  const W=320,H=220,PL=40,PR=8,PT=10,PB=28;
+  const cw=W-PL-PR,ch=H-PT-PB;
+  const y2c=v=>PT+ch-((v-cMin)/(cMax-cMin)*ch);
+  const x2d=v=>PL+cw/2+(v/dAbs*(cw/2));
+  const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  const avgLine=(sh,col)=>{const cs=sh.map(s=>s.carry).filter(v=>v>0),ds=sh.map(s=>s.direction).filter(v=>v!=null);const mc=avg(cs),md=avg(ds??[]);if(mc==null)return'';return`<line x1="${x2d(md??0)}" y1="${PT}" x2="${x2d(md??0)}" y2="${H-PB}" stroke="${col}" stroke-opacity=".25" stroke-width="1" stroke-dasharray="3,3"/><line x1="${PL}" y1="${y2c(mc)}" x2="${W-PR}" y2="${y2c(mc)}" stroke="${col}" stroke-opacity=".25" stroke-width="1" stroke-dasharray="3,3"/>`;};
+  const dots=(sh,col,shape)=>sh.map(s=>{const cx=x2d(s.direction??0),cy=y2c(s.carry);return shape==='circle'?`<circle cx="${cx}" cy="${cy}" r="4.5" fill="${col}" fill-opacity=".72"/>`:`<polygon points="${cx},${cy-5.5} ${cx+4.5},${cy+3.5} ${cx-4.5},${cy+3.5}" fill="${col}" fill-opacity=".72"/>`;}).join('');
+  let yticks='';for(let v=Math.ceil(cMin/20)*20;v<=cMax;v+=20)yticks+=`<text x="${PL-3}" y="${y2c(v)+3}" text-anchor="end" font-size="9" fill="rgba(240,237,230,.3)">${v}</text>`;
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+    <line x1="${PL+cw/2}" y1="${PT}" x2="${PL+cw/2}" y2="${H-PB}" stroke="rgba(240,237,230,.1)" stroke-width="1"/>
+    <line x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="rgba(240,237,230,.1)" stroke-width="1"/>
+    ${yticks}${avgLine(sh1,c1)}${avgLine(sh2,c2)}${dots(sh2,c2,'triangle')}${dots(sh1,c1,'circle')}
+    <text x="${PL}" y="${PT+9}" font-size="9" fill="${c1}">● A (원)</text>
+    <text x="${PL+42}" y="${PT+9}" font-size="9" fill="${c2}">▲ B (삼각)</text>
+  </svg>`;
+}
+function buildCompareDirSvg(s1,s2,c1,c2){
+  const d1=(s1.shots||[]).map(s=>s.direction).filter(v=>v!=null);
+  const d2=(s2.shots||[]).map(s=>s.direction).filter(v=>v!=null);
+  if(!d1.length&&!d2.length)return'<p style="color:var(--muted);font-size:.8rem;text-align:center">방향 데이터 없음</p>';
+  const bks=[-15,-10,-5,0,5,10,15];
+  const bin=d=>{const c=Array(bks.length-1).fill(0);d.forEach(v=>{for(let i=0;i<bks.length-1;i++)if(v>=bks[i]&&v<bks[i+1]){c[i]++;break;}});return c;};
+  const b1=bin(d1),b2=bin(d2);
+  const mx=Math.max(...b1,...b2,1);
+  const W=320,H=130,PL=20,PR=8,PT=8,PB=30;
+  const cw=W-PL-PR,bH=H-PT-PB;
+  const bw=Math.floor(cw/(bks.length-1)*0.33);
+  let bars='',xlbls='';
+  for(let i=0;i<bks.length-1;i++){
+    const xc=PL+(i+0.5)*(cw/(bks.length-1));
+    const h1=Math.round(b1[i]/mx*bH),h2=Math.round(b2[i]/mx*bH);
+    bars+=`<rect x="${xc-bw-1}" y="${H-PB-h1}" width="${bw}" height="${h1}" fill="${c1}" fill-opacity=".7"/>`;
+    bars+=`<rect x="${xc+1}" y="${H-PB-h2}" width="${bw}" height="${h2}" fill="${c2}" fill-opacity=".7"/>`;
+    if(b1[i])bars+=`<text x="${xc-bw/2-1}" y="${H-PB-h1-2}" font-size="8" fill="${c1}" text-anchor="middle">${b1[i]}</text>`;
+    if(b2[i])bars+=`<text x="${xc+bw/2+1}" y="${H-PB-h2-2}" font-size="8" fill="${c2}" text-anchor="middle">${b2[i]}</text>`;
+    xlbls+=`<text x="${xc}" y="${H-PB+13}" font-size="8" fill="rgba(240,237,230,.35)" text-anchor="middle">${bks[i]}</text>`;
+  }
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+    <line x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="rgba(240,237,230,.1)" stroke-width="1"/>
+    ${bars}${xlbls}
+    <text x="${PL}" y="${H-PB+26}" font-size="8" fill="rgba(240,237,230,.25)">← 좌</text>
+    <text x="${W-PR-16}" y="${H-PB+26}" font-size="8" fill="rgba(240,237,230,.25)">우 →</text>
+  </svg>`;
+}
+function buildCompareStats(s1,s2,nc1,nc2,c1,c2){
+  const t1=ss(s1),t2=ss(s2);
+  const rows=[['캐리 평균',t1.avgCarry,t2.avgCarry,'m'],['베스트',t1.bestCarry,t2.bestCarry,'m'],['헤드스피드',t1.avgHs,t2.avgHs,''],['스매시팩터',t1.avgSf,t2.avgSf,''],['일관성',t1.consistency,t2.consistency,'점'],['샷 수',s1.shots?.length,s2.shots?.length,'개']].filter(r=>r[1]!=null||r[2]!=null);
+  const fmt=(v,u)=>v!=null?(typeof v==='number'?Math.round(v*100)/100:'—')+u:'—';
+  const better=(lbl,v1,v2)=>{if(v1==null||v2==null)return'';const higherBetter=!lbl.includes('스핀');return(higherBetter?v1>v2:v1<v2)?'A':(higherBetter?v2>v1:v2<v1)?'B':'';}
+  return`<div style="background:var(--dusk);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:.65rem">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)">
+      <div style="padding:.3rem .45rem;font-size:.65rem;color:var(--muted)"></div>
+      <div style="padding:.3rem .45rem;font-size:.7rem;font-weight:700;color:${c1};text-align:center">A</div>
+      <div style="padding:.3rem .45rem;font-size:.7rem;font-weight:700;color:${c2};text-align:center">B</div>
+    </div>
+    ${rows.map(([l,v1,v2,u])=>{const btr=better(l,v1,v2);return`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid rgba(240,237,230,.04)">
+      <div style="padding:.28rem .45rem;font-size:.7rem;color:var(--muted)">${l}</div>
+      <div style="padding:.28rem .45rem;font-size:.76rem;font-weight:${btr==='A'?700:400};color:${btr==='A'?c1:'var(--chalk)'};text-align:center">${fmt(v1,u)}${btr==='A'?' ↑':''}</div>
+      <div style="padding:.28rem .45rem;font-size:.76rem;font-weight:${btr==='B'?700:400};color:${btr==='B'?c2:'var(--chalk)'};text-align:center">${fmt(v2,u)}${btr==='B'?' ↑':''}</div>
+    </div>`;}).join('')}
+  </div>`;
+}
+window.runCompareAI=async(id1,id2)=>{
+  const s1=D.sessions.find(x=>x.id===id1),s2=D.sessions.find(x=>x.id===id2);if(!s1||!s2)return;
+  const btn=document.getElementById('compare-ai-btn'),res=document.getElementById('compare-ai-result');
+  if(btn){btn.disabled=true;btn.textContent='분석 중...';}
+  if(res)res.innerHTML='<span style="color:var(--muted)">⏳ 분석 중...</span>';
+  const t1=ss(s1),t2=ss(s2),nc1=normalizeClub(s1.club),nc2=normalizeClub(s2.club);
+  const f=(v,u)=>v!=null?Math.round(v*10)/10+u:'—';
+  const prompt=`두 골프 연습 세션을 비교 분석해 코치처럼 피드백해주세요.\n\n세션 A: ${nc1||s1.club} · ${s1.date} · ${s1.shots?.length||0}샷\n캐리 ${f(t1.avgCarry,'m')} | HS ${f(t1.avgHs,'')} | SF ${t1.avgSf?.toFixed(2)||'—'} | 일관성 ${t1.consistency!=null?t1.consistency+'점':'—'}\n\n세션 B: ${nc2||s2.club} · ${s2.date} · ${s2.shots?.length||0}샷\n캐리 ${f(t2.avgCarry,'m')} | HS ${f(t2.avgHs,'')} | SF ${t2.avgSf?.toFixed(2)||'—'} | 일관성 ${t2.consistency!=null?t2.consistency+'점':'—'}\n\n${nc1===nc2?`동일 클럽(${nc1}) 시계열 비교입니다.`:`다른 클럽 비교: A=${nc1}, B=${nc2}`}\n\n다음 형식으로만:\n**✓ 비교 요약** — 핵심 차이 1~2문장\n**✓ 향상된 점** — 수치 근거\n**✓ 주의할 점** — 악화/주의 항목\n**✓ 다음 연습 제안** — 2~3문장\n한국어, 친근한 코치 말투.`;
+  try{
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({prompt,type:'swing',maxOutputTokens:2500})});
+    if(!resp.ok)throw new Error(`${resp.status}`);
+    const data=await resp.json();
+    const text=data.content?.[0]?.text||data.text||'';
+    if(!text)throw new Error('응답 없음');
+    if(res)res.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+    if(btn){btn.disabled=false;btn.textContent='↺ 재분석';}
+  }catch(e){
+    if(res)res.innerHTML=`<span style="color:rgba(224,82,82,.8)">실패: ${e.message}</span>`;
+    if(btn){btn.disabled=false;btn.textContent='다시 시도';}
+  }
+};
 async function loadHomeSocial() {
   const wrap = $('home-social-wrap'); if(!wrap||!user||isGuest) return;
   try {
@@ -2631,7 +2816,7 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
         ${isGame&&s.score?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${s.score}타</span>`:avgC?`<span style="font-size:.85rem;color:var(--wing2);font-weight:600">${avgC}m</span>`:''}
       </div>
       ${s.memo?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.memo)}</div>`:''}
-    </div>`;
+    </div></div>`;
   }).join('');
 
   const noteCards=notes.map(n=>{
@@ -7339,9 +7524,12 @@ function pList(){
       <button class="p-tab ${pSub==='stats'?'on':''}" onclick="setPSub('stats')">비행 통계</button>
       <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-top:.45rem">
-      <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
-      <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
+    <div style="display:flex;align-items:center;gap:.4rem;margin-top:.45rem">
+      ${pSub==='sessions'?`<button id="compare-toggle-btn" onclick="toggleCompareMode()" style="background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s">⚖ 비교 분석</button>`:''}
+      <div style="margin-left:auto;display:flex;gap:.4rem">
+        <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
+        <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
+      </div>
     </div>
   </div>`;
   const srow=`<div class="stats-row">
@@ -7359,7 +7547,9 @@ function pList(){
       const overStr=over!=null?(over>0?`+${over}`:over===0?'E':`${over}`):'';
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
-      return`<div class="card" onclick="goDetail('${s.id}')">
+      return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+        <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
+        <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
@@ -7514,6 +7704,12 @@ function pList(){
   const sessionClubs = [...new Set(gdrSessions.map(s=>normalizeClub(s.club)).filter(Boolean))].sort((a,b)=>{
     const ia=CLUBS.indexOf(a),ib=CLUBS.indexOf(b); return(ia<0?999:ia)-(ib<0?999:ib);
   });
+  // sessions 탭 전용: 비교 버튼
+  const compareBarHtml = pSub==='sessions' ? `<div id="compare-fab" class="compare-fab" style="margin-bottom:.5rem">
+      <span id="compare-fab-label" style="font-size:.72rem;color:var(--muted);flex:1">0/2 선택됨</span>
+      <button id="compare-fab-btn" onclick="launchCompare()" disabled
+        style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:rgba(200,137,58,.4);padding:.28rem .85rem;border-radius:8px;font-size:.72rem;font-weight:700;cursor:not-allowed;font-family:var(--sans);transition:all .2s">⚖ 비교하기</button>
+    </div>` : '';
   const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
     <span style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">클럽</span>
     <button onclick="setPClubFilter('')" style="padding:2px 9px;border-radius:2px;border:1px solid ${!pClubFilter?'rgba(200,137,58,.4)':'var(--border)'};background:${!pClubFilter?'rgba(200,137,58,.08)':'none'};color:${!pClubFilter?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">전체</button>
@@ -7524,7 +7720,9 @@ function pList(){
     const st=ss(s); const con=st.consistency; const nc=normalizeClub(s.club);
     const imgs=s.imageUrls?.length||0;
     const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
-    return`<div class="card" onclick="goDetail('${s.id}')">
+    return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+      <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
+      <div style="flex:1;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px">
@@ -7543,9 +7741,10 @@ function pList(){
         </div>
         ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}
       </div>
+      </div>
     </div>`;
   }).join(''):`<div class="empty"><div class="empty-icon" style="font-size:1.5rem">📈</div>${pClubFilter?`${pClubFilter} 기록이 없습니다.`:'비행 훈련 기록이 없습니다.'}</div>`;
-  return`<div class="page">${srow}${ptabs}${filterBar}${cards}</div>`;
+  return`<div class="page">${srow}${ptabs}${compareBarHtml}${filterBar}${cards}</div>`;
 }
 window.toggleChart=key=>{
   const isOn = selectedChartKeys.has(key);
