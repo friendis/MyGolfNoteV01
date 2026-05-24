@@ -7525,6 +7525,7 @@ function pList(){
       <button class="p-tab ${pSub==='plan'?'on':''}" onclick="setPSub('plan')">🎯 연습 플랜</button>
     </div>
     <div style="display:flex;align-items:center;gap:.4rem;margin-top:.45rem">
+      ${pSub==='sessions'?`<button id="compare-toggle-btn" onclick="toggleCompareMode()" style="background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s">⚖ 비교 분석</button>`:''}
       <div style="margin-left:auto;display:flex;gap:.4rem">
         <button onclick="openInstaCard()" style="display:flex;align-items:center;gap:.3rem;background:rgba(200,137,58,.07);border:1px solid rgba(200,137,58,.22);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">📸 인스타그램 카드 만들기</button>
         <button onclick="goAdd()" style="display:flex;align-items:center;gap:.25rem;background:rgba(200,137,58,.15);border:1px solid rgba(200,137,58,.35);color:var(--wing2);padding:.28rem .75rem;border-radius:12px;font-size:.70rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap">+ 기록 추가</button>
@@ -7704,15 +7705,11 @@ function pList(){
     const ia=CLUBS.indexOf(a),ib=CLUBS.indexOf(b); return(ia<0?999:ia)-(ib<0?999:ib);
   });
   // sessions 탭 전용: 비교 버튼
-  const compareBarHtml = pSub==='sessions' ? `<div style="margin-bottom:.65rem">
-    <button id="compare-toggle-btn" onclick="toggleCompareMode()"
-      style="background:none;border:1px solid rgba(240,237,230,.15);color:var(--muted);padding:.3rem .9rem;border-radius:12px;font-size:.70rem;font-weight:600;cursor:pointer;font-family:var(--sans)">⚖ 비교 분석</button>
-    <div id="compare-fab" class="compare-fab">
+  const compareBarHtml = pSub==='sessions' ? `<div id="compare-fab" class="compare-fab" style="margin-bottom:.5rem">
       <span id="compare-fab-label" style="font-size:.72rem;color:var(--muted);flex:1">0/2 선택됨</span>
       <button id="compare-fab-btn" onclick="launchCompare()" disabled
         style="background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);color:rgba(200,137,58,.4);padding:.28rem .85rem;border-radius:8px;font-size:.72rem;font-weight:700;cursor:not-allowed;font-family:var(--sans);transition:all .2s">⚖ 비교하기</button>
-    </div>
-  </div>` : '';
+    </div>` : '';
   const filterBar = sessionClubs.length>1 ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.65rem;align-items:center">
     <span style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">클럽</span>
     <button onclick="setPClubFilter('')" style="padding:2px 9px;border-radius:2px;border:1px solid ${!pClubFilter?'rgba(200,137,58,.4)':'var(--border)'};background:${!pClubFilter?'rgba(200,137,58,.08)':'none'};color:${!pClubFilter?'var(--wing2)':'var(--muted)'};font-size:.7rem;cursor:pointer;font-family:var(--sans)">전체</button>
