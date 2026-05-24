@@ -2109,7 +2109,7 @@ window.showComparePanel=(id1,id2)=>{
   if(!s1||!s2)return;
   document.getElementById('compare-overlay')?.remove();
   const ov=document.createElement('div');ov.id='compare-overlay';
-  ov.style.cssText='position:fixed;inset:0;z-index:400;background:var(--night);overflow-y:auto;padding:1rem';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:var(--night);overflow-y:auto;padding:1rem 1rem 4rem';
   const nc1=normalizeClub(s1.club),nc2=normalizeClub(s2.club);
   const A='rgba(84,184,232,.85)',B='rgba(167,139,250,.85)';
   ov.innerHTML=`<div style="max-width:600px;margin:0 auto">
@@ -2130,12 +2130,12 @@ window.showComparePanel=(id1,id2)=>{
       <div style="font-size:.7rem;color:var(--muted);margin-bottom:.35rem">📊 방향 분포</div>
       ${buildCompareDirSvg(s1,s2,A,B)}
     </div>
-    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:4px;padding:.65rem;margin-bottom:1.5rem">
+    <div style="background:var(--dusk);border:1px solid var(--border);border-radius:4px;padding:.65rem;margin-bottom:2.5rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.45rem">
         <span style="font-size:.7rem;color:var(--muted)">🤖 AI 비교 분석</span>
         <button id="compare-ai-btn" onclick="runCompareAI('${id1}','${id2}')" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:#A78BFA;padding:.22rem .75rem;border-radius:8px;font-size:.7rem;cursor:pointer;font-family:var(--sans)">✦ 분석 시작</button>
       </div>
-      <div id="compare-ai-result" style="font-size:.82rem;color:var(--dim);line-height:1.7"></div>
+      <div id="compare-ai-result" style="font-size:.82rem;color:var(--dim);line-height:1.75;white-space:pre-wrap;word-break:keep-all;overflow:visible"></div>
     </div>
   </div>`;
   document.body.appendChild(ov);
@@ -2220,7 +2220,7 @@ window.runCompareAI=async(id1,id2)=>{
   const f=(v,u)=>v!=null?Math.round(v*10)/10+u:'—';
   const prompt=`두 골프 연습 세션을 비교 분석해 코치처럼 피드백해주세요.\n\n세션 A: ${nc1||s1.club} · ${s1.date} · ${s1.shots?.length||0}샷\n캐리 ${f(t1.avgCarry,'m')} | HS ${f(t1.avgHs,'')} | SF ${t1.avgSf?.toFixed(2)||'—'} | 일관성 ${t1.consistency!=null?t1.consistency+'점':'—'}\n\n세션 B: ${nc2||s2.club} · ${s2.date} · ${s2.shots?.length||0}샷\n캐리 ${f(t2.avgCarry,'m')} | HS ${f(t2.avgHs,'')} | SF ${t2.avgSf?.toFixed(2)||'—'} | 일관성 ${t2.consistency!=null?t2.consistency+'점':'—'}\n\n${nc1===nc2?`동일 클럽(${nc1}) 시계열 비교입니다.`:`다른 클럽 비교: A=${nc1}, B=${nc2}`}\n\n다음 형식으로만:\n**✓ 비교 요약** — 핵심 차이 1~2문장\n**✓ 향상된 점** — 수치 근거\n**✓ 주의할 점** — 악화/주의 항목\n**✓ 다음 연습 제안** — 2~3문장\n한국어, 친근한 코치 말투.`;
   try{
-    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({prompt,type:'swing',maxOutputTokens:1000})});
+    const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({prompt,type:'swing',maxOutputTokens:2500})});
     if(!resp.ok)throw new Error(`${resp.status}`);
     const data=await resp.json();
     const text=data.content?.[0]?.text||data.text||'';
