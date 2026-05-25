@@ -2548,18 +2548,25 @@ window.goClubStat=(club)=>{
   // 비행 통계 탭으로 전환
   tab='practice'; pSub='stats'; render();
   // 렌더 완료 후 스크롤 (차트 초기화 시간 고려)
+  // 탭이 이미 stats면 스크롤만, 아니면 렌더 후 스크롤
+  const alreadyStats = tab==='practice' && pSub==='stats';
+  const delay = alreadyStats ? 80 : 520;
   setTimeout(()=>{
-    const esc_club=club.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    const el=document.getElementById('club-stat-'+esc_club);
+    const safeClub = club.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const el = document.getElementById('club-stat-'+safeClub)
+             || document.getElementById('club-stat-'+club); // fallback
     if(el){
       el.scrollIntoView({behavior:'smooth',block:'start'});
-      // 잠시 하이라이트
-      el.style.transition='background .3s';
-      el.style.background='rgba(200,137,58,.08)';
+      el.style.transition='background .4s';
+      el.style.background='rgba(200,137,58,.1)';
       el.style.borderRadius='6px';
-      setTimeout(()=>{el.style.background='';},1200);
+      el.style.padding='2px 0';
+      setTimeout(()=>{
+        el.style.background='';
+        el.style.padding='';
+      },1400);
     }
-  },350);
+  },delay);
 };
 
 // ── 온보딩 저장 ──────────────────────────────────────
@@ -9466,12 +9473,18 @@ function initHomeDistChart(){
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}m`}}},
+      onClick:(evt,elements)=>{
+        if(!elements.length)return;
+        const cl=clubOrder[elements[0].index];
+        if(cl) window.goClubStat(cl);
+      },
       scales:{
         x:{ticks:{color:'rgba(240,237,230,.55)',font:{size:11}},grid:{display:false}},
         y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:11},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
       }
     }
   });
+  el.style.cursor='pointer';
 }
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
