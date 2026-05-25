@@ -629,6 +629,43 @@ if(location.pathname.includes('/dev/')||location.pathname.includes('/dev')){
         <button class="btn btn-p btn-sm" style="width:100%" onclick="saveProfile()">프로필 저장</button>
         <div id="prof-msg" style="font-size:.74rem;margin-top:.4rem"></div>
       </div>
+      <!-- 신체 정보 (비공개 · AI 분석 전용) -->
+      <div style="margin-top:1rem;padding:1rem;background:var(--dusk2);border:1px solid var(--border);border-radius:4px">
+        <div style="font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem">🔒 신체 정보 <span style="font-size:.63rem;color:rgba(200,137,58,.6);font-weight:400;letter-spacing:0;text-transform:none">(비공개 · AI 분석에만 활용)</span></div>
+        <div style="font-size:.69rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">이 정보는 외부에 공개되지 않으며, AI가 내 신체 조건에 맞는 맞춤 분석을 제공하는 데 사용됩니다.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl-label">성별</label>
+            <select class="inp sel" id="prof-gender" style="padding:.45rem .6rem">
+              <option value="">선택 안 함</option>
+              <option value="male">남성</option>
+              <option value="female">여성</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl-label">체형</label>
+            <select class="inp sel" id="prof-build" style="padding:.45rem .6rem">
+              <option value="">선택 안 함</option>
+              <option value="slim">슬림</option>
+              <option value="average">보통</option>
+              <option value="athletic">운동형</option>
+              <option value="heavy">다부진</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.7rem">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl-label">키 (cm)</label>
+            <input class="inp" type="number" id="prof-height" placeholder="예: 175" min="140" max="220" step="1">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl-label">몸무게 (kg)</label>
+            <input class="inp" type="number" id="prof-weight" placeholder="예: 72" min="40" max="150" step="0.1">
+          </div>
+        </div>
+        <button class="btn btn-p btn-sm" style="width:100%" onclick="saveBodyProfile()">신체 정보 저장</button>
+        <div id="prof-body-msg" style="font-size:.74rem;margin-top:.4rem"></div>
+      </div>
       <div style="margin-top:1rem;padding:1rem;background:var(--dusk2);border:1px solid var(--border);border-radius:4px">
         <div style="font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem">🌐 공개 프로필</div>
         <div class="fg" style="margin-bottom:.5rem">
@@ -1227,6 +1264,53 @@ function ownedClubOptions(currentVal=''){
 const today=()=>new Date().toISOString().split('T')[0];
 const promptDate=()=>{const d=new Date();return `${d.getFullYear()}년 ${d.getMonth()+1}월`;};
 const promptYearRange=()=>{const y=new Date().getFullYear();return `${y-1}~${y}년`;};
+
+// ── 신체 정보 → AI 프롬프트 컨텍스트 빌더 ─────────────────
+function bodyProfileContext(){
+  const p=D.profile;
+  if(!p) return '';
+  const parts=[];
+  const gMap={male:'남성',female:'여성'};
+  const bMap={slim:'슬림',average:'보통체형',athletic:'운동형',heavy:'다부진'};
+  if(p.gender) parts.push(`성별: ${gMap[p.gender]||p.gender}`);
+  if(p.height_cm) parts.push(`키: ${p.height_cm}cm`);
+  if(p.weight_kg) parts.push(`몸무게: ${p.weight_kg}kg`);
+  if(p.body_build) parts.push(`체형: ${bMap[p.body_build]||p.body_build}`);
+  if(!parts.length) return '';
+  return `[골퍼 신체 정보]
+${parts.join(' | ')}
+`;
+}
+
+// ── 신체 정보 기반 개인화 벤치마크 계산 ─────────────────
+function personalizedBenchmarks(club){
+  const base=benchmarksByClub[club]||benchmarksByClub['드라이버'];
+  const p=D.profile;
+  if(!p) return base;
+  // 보정 계수 계산
+  let carryMult=1.0, hsMult=1.0;
+  // 성별 보정 (여성 평균: 캐리 -25~30%, HS -20%)
+  if(p.gender==='female'){carryMult*=0.72; hsMult*=0.78;}
+  // 키 보정 (175cm 기준 ±0.6%/cm)
+  if(p.height_cm){const diff=(p.height_cm-175)*0.006; carryMult*=(1+diff); hsMult*=(1+diff*0.8);}
+  // 체형 보정
+  const buildMap={slim:0.97,average:1.0,athletic:1.05,heavy:1.02};
+  const bm=buildMap[p.body_build]||1.0;
+  carryMult*=bm; hsMult*=bm;
+  // 보정 적용
+  const scale=arr=>arr.map(z=>({...z,
+    min:Math.round(z.min*carryMult),
+    max:Math.round(z.max*carryMult)
+  }));
+  const scaleHs=arr=>arr.map(z=>({...z,
+    min:Math.round(z.min*hsMult*10)/10,
+    max:Math.round(z.max*hsMult*10)/10
+  }));
+  return {
+    carry: base.carry ? scale(base.carry) : undefined,
+    hs: base.hs ? scaleHs(base.hs) : undefined,
+  };
+}
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const ea=s=>String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const fmtP=p=>p!=null?Number(p).toLocaleString('ko-KR')+'원':'—';
@@ -2218,7 +2302,7 @@ window.runCompareAI=async(id1,id2)=>{
   if(res)res.innerHTML='<span style="color:var(--muted)">⏳ 분석 중...</span>';
   const t1=ss(s1),t2=ss(s2),nc1=normalizeClub(s1.club),nc2=normalizeClub(s2.club);
   const f=(v,u)=>v!=null?Math.round(v*10)/10+u:'—';
-  const prompt=`두 골프 연습 세션을 비교 분석해 코치처럼 피드백해주세요.\n\n세션 A: ${nc1||s1.club} · ${s1.date} · ${s1.shots?.length||0}샷\n캐리 ${f(t1.avgCarry,'m')} | HS ${f(t1.avgHs,'')} | SF ${t1.avgSf?.toFixed(2)||'—'} | 일관성 ${t1.consistency!=null?t1.consistency+'점':'—'}\n\n세션 B: ${nc2||s2.club} · ${s2.date} · ${s2.shots?.length||0}샷\n캐리 ${f(t2.avgCarry,'m')} | HS ${f(t2.avgHs,'')} | SF ${t2.avgSf?.toFixed(2)||'—'} | 일관성 ${t2.consistency!=null?t2.consistency+'점':'—'}\n\n${nc1===nc2?`동일 클럽(${nc1}) 시계열 비교입니다.`:`다른 클럽 비교: A=${nc1}, B=${nc2}`}\n\n다음 형식으로만:\n**✓ 비교 요약** — 핵심 차이 1~2문장\n**✓ 향상된 점** — 수치 근거\n**✓ 주의할 점** — 악화/주의 항목\n**✓ 다음 연습 제안** — 2~3문장\n한국어, 친근한 코치 말투.`;
+  const prompt=`두 골프 연습 세션을 비교 분석해 코치처럼 피드백해주세요.\n\n${bodyProfileContext()}세션 A: ${nc1||s1.club} · ${s1.date} · ${s1.shots?.length||0}샷\n캐리 ${f(t1.avgCarry,'m')} | HS ${f(t1.avgHs,'')} | SF ${t1.avgSf?.toFixed(2)||'—'} | 일관성 ${t1.consistency!=null?t1.consistency+'점':'—'}\n\n세션 B: ${nc2||s2.club} · ${s2.date} · ${s2.shots?.length||0}샷\n캐리 ${f(t2.avgCarry,'m')} | HS ${f(t2.avgHs,'')} | SF ${t2.avgSf?.toFixed(2)||'—'} | 일관성 ${t2.consistency!=null?t2.consistency+'점':'—'}\n\n${nc1===nc2?`동일 클럽(${nc1}) 시계열 비교입니다.`:`다른 클럽 비교: A=${nc1}, B=${nc2}`}\n\n다음 형식으로만:\n**✓ 비교 요약** — 핵심 차이 1~2문장\n**✓ 향상된 점** — 수치 근거\n**✓ 주의할 점** — 악화/주의 항목\n**✓ 다음 연습 제안** — 2~3문장\n한국어, 친근한 코치 말투.`;
   try{
     const resp=await fetch(`${SB_URL}/functions/v1/analyze-gdr`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({prompt,type:'swing',maxOutputTokens:2500})});
     if(!resp.ok)throw new Error(`${resp.status}`);
@@ -2402,6 +2486,29 @@ window.saveProfile=async()=>{
   }
   if(error){if(msg){msg.textContent='저장 실패';msg.style.color='var(--red)';}return;}
   D.profile=data;if(msg){msg.textContent='✓ 저장됐습니다';msg.style.color='var(--turf)';}
+};
+
+// ── 신체 정보 저장 (비공개) ──────────────────────────
+window.saveBodyProfile=async()=>{
+  const gender=$('prof-gender')?.value||null;
+  const build=$('prof-build')?.value||null;
+  const height=parseFloat($('prof-height')?.value)||null;
+  const weight=parseFloat($('prof-weight')?.value)||null;
+  const msg=$('prof-body-msg');
+  if(msg){msg.textContent='';msg.style.color='';}
+  const fields={gender,body_build:build,height_cm:height,weight_kg:weight,updated_at:new Date().toISOString()};
+  let error;
+  if(D.profile){
+    ({error}=await sb.from('user_profiles').update(fields).eq('user_id',user.id));
+  } else {
+    ({error}=await sb.from('user_profiles').insert({user_id:user.id,...fields}));
+  }
+  if(error){if(msg){msg.textContent='저장 실패: '+error.message;msg.style.color='var(--red)';}return;}
+  // 로컬 D.profile 갱신
+  if(!D.profile) D.profile={};
+  Object.assign(D.profile,fields);
+  if(msg){msg.textContent='✓ 저장됐습니다';msg.style.color='var(--turf)';}
+  setTimeout(()=>{if(msg)msg.textContent='';},2500);
 };
 
 window.savePublicProfile=async()=>{
@@ -3754,6 +3861,12 @@ window.openAcctSettings=()=>{
     const ps=$('prof-started');if(ps&&p.golf_started)ps.value=p.golf_started;
     const gt=p.game_type||'screen';
     const r=document.querySelector(`input[name="prof-gametype"][value="${gt}"]`);if(r)r.checked=true;
+    // 신체 정보
+    const gh=$('prof-gender'),bh=$('prof-build'),hh=$('prof-height'),wh=$('prof-weight');
+    if(gh) gh.value=p.gender||'';
+    if(bh) bh.value=p.body_build||'';
+    if(hh) hh.value=p.height_cm||'';
+    if(wh) wh.value=p.weight_kg||'';
     // 공개 프로필
     const nn=$('prof-nickname'),bi=$('prof-bio'),ip=$('prof-is-public');
     if(nn) nn.value=p.nickname||'';
@@ -3852,15 +3965,26 @@ function homeView(){
       {label:'초급',  carry:88,  hs:27, color:'var(--muted)'},
     ],
   };
-  const benchmarks = benchmarksByClub[homeBenchClub] || benchmarksByClub['드라이버'];
+  // 개인화 벤치마크: 신체 정보 보정
+  const _rawBench = benchmarksByClub[homeBenchClub] || benchmarksByClub['드라이버'];
+  const _p = D.profile;
+  const benchmarks = (() => {
+    if(!_p || (!_p.gender && !_p.height_cm && !_p.body_build)) return _rawBench;
+    let cm=1.0, hm=1.0;
+    if(_p.gender==='female'){cm*=0.72;hm*=0.78;}
+    if(_p.height_cm){const d=(_p.height_cm-175)*0.006;cm*=(1+d);hm*=(1+d*0.8);}
+    const bm={slim:0.97,average:1.0,athletic:1.05,heavy:1.02}[_p.body_build]||1.0;
+    cm*=bm; hm*=bm;
+    return _rawBench.map(b=>({...b,carry:Math.round(b.carry*cm),hs:Math.round(b.hs*hm*10)/10}));
+  })();
   const maxCarry = is7I ? 190 : 290;
 
-  const myLevel = !myCarry ? '데이터 없음'
-    : is7I
-      ? myCarry>=155?'상급자':myCarry>=125?'중급자':myCarry>=95?'초급자':'입문'
-      : myCarry>=250?'상급자':myCarry>=210?'중급자':myCarry>=170?'초급자':'입문';
-  const myLevelColor = !myCarry?'var(--muted)'
-    : myCarry>=(is7I?155:250)?'#7ab0e8':myCarry>=(is7I?125:210)?'#A78BFA':myCarry>=(is7I?95:170)?'var(--wing2)':'var(--muted)';
+  const _lvlMap = ['입문','초급자','중급자','상급자','프로'];
+  const myLevel = !myCarry ? '데이터 없음' : (() => {
+    const hit = benchmarks.slice().reverse().find(b=>myCarry>=b.carry);
+    return hit ? hit.label+'자' : '입문';
+  })();
+  const myLevelColor = !myCarry?'var(--muted)':myLevel.includes('상급')||myLevel.includes('프로')?'#7ab0e8':myLevel.includes('중급')?'#A78BFA':myLevel.includes('초급')?'var(--wing2)':'var(--muted)';
   const benchHtml = benchmarks.map(b=>{
     const pct = Math.min(100,Math.round(b.carry/maxCarry*100));
     const myPct = myCarry?Math.min(100,Math.round(myCarry/maxCarry*100)):0;
@@ -7925,7 +8049,7 @@ window.generatePracticePlan = async function generatePracticePlan(forceRefresh=f
         type:'swing',model:GEMINI_MODEL,maxOutputTokens:3000,
         prompt:`당신은 골프 코치입니다. 아래 데이터를 분석해서 다음 번 연습 계획을 JSON으로만 응답하세요.
 
-[클럽별 데이터]
+${bodyProfileContext()}[클럽별 데이터]
 ${clubSummary||'데이터 없음'}
 
 [보유 장비]
@@ -8329,7 +8453,7 @@ window.runInstaAnalysis = async () => {
     const st = ss(s);
     const prompt = `아래 GDR 데이터를 분석해 골프 코치처럼 피드백해주세요.
 
-클럽: ${s.club||'미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
+${bodyProfileContext()}클럽: ${s.club||'미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
 캐리 평균: ${fn(st.avgCarry,'m')} | 베스트: ${fn(st.bestCarry,'m')} | 헤드속도: ${fn(st.avgHs)} | 스매시팩터: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
 
 샷별 데이터:
@@ -9631,7 +9755,7 @@ function initCharts(){
       const sid=sessionMap[`${date}__${club}`];
       if(sid){tab='practice';view='detail';selId=sid;render();}
     };
-    const bench=CLUB_BENCH[club]||CLUB_BENCH['7I'];
+    const bench=personalizedBenchmarks(normalizeClub(club)||'드라이버');
     const col=clubColor(club);
 
     // 6종 차트 데이터 정의
@@ -9723,7 +9847,7 @@ function renderShotChart(shots, club=''){
 
   // 벤치마크 zones (클럽별)
   const nc = normalizeClub(club);
-  const benchZones = (CLUB_BENCH[nc]||CLUB_BENCH['7I'])?.carry || [];
+  const benchZones = personalizedBenchmarks(nc||'드라이버')?.carry || [];
   // 벤치마크 최솟값/최댓값으로 Y축 범위 보정
   const benchMin = benchZones.length ? Math.min(...benchZones.map(z=>z.min)) : 0;
   const benchMax = benchZones.length ? Math.max(...benchZones.map(z=>z.max)) : 300;
@@ -10649,7 +10773,7 @@ window.analyzeSwing = async (sid) => {
 
     const prompt = `아래 GDR 데이터를 분석해 골프 코치처럼 피드백해주세요.
 
-클럽: ${s.club || '미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
+${bodyProfileContext()}클럽: ${s.club || '미기록'} / 날짜: ${s.date} / ${s.shots.length}샷
 캐리 평균: ${fn(st.avgCarry,'m')} | 베스트: ${fn(st.bestCarry,'m')} | 헤드속도: ${fn(st.avgHs)} | 스매시팩터: ${st.avgSf!=null?st.avgSf.toFixed(2):'—'}
 
 샷별 데이터:
@@ -10746,7 +10870,7 @@ window.analyzeEquipFit = async () => {
 
     const prompt = `골프 장비 전문가로서 아래 데이터를 보고 장비 궁합을 평가해주세요.
 
-[내 비행 통계 (클럽별)]
+${bodyProfileContext()}[내 비행 통계 (클럽별)]
 ${statSummary}
 
 [보유 장비]
