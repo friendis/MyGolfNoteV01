@@ -2881,8 +2881,8 @@ async function renderPublicProfile(nickname){
 
     m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],equip||[],followerCnt||0,isFollowing,buddyStatus);
     // 통계 차트 렌더링 (공개 프로필용) — DOM 완전 렌더 후 그리기
-    if(prof.is_public && sessions?.length && window._profChartData){
-      setTimeout(()=>_drawProfSparklines(window._profChartData), 100);
+    if(prof.is_public && sessions?.length){
+      setTimeout(()=>_drawProfPublicCharts(), 120);
     }
   }catch(e){
     m.innerHTML=`<div class="page"><div style="text-align:center;padding:3rem;color:var(--muted)">${esc(e.message)}</div></div>`;
@@ -2990,31 +2990,41 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
     const clubOrder=['드라이버','3W','5W','7W','유틸리티','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
     const sortedClubs=Object.keys(cm).sort((a,b)=>{const ia=clubOrder.indexOf(a),ib=clubOrder.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
 
-    // 차트 데이터를 전역에 저장 (renderPublicProfile에서 비동기로 그림)
+    // 전역에 데이터 저장 (비동기 차트 드로우용)
     window._profChartData = Object.fromEntries(sortedClubs.map(club=>[club, cm[club]]));
 
-    const clubRows = sortedClubs.map((club,clubIdx)=>{
-      const d=cm[club];
-      const avg_c=avgV(d.c),avg_h=avgV(d.h),avg_b=avgV(d.b),avg_sf=avgV(d.sf);
-      const sparkId=`psc-${clubIdx}`; // 인덱스 기반 id (한글 회피)
-      return`<div style="margin-bottom:1rem">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">
-          <span class="club-badge" style="font-size:.72rem">${esc(club)}</span>
-          ${avg_c?`<span style="font-size:.73rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:600">${avg_c}m</span></span>`:''}
-          ${avg_h?`<span style="font-size:.73rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:600">${avg_h}</span></span>`:''}
-          ${avg_b?`<span style="font-size:.73rem;color:var(--muted)">BS <span style="color:#7ab0e8;font-weight:600">${avg_b}</span></span>`:''}
-          ${avg_sf?`<span style="font-size:.73rem;color:var(--muted)">SF <span style="color:#A78BFA;font-weight:600">${avg_sf.toFixed(2)}</span></span>`:''}
-          <span style="font-size:.7rem;color:var(--muted);margin-left:auto">${d.c.length}세션</span>
-        </div>
-        ${d.c.length>=2?`<div style="height:60px;position:relative"><canvas id="${sparkId}" style="width:100%;height:60px"></canvas></div>`:''}
-      </div>`;
-    }).join('<div style="border-top:1px solid rgba(240,237,230,.06);margin-bottom:1rem"></div>');
+    // ── 게임 스코어 추이용 데이터 ─────────────────────
+    const gameSessions = sessions
+      .filter(s=>(s.game_type==='screen'||s.game_type==='field')&&s.score>0&&(s.holes||18)===18)
+      .sort((a,b)=>a.session_date>b.session_date?1:-1);
+    const gameScores = gameSessions.map(s=>s.score);
+    const bestScore = gameScores.length ? Math.min(...gameScores) : null;
+    const avgScore  = gameScores.length ? Math.round(gameScores.reduce((a,b)=>a+b,0)/gameScores.length) : null;
+    const lastScore = gameScores.length ? gameScores[gameScores.length-1] : null;
 
-    statsSection=`<div style="background:var(--dusk2);border:1px solid rgba(240,237,230,.1);border-radius:4px;padding:1rem;margin-bottom:1rem">
-      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem">📊 비행 통계</div>
-      ${clubRows||'<div style="font-size:.78rem;color:var(--muted)">데이터가 없습니다</div>'}
-    </div>
-    <div id="prof-stats-charts-placeholder"></div>`;
+    const gameChartSection = gameScores.length>=2 ? `
+    <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1rem">
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem">⛳ 게임 스코어 추이 (18홀)</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
+        ${bestScore!=null?`<span style="font-size:.74rem;color:var(--muted)">베스트 <strong style="color:#3D9E74">${bestScore}타</strong></span>`:''}
+        ${avgScore!=null?`<span style="font-size:.74rem;color:var(--muted)">평균 <strong style="color:var(--wing2)">${avgScore}타</strong></span>`:''}
+        ${lastScore!=null?`<span style="font-size:.74rem;color:var(--muted)">최근 <strong style="color:var(--chalk)">${lastScore}타</strong></span>`:''}
+      </div>
+      <div style="position:relative;height:130px"><canvas id="pub-game-score-chart"></canvas></div>
+    </div>` : '';
+
+    // ── 클럽별 비거리 막대그래프용 데이터 ─────────────
+    const clubOrder2=[...CLUBS].reverse().filter(cl=>cm[cl]?.c?.length);
+    const distVals = clubOrder2.map(cl=>Math.round(avgV(cm[cl].c)));
+    window._profDistData = {clubOrder: clubOrder2, vals: distVals, gameSessions, bestScore, avgScore};
+
+    const distChartSection = clubOrder2.length ? `
+    <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1rem">
+      <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem">🏌️ 클럽별 비거리 (캐리 평균)</div>
+      <div style="position:relative;height:180px"><canvas id="pub-dist-chart"></canvas></div>
+    </div>` : '';
+
+    statsSection = gameChartSection + distChartSection;
   }
 
   // ── 탭 + 콘텐츠 (통계 비공개 시) ───────────────────
@@ -3163,20 +3173,78 @@ window.switchProfTab=(id)=>{
   });
 };
 
-function _drawProfSparklines(cm){
+function _drawProfPublicCharts(){
   if(typeof Chart==='undefined') return;
-  Object.entries(cm).forEach(([club,d],clubIdx)=>{
-    if((d.c||[]).length<2) return;
-    const sparkId=`psc-${clubIdx}`;
-    const el=document.getElementById(sparkId);
-    if(!el) return;
+  const pd = window._profDistData;
+
+  // ── 게임 스코어 추이 차트 ─────────────────────────────
+  const gcEl = document.getElementById('pub-game-score-chart');
+  if(gcEl && pd?.gameSessions?.length>=2){
+    const gs = pd.gameSessions;
+    const avgSc = pd.avgScore;
+    const best = pd.bestScore;
     try{
-      new Chart(el,{type:'line',data:{
-        labels:d.c.map((_,i)=>i+1+''),
-        datasets:[{data:d.c.map(v=>Math.round(v)),borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.1)',borderWidth:1.5,pointRadius:2,fill:true,tension:.3}]
-      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:false},scales:{x:{display:false},y:{display:false}}}});
+      new Chart(gcEl,{
+        type:'line',
+        data:{
+          labels: gs.map(s=>s.session_date?.slice(5)||''),
+          datasets:[{
+            data: gs.map(s=>s.score),
+            borderColor:'#C8893A', backgroundColor:'rgba(200,137,58,.08)',
+            borderWidth:2, fill:true, tension:.3,
+            pointBackgroundColor: gs.map(s=>s.score===best?'#FFD700':'#C8893A'),
+            pointBorderColor: gs.map(s=>s.score===best?'#fff':'#0D1117'),
+            pointBorderWidth: gs.map(s=>s.score===best?2.5:1.5),
+            pointStyle: gs.map(s=>s.score===best?'star':'circle'),
+            pointRadius: gs.map(s=>s.score===best?10:4),
+          },{
+            data: gs.map(()=>avgSc),
+            borderColor:'rgba(200,137,58,.3)', borderWidth:1,
+            borderDash:[4,4], pointRadius:0, fill:false,
+          }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:false, tooltip:{callbacks:{
+            label:c=>{ const s=gs[c.dataIndex]; return `${c.raw}타${s?.score===best?' ⭐ 베스트':''}`; }
+          }}},
+          scales:{
+            x:{ticks:{color:'rgba(240,237,230,.55)',font:{size:11}},grid:{display:false}},
+            y:{reverse:true,ticks:{color:'rgba(240,237,230,.45)',font:{size:11},callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.06)'}}
+          }
+        }
+      });
     }catch(e){}
-  });
+  }
+
+  // ── 클럽별 비거리 막대 차트 ──────────────────────────
+  const dcEl = document.getElementById('pub-dist-chart');
+  if(dcEl && pd?.clubOrder?.length){
+    const {clubOrder, vals} = pd;
+    const colors = clubOrder.map(cl=>(typeof clubColor==='function'?clubColor(cl):{line:'#C8893A'}).line||'#C8893A');
+    try{
+      new Chart(dcEl,{
+        type:'bar',
+        data:{
+          labels: clubOrder,
+          datasets:[{
+            data: vals,
+            backgroundColor: colors.map(c=>c+'88'),
+            borderColor: colors.map(c=>c+'CC'),
+            borderWidth:1.5, borderRadius:3,
+          }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}m`}}},
+          scales:{
+            x:{ticks:{color:'rgba(240,237,230,.65)',font:{size:11},maxRotation:45},grid:{display:false}},
+            y:{min:0,ticks:{color:'rgba(240,237,230,.5)',font:{size:11},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
+          }
+        }
+      });
+    }catch(e){}
+  }
 }
 
 // ── 팔로우 / 버디 / 알림 ────────────────────────────
