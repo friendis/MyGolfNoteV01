@@ -3813,11 +3813,12 @@ function homeView(){
     careerHtml = `<button onclick="openAcctSettings()" style="background:none;border:1px dashed rgba(200,137,58,.3);color:var(--muted);padding:1px 8px;border-radius:2px;font-size:.75rem;cursor:pointer">시작 날짜 입력</button>`;
   }
 
-  // ── 연습 빈도 계산 (최근 90일)
+  // ── 연습 빈도 계산 (최근 90일 — 같은 날 여러 클럽 업로드는 1회로 집계)
   const recent90 = D.sessions.filter(s=>{
     const d=new Date(s.date); return (now-d)<=90*24*60*60*1000;
   });
-  const freqPerWeek = recent90.length>0 ? (recent90.length/13).toFixed(1) : 0;
+  const recent90UniqueDays = new Set(recent90.map(s=>s.date?.slice(0,10))).size;
+  const freqPerWeek = recent90UniqueDays>0 ? (recent90UniqueDays/13).toFixed(1) : 0;
   const freqLabel = freqPerWeek>=3?'매우 활발':freqPerWeek>=1.5?'활발':freqPerWeek>=0.5?'보통':'시작 단계';
   const freqColor = freqPerWeek>=3?'var(--turf)':freqPerWeek>=1.5?'#7ab0e8':freqPerWeek>=0.5?'var(--wing2)':'var(--muted)';
 
