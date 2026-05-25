@@ -242,7 +242,7 @@ main{max-width:900px;margin:0 auto;padding:1.25rem 1rem 7rem;width:100%}
 .perf-val{font-family:var(--serif);font-size:1.15rem;font-weight:700;color:var(--chalk)}
 .perf-lbl{font-size:.7rem;color:var(--muted);margin-top:1px}
 .perf-badge{font-size:.72rem;padding:2px 7px;border-radius:2px;margin-left:.4rem;font-weight:500}
-.bench-row{display:flex;align-items:center;gap:.5rem;font-size:.75rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.05)}
+.bench-row{display:flex;align-items:center;gap:.5rem;font-size:.75rem;padding:.3rem 0;border-bottom:1px solid rgba(240,237,230,.05);transition:background .12s;border-radius:2px}
 .bench-row:last-child{border-bottom:none}
 .bench-label{color:var(--muted);width:60px;flex-shrink:0}
 .bench-bar-wrap{flex:1;height:5px;background:rgba(240,237,230,.08);border-radius:3px;overflow:hidden;position:relative}
@@ -1061,22 +1061,22 @@ const CLUB_BENCH={
     ],
   },
   '3W':{carry:[
-    {l:'프로',  min:225,max:255,c:'rgba(228,168,85,.07)'},
-    {l:'상급',  min:190,max:225,c:'rgba(122,176,232,.06)'},
-    {l:'중급',  min:155,max:190,c:'rgba(167,139,250,.05)'},
-    {l:'초급',  min:115,max:155,c:'rgba(138,155,170,.04)'},
+    {l:'프로',  min:220,max:252,c:'rgba(228,168,85,.07)'},   // PGA avg 249야드=228m 기준; max 252=276야드
+    {l:'상급',  min:187,max:220,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:152,max:187,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:112,max:152,c:'rgba(138,155,170,.04)'},
   ]},
   '5W':{carry:[
-    {l:'프로',  min:208,max:240,c:'rgba(228,168,85,.07)'},
-    {l:'상급',  min:175,max:208,c:'rgba(122,176,232,.06)'},
-    {l:'중급',  min:142,max:175,c:'rgba(167,139,250,.05)'},
-    {l:'초급',  min:105,max:142,c:'rgba(138,155,170,.04)'},
+    {l:'프로',  min:205,max:235,c:'rgba(228,168,85,.07)'},   // PGA avg ~230야드=210m; max 235=257야드
+    {l:'상급',  min:172,max:205,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:138,max:172,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:102,max:138,c:'rgba(138,155,170,.04)'},
   ]},
   '유틸리티':{carry:[
-    {l:'프로',  min:195,max:228,c:'rgba(228,168,85,.07)'},
-    {l:'상급',  min:163,max:195,c:'rgba(122,176,232,.06)'},
-    {l:'중급',  min:130,max:163,c:'rgba(167,139,250,.05)'},
-    {l:'초급',  min:92,max:130,c:'rgba(138,155,170,.04)'},
+    {l:'프로',  min:188,max:218,c:'rgba(228,168,85,.07)'},   // 4UT PGA avg ~205야드=187m; max 218=238야드
+    {l:'상급',  min:158,max:188,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:125,max:158,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:88,max:125,c:'rgba(138,155,170,.04)'},
   ]},
   '5I':{carry:[
     {l:'프로',  min:175,max:198,c:'rgba(228,168,85,.07)'},       // PGA avg ~178m(195야드)
@@ -1368,14 +1368,14 @@ function personalizedBenchmarks(club){
   const base=CLUB_BENCH[club]||CLUB_BENCH['드라이버'];
   const p=D.profile;
   if(!p) return base;
-  // 보정 계수 계산
+  // 보정 계수 계산 (출처: TrackMan PGA/LPGA 비교, Sports Medicine 2024 meta-analysis)
   let carryMult=1.0, hsMult=1.0;
-  // 성별 보정 (여성 평균: 캐리 -25~30%, HS -20%)
-  if(p.gender==='female'){carryMult*=0.72; hsMult*=0.78;}
-  // 키 보정 (175cm 기준 ±0.6%/cm)
-  if(p.height_cm){const diff=(p.height_cm-175)*0.006; carryMult*=(1+diff); hsMult*=(1+diff*0.8);}
-  // 체형 보정
-  const buildMap={slim:0.97,average:1.0,athletic:1.05,heavy:1.02};
+  // 성별 보정: PGA avg 275야드 vs LPGA avg 218야드 → 캐리 비율 79.3%, HS 비율 83.5%
+  if(p.gender==='female'){carryMult*=0.79; hsMult*=0.835;}
+  // 키 보정: 175cm 기준 ±0.35%/cm (MacKenzie et al. hand path → CHS 환산 기반)
+  if(p.height_cm){const diff=(p.height_cm-175)*0.0035; carryMult*=(1+diff); hsMult*=(1+diff*0.85);}
+  // 체형 보정 (muscle mass 및 회전력 기반 추정)
+  const buildMap={slim:0.96,average:1.0,athletic:1.06,heavy:1.02};
   const bm=buildMap[p.body_build]||1.0;
   carryMult*=bm; hsMult*=bm;
   // 보정 적용
@@ -2542,6 +2542,32 @@ window.shuffleHomeTerm=()=>{
   render();
 };
 window.toggleBenchClub=()=>{ homeBenchClub=homeBenchClub==='드라이버'?'7I':'드라이버'; render(); };
+
+// ── 클럽 비거리 그래프 → 비행 통계 탭 해당 클럽 섹션으로 이동 ──
+window.goClubStat=(club)=>{
+  // 비행 통계 탭으로 전환
+  tab='practice'; pSub='stats'; render();
+  // 렌더 완료 후 스크롤 (차트 초기화 시간 고려)
+  // 탭이 이미 stats면 스크롤만, 아니면 렌더 후 스크롤
+  const alreadyStats = tab==='practice' && pSub==='stats';
+  const delay = alreadyStats ? 80 : 520;
+  setTimeout(()=>{
+    const safeClub = club.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const el = document.getElementById('club-stat-'+safeClub)
+             || document.getElementById('club-stat-'+club); // fallback
+    if(el){
+      el.scrollIntoView({behavior:'smooth',block:'start'});
+      el.style.transition='background .4s';
+      el.style.background='rgba(200,137,58,.1)';
+      el.style.borderRadius='6px';
+      el.style.padding='2px 0';
+      setTimeout(()=>{
+        el.style.background='';
+        el.style.padding='';
+      },1400);
+    }
+  },delay);
+};
 
 // ── 온보딩 저장 ──────────────────────────────────────
 window.saveOnboarding=async()=>{
@@ -4057,9 +4083,9 @@ function homeView(){
   const benchmarks = (() => {
     if(!_p || (!_p.gender && !_p.height_cm && !_p.body_build)) return _rawBench;
     let cm=1.0, hm=1.0;
-    if(_p.gender==='female'){cm*=0.72;hm*=0.78;}
-    if(_p.height_cm){const d=(_p.height_cm-175)*0.006;cm*=(1+d);hm*=(1+d*0.8);}
-    const bm={slim:0.97,average:1.0,athletic:1.05,heavy:1.02}[_p.body_build]||1.0;
+    if(_p.gender==='female'){cm*=0.79;hm*=0.835;}
+    if(_p.height_cm){const d=(_p.height_cm-175)*0.0035;cm*=(1+d);hm*=(1+d*0.85);}
+    const bm={slim:0.96,average:1.0,athletic:1.06,heavy:1.02}[_p.body_build]||1.0;
     cm*=bm; hm*=bm;
     return _rawBench.map(b=>({...b,carry:Math.round(b.carry*cm),hs:Math.round(b.hs*hm*10)/10}));
   })();
@@ -4074,7 +4100,7 @@ function homeView(){
   const benchHtml = benchmarks.map(b=>{
     const pct = Math.min(100,Math.round(b.carry/maxCarry*100));
     const myPct = myCarry?Math.min(100,Math.round(myCarry/maxCarry*100)):0;
-    return `<div class="bench-row">
+    return `<div class="bench-row" onclick="goClubStat('${homeBenchClub}')" style="cursor:pointer" title="${homeBenchClub} 통계 보기">
       <span class="bench-label">${b.label}</span>
       <div class="bench-bar-wrap">
         <div class="bench-bar-fill" style="width:${pct}%;background:${b.color};opacity:.5"></div>
@@ -4087,7 +4113,7 @@ function homeView(){
   const noDriverNote = !myCarry&&allShots.length>0
     ? `<div style="font-size:.73rem;color:var(--muted);margin-top:.5rem">💡 ${homeBenchClub} 기록이 없어 비교할 수 없습니다.</div>` : '';
 
-  const myCarryRow = myCarry ? `<div class="bench-row" style="background:rgba(200,137,58,.06);border-radius:2px;padding:.3rem .2rem">
+  const myCarryRow = myCarry ? `<div class="bench-row" onclick="goClubStat('${homeBenchClub}')" style="background:rgba(200,137,58,.06);border-radius:2px;padding:.3rem .2rem;cursor:pointer" title="${homeBenchClub} 통계 보기">
     <span class="bench-label" style="color:var(--wing2)">내 캐리</span>
     <div class="bench-bar-wrap">
       <div class="bench-bar-fill" style="width:${Math.min(100,Math.round(myCarry/maxCarry*100))}%;background:var(--wing2)"></div>
@@ -7833,7 +7859,7 @@ function pList(){
         .map(cd=>`<div class="chart-wrap" style="flex:1;min-width:220px"><div class="chart-title" style="font-size:.68rem">${cd.icon} ${cd.label}${cd.unit?' ('+cd.unit+')':''}</div><div style="position:relative;height:150px"><canvas id="chart-${cd.key}-${esc(club)}"></canvas></div></div>`)
         .join('');
       const hasAnyChart = canvases.length > 0;
-      return`<div style="margin-bottom:1.4rem">
+      return`<div id="club-stat-${esc(club)}" style="margin-bottom:1.4rem;scroll-margin-top:3.5rem">
         <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">
           <span class="club-badge" style="font-size:.72rem">${esc(club)}</span>
           ${d.c.length?`<span style="font-size:.73rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:600">${fn(avg(d.c),'m')}</span></span>`:''}
@@ -9447,12 +9473,18 @@ function initHomeDistChart(){
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}m`}}},
+      onClick:(evt,elements)=>{
+        if(!elements.length)return;
+        const cl=clubOrder[elements[0].index];
+        if(cl) window.goClubStat(cl);
+      },
       scales:{
         x:{ticks:{color:'rgba(240,237,230,.55)',font:{size:11}},grid:{display:false}},
         y:{min:0,ticks:{color:'rgba(240,237,230,.4)',font:{size:11},callback:v=>`${v}m`},grid:{color:'rgba(240,237,230,.06)'}}
       }
     }
   });
+  el.style.cursor='pointer';
 }
 function initCharts(){
   const sessions=[...D.sessions].reverse(); if(!sessions.length)return;
@@ -9708,6 +9740,11 @@ function initCharts(){
                 }
               }
             }
+          },
+          onClick:(evt,elements)=>{
+            if(!elements.length)return;
+            const cl=labels[elements[0].index];
+            if(cl) window.goClubStat(cl);
           },
           scales:{
             x:{ticks:{color:'rgba(240,237,230,.65)',font:{size:11},maxRotation:45},grid:{display:false}},
