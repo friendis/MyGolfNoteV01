@@ -7675,20 +7675,21 @@ function pList(){
       return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',event.currentTarget,event.currentTarget.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
         <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
         <div style="flex:1;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
-              <span style="font-size:.9rem">${icon}</span>
-              <div class="card-title">${s.date||''}</div>
-              ${s.isPublic?`<span style="font-size:.68rem;color:var(--turf)">● 공개</span>`:''}
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:3px">
+                <span style="font-size:.9rem">${icon}</span>
+                <div class="card-title">${s.date||''}</div>
+                ${s.isPublic?`<span style="font-size:.68rem;color:var(--turf)">● 공개</span>`:''}
+              </div>
+              ${s.courseName?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.courseName)} (${s.holes||18}홀)</div>`:''}
+              <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
+                ${s.score?`<span style="font-size:.76rem;color:var(--muted)">스코어 <span style="color:var(--wing2);font-weight:700">${s.score}타</span>${overStr?` <span style="font-size:.7rem;color:${over<0?'#3D9E74':over===0?'var(--chalk)':'var(--amber)'}">(${overStr})</span>`:''}</span>`:''}
+                ${best&&best.score?`<span style="font-size:.73rem;color:var(--muted)">베스트 <span style="color:#3D9E74;font-weight:600">${best.hole}번홀 ${best.score}타</span></span>`:''}
+              </div>
             </div>
-            ${s.courseName?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.courseName)} (${s.holes||18}홀)</div>`:''}
-            <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
-              ${s.score?`<span style="font-size:.76rem;color:var(--muted)">스코어 <span style="color:var(--wing2);font-weight:700">${s.score}타</span>${overStr?` <span style="font-size:.7rem;color:${over<0?'#3D9E74':over===0?'var(--chalk)':'var(--amber)'}">(${overStr})</span>`:''}</span>`:''}
-              ${best&&best.score?`<span style="font-size:.73rem;color:var(--muted)">베스트 <span style="color:#3D9E74;font-weight:600">${best.hole}번홀 ${best.score}타</span></span>`:''}
-            </div>
+            ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">` :''}
           </div>
-          ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">` :''}
         </div>
       </div>`;
     }).join('');
