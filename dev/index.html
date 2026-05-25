@@ -1284,7 +1284,7 @@ ${parts.join(' | ')}
 
 // ── 신체 정보 기반 개인화 벤치마크 계산 ─────────────────
 function personalizedBenchmarks(club){
-  const base=benchmarksByClub[club]||benchmarksByClub['드라이버'];
+  const base=CLUB_BENCH[club]||CLUB_BENCH['드라이버'];
   const p=D.profile;
   if(!p) return base;
   // 보정 계수 계산
@@ -7672,7 +7672,7 @@ function pList(){
       const overStr=over!=null?(over>0?`+${over}`:over===0?'E':`${over}`):'';
       const hd=s.holeScores?.holes||[];
       const best=hd.length?hd.filter(h=>h.score).reduce((b,h)=>!b||((h.score-h.par)<(b.score-b.par))?h:b,null):null;
-      return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+      return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',event.currentTarget,event.currentTarget.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
         <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
         <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -7845,7 +7845,7 @@ function pList(){
     const st=ss(s); const con=st.consistency; const nc=normalizeClub(s.club);
     const imgs=s.imageUrls?.length||0;
     const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
-    return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',this,this.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
+    return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',event.currentTarget,event.currentTarget.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
       <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
       <div style="flex:1;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
