@@ -1038,19 +1038,100 @@ let homeBenchClub = '드라이버'; // 홈화면 실력 비교 기준 클럽
 
 // ── 클럽별 실력대 기준 (캐리 m) ──────────────────────
 const CLUB_BENCH={
-  '드라이버':{carry:[{l:'프로',min:250,max:300,c:'rgba(228,168,85,.07)'},{l:'상급',min:210,max:250,c:'rgba(122,176,232,.06)'},{l:'중급',min:170,max:210,c:'rgba(167,139,250,.05)'},{l:'초급',min:120,max:170,c:'rgba(138,155,170,.04)'}],hs:[{l:'프로',min:48,max:60,c:'rgba(228,168,85,.07)'},{l:'상급',min:42,max:48,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:42,c:'rgba(167,139,250,.05)'},{l:'초급',min:28,max:36,c:'rgba(138,155,170,.04)'}]},
-  '3W':{carry:[{l:'프로',min:220,max:260,c:'rgba(228,168,85,.07)'},{l:'상급',min:185,max:220,c:'rgba(122,176,232,.06)'},{l:'중급',min:150,max:185,c:'rgba(167,139,250,.05)'},{l:'초급',min:110,max:150,c:'rgba(138,155,170,.04)'}]},
-  '5W':{carry:[{l:'프로',min:205,max:245,c:'rgba(228,168,85,.07)'},{l:'상급',min:172,max:205,c:'rgba(122,176,232,.06)'},{l:'중급',min:138,max:172,c:'rgba(167,139,250,.05)'},{l:'초급',min:100,max:138,c:'rgba(138,155,170,.04)'}]},
-  '유틸리티':{carry:[{l:'프로',min:195,max:230,c:'rgba(228,168,85,.07)'},{l:'상급',min:162,max:195,c:'rgba(122,176,232,.06)'},{l:'중급',min:128,max:162,c:'rgba(167,139,250,.05)'},{l:'초급',min:90,max:128,c:'rgba(138,155,170,.04)'}]},
-  '5I':{carry:[{l:'프로',min:175,max:200,c:'rgba(228,168,85,.07)'},{l:'상급',min:145,max:175,c:'rgba(122,176,232,.06)'},{l:'중급',min:112,max:145,c:'rgba(167,139,250,.05)'},{l:'초급',min:80,max:112,c:'rgba(138,155,170,.04)'}]},
-  '6I':{carry:[{l:'프로',min:162,max:188,c:'rgba(228,168,85,.07)'},{l:'상급',min:135,max:162,c:'rgba(122,176,232,.06)'},{l:'중급',min:103,max:135,c:'rgba(167,139,250,.05)'},{l:'초급',min:72,max:103,c:'rgba(138,155,170,.04)'}]},
-  '7I':{carry:[{l:'프로',min:148,max:175,c:'rgba(228,168,85,.07)'},{l:'상급',min:123,max:148,c:'rgba(122,176,232,.06)'},{l:'중급',min:93,max:123,c:'rgba(167,139,250,.05)'},{l:'초급',min:65,max:93,c:'rgba(138,155,170,.04)'}]},
-  '8I':{carry:[{l:'프로',min:135,max:160,c:'rgba(228,168,85,.07)'},{l:'상급',min:112,max:135,c:'rgba(122,176,232,.06)'},{l:'중급',min:85,max:112,c:'rgba(167,139,250,.05)'},{l:'초급',min:58,max:85,c:'rgba(138,155,170,.04)'}]},
-  '9I':{carry:[{l:'프로',min:122,max:148,c:'rgba(228,168,85,.07)'},{l:'상급',min:100,max:122,c:'rgba(122,176,232,.06)'},{l:'중급',min:75,max:100,c:'rgba(167,139,250,.05)'},{l:'초급',min:50,max:75,c:'rgba(138,155,170,.04)'}]},
-  'PW':{carry:[{l:'프로',min:110,max:138,c:'rgba(228,168,85,.07)'},{l:'상급',min:90,max:110,c:'rgba(122,176,232,.06)'},{l:'중급',min:68,max:90,c:'rgba(167,139,250,.05)'},{l:'초급',min:45,max:68,c:'rgba(138,155,170,.04)'}]},
-  'AW':{carry:[{l:'프로',min:95,max:120,c:'rgba(228,168,85,.07)'},{l:'상급',min:78,max:95,c:'rgba(122,176,232,.06)'},{l:'중급',min:58,max:78,c:'rgba(167,139,250,.05)'},{l:'초급',min:38,max:58,c:'rgba(138,155,170,.04)'}]},
-  'SW':{carry:[{l:'프로',min:80,max:105,c:'rgba(228,168,85,.07)'},{l:'상급',min:64,max:80,c:'rgba(122,176,232,.06)'},{l:'중급',min:48,max:64,c:'rgba(167,139,250,.05)'},{l:'초급',min:32,max:48,c:'rgba(138,155,170,.04)'}]},
-  'LW':{carry:[{l:'프로',min:65,max:88,c:'rgba(228,168,85,.07)'},{l:'상급',min:50,max:65,c:'rgba(122,176,232,.06)'},{l:'중급',min:36,max:50,c:'rgba(167,139,250,.05)'},{l:'초급',min:22,max:36,c:'rgba(138,155,170,.04)'}]},
+  // 캐리(m) 기준 — TrackMan 투어 데이터 + 한국 남성 아마추어 GDR 실측 기반
+  // HS(m/s): 1 m/s ≈ 2.24 mph | 드라이버 전용 제공
+  '드라이버':{
+    carry:[
+      {l:'프로',  min:245,max:275,c:'rgba(228,168,85,.07)'},   // PGA Tour avg 246-258m; max 275=301야드
+      {l:'상급',  min:210,max:245,c:'rgba(122,176,232,.06)'},   // Scratch~5HC; 100-105mph
+      {l:'중급',  min:175,max:210,c:'rgba(167,139,250,.05)'},   // 10-20HC; 88-95mph
+      {l:'초급',  min:135,max:175,c:'rgba(138,155,170,.04)'},   // 20HC+; 73-85mph (120→135 수정)
+    ],
+    hs:[
+      {l:'프로',  min:48,max:54,c:'rgba(228,168,85,.07)'},      // 107-121mph (max 60→54 수정)
+      {l:'상급',  min:42,max:48,c:'rgba(122,176,232,.06)'},      // 94-107mph
+      {l:'중급',  min:37,max:42,c:'rgba(167,139,250,.05)'},      // 83-94mph
+      {l:'초급',  min:30,max:37,c:'rgba(138,155,170,.04)'},      // 67-83mph (min 28→30 수정)
+    ],
+    bs:[
+      {l:'프로',  min:70,max:80,c:'rgba(228,168,85,.07)'},       // 157-179mph
+      {l:'상급',  min:61,max:70,c:'rgba(122,176,232,.06)'},       // 136-157mph
+      {l:'중급',  min:53,max:61,c:'rgba(167,139,250,.05)'},       // 119-136mph
+      {l:'초급',  min:43,max:53,c:'rgba(138,155,170,.04)'},       // 96-119mph
+    ],
+  },
+  '3W':{carry:[
+    {l:'프로',  min:225,max:255,c:'rgba(228,168,85,.07)'},
+    {l:'상급',  min:190,max:225,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:155,max:190,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:115,max:155,c:'rgba(138,155,170,.04)'},
+  ]},
+  '5W':{carry:[
+    {l:'프로',  min:208,max:240,c:'rgba(228,168,85,.07)'},
+    {l:'상급',  min:175,max:208,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:142,max:175,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:105,max:142,c:'rgba(138,155,170,.04)'},
+  ]},
+  '유틸리티':{carry:[
+    {l:'프로',  min:195,max:228,c:'rgba(228,168,85,.07)'},
+    {l:'상급',  min:163,max:195,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:130,max:163,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:92,max:130,c:'rgba(138,155,170,.04)'},
+  ]},
+  '5I':{carry:[
+    {l:'프로',  min:175,max:198,c:'rgba(228,168,85,.07)'},       // PGA avg ~178m(195야드)
+    {l:'상급',  min:148,max:175,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:115,max:148,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:82,max:115,c:'rgba(138,155,170,.04)'},
+  ]},
+  '6I':{carry:[
+    {l:'프로',  min:162,max:185,c:'rgba(228,168,85,.07)'},       // PGA avg ~167m(183야드)
+    {l:'상급',  min:135,max:162,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:105,max:135,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:75,max:105,c:'rgba(138,155,170,.04)'},
+  ]},
+  '7I':{carry:[
+    {l:'프로',  min:150,max:168,c:'rgba(228,168,85,.07)'},       // PGA avg 157m(172야드); max 175→168 수정
+    {l:'상급',  min:127,max:150,c:'rgba(122,176,232,.06)'},       // Scratch; 140-150야드
+    {l:'중급',  min:98,max:127,c:'rgba(167,139,250,.05)'},        // 10-20HC avg ~133m(145야드)
+    {l:'초급',  min:68,max:98,c:'rgba(138,155,170,.04)'},         // min 65→68 수정
+  ]},
+  '8I':{carry:[
+    {l:'프로',  min:138,max:158,c:'rgba(228,168,85,.07)'},        // PGA avg ~146m(160야드)
+    {l:'상급',  min:113,max:138,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:87,max:113,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:60,max:87,c:'rgba(138,155,170,.04)'},
+  ]},
+  '9I':{carry:[
+    {l:'프로',  min:125,max:148,c:'rgba(228,168,85,.07)'},        // PGA avg ~135m(148야드)
+    {l:'상급',  min:102,max:125,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:78,max:102,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:52,max:78,c:'rgba(138,155,170,.04)'},
+  ]},
+  'PW':{carry:[
+    {l:'프로',  min:115,max:138,c:'rgba(228,168,85,.07)'},        // PGA avg ~124m(136야드)
+    {l:'상급',  min:93,max:115,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:70,max:93,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:48,max:70,c:'rgba(138,155,170,.04)'},
+  ]},
+  'AW':{carry:[
+    {l:'프로',  min:98,max:122,c:'rgba(228,168,85,.07)'},
+    {l:'상급',  min:78,max:98,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:58,max:78,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:38,max:58,c:'rgba(138,155,170,.04)'},
+  ]},
+  'SW':{carry:[
+    {l:'프로',  min:82,max:105,c:'rgba(228,168,85,.07)'},
+    {l:'상급',  min:65,max:82,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:48,max:65,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:32,max:48,c:'rgba(138,155,170,.04)'},
+  ]},
+  'LW':{carry:[
+    {l:'프로',  min:65,max:88,c:'rgba(228,168,85,.07)'},
+    {l:'상급',  min:50,max:65,c:'rgba(122,176,232,.06)'},
+    {l:'중급',  min:36,max:50,c:'rgba(167,139,250,.05)'},
+    {l:'초급',  min:22,max:36,c:'rgba(138,155,170,.04)'},
+  ]},
 };
 const STATS_CON_ZONES=[{l:'매우높음',min:85,max:100,c:'rgba(61,158,116,.07)'},{l:'높음',min:70,max:85,c:'rgba(122,176,232,.06)'},{l:'보통',min:55,max:70,c:'rgba(200,137,58,.05)'},{l:'낮음',min:40,max:55,c:'rgba(228,168,85,.04)'}];
 const ECATS=['드라이버','우드','하이브리드','아이언','웨지','퍼터','골프공','골프백','카트/트롤리','의류','신발','글러브','액세서리','레인기어','기타'];
@@ -1306,9 +1387,14 @@ function personalizedBenchmarks(club){
     min:Math.round(z.min*hsMult*10)/10,
     max:Math.round(z.max*hsMult*10)/10
   }));
+  const scaleBs=arr=>arr.map(z=>({...z,
+    min:Math.round(z.min*carryMult*10)/10,
+    max:Math.round(z.max*carryMult*10)/10
+  }));
   return {
     carry: base.carry ? scale(base.carry) : undefined,
     hs: base.hs ? scaleHs(base.hs) : undefined,
+    bs: base.bs ? scaleBs(base.bs) : undefined,
   };
 }
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -3953,16 +4039,16 @@ function homeView(){
   // ── 실력 벤치마크 — 드라이버 / 7I 별도 기준
   const benchmarksByClub = {
     '드라이버': [
-      {label:'프로',  carry:270, hs:52, color:'#E4A855'},
-      {label:'상급',  carry:230, hs:44, color:'#7ab0e8'},
-      {label:'중급',  carry:190, hs:38, color:'#A78BFA'},
-      {label:'초급',  carry:150, hs:33, color:'var(--muted)'},
+      {label:'프로',  carry:252, hs:50, color:'#E4A855'},   // PGA avg 112mph=50m/s, 캐리 246-258m 중간
+      {label:'상급',  carry:226, hs:45, color:'#7ab0e8'},   // Scratch 100mph=44.7m/s
+      {label:'중급',  carry:192, hs:40, color:'#A78BFA'},   // 14HC 90mph=40.2m/s
+      {label:'초급',  carry:155, hs:33, color:'var(--muted)'},   // 24HC 74mph=33.1m/s
     ],
     '7I': [
-      {label:'프로',  carry:165, hs:42, color:'#E4A855'},
-      {label:'상급',  carry:140, hs:37, color:'#7ab0e8'},
-      {label:'중급',  carry:115, hs:32, color:'#A78BFA'},
-      {label:'초급',  carry:88,  hs:27, color:'var(--muted)'},
+      {label:'프로',  carry:157, hs:39, color:'#E4A855'},   // PGA avg 172야드=157m, HS 89mph=39.8m/s
+      {label:'상급',  carry:137, hs:35, color:'#7ab0e8'},   // Scratch ~150야드=137m, 78mph=34.9m/s
+      {label:'중급',  carry:112, hs:31, color:'#A78BFA'},   // 14HC ~124야드=113m, 70mph=31.3m/s
+      {label:'초급',  carry:84,  hs:26, color:'var(--muted)'},   // 24HC ~92야드=84m, 58mph=25.9m/s
     ],
   };
   // 개인화 벤치마크: 신체 정보 보정
@@ -9764,8 +9850,19 @@ function initCharts(){
       carry:{get:(s)=>{const st=ss(s);return st.avgCarry?Math.round(st.avgCarry):null;}, yOpts:{unit:'m'}, zones:bench?.carry||[], color:col.line},
       total:{get:(s)=>{const st=ss(s);return st.avgTotal?Math.round(st.avgTotal):null;}, yOpts:{unit:'m'}, zones:bench?.carry?.map(z=>({...z,min:z.min+10,max:z.max+10}))||[], color:'#E4A855'},
       hs:   {get:(s)=>{const st=ss(s);return st.avgHs?Math.round(st.avgHs*10)/10:null;}, yOpts:{unit:''}, zones:bench?.hs||[], color:'#3D9E74'},
-      bs:   {get:(s)=>{const st=ss(s);return st.avgBs?Math.round(st.avgBs*10)/10:null;}, yOpts:{unit:''}, zones:[], color:'#7AB0E8'},
-      sf:   {get:(s)=>{const st=ss(s);return st.avgSf?Math.round(st.avgSf*100)/100:null;}, yOpts:{unit:''}, zones:[{l:'이상적',min:1.44,max:1.5,c:'rgba(61,158,116,.5)'},{l:'보통',min:1.38,max:1.44,c:'rgba(200,137,58,.4)'}], color:'#A78BFA'},
+      bs:   {get:(s)=>{const st=ss(s);return st.avgBs?Math.round(st.avgBs*10)/10:null;}, yOpts:{unit:''}, zones:(()=>{
+        const nc3=normalizeClub(club);
+        const b=personalizedBenchmarks(nc3||'드라이버');
+        return b?.bs||[];
+      })(), color:'#7AB0E8'},
+      sf:   {get:(s)=>{const st=ss(s);return st.avgSf?Math.round(st.avgSf*100)/100:null;}, yOpts:{unit:''}, zones:(()=>{
+        const nc2=normalizeClub(club);
+        const isWood=['드라이버','3W','4W','5W','7W','9W'].includes(nc2);
+        const isWedge=['PW','AW','SW','LW'].includes(nc2);
+        if(isWood) return [{l:'이상적(1.44+)',min:1.44,max:1.50,c:'rgba(61,158,116,.5)'},{l:'양호(1.39+)',min:1.39,max:1.44,c:'rgba(200,137,58,.4)'}];
+        if(isWedge) return [{l:'이상적(1.22+)',min:1.22,max:1.28,c:'rgba(61,158,116,.5)'},{l:'양호(1.15+)',min:1.15,max:1.22,c:'rgba(200,137,58,.4)'}];
+        return [{l:'이상적(1.30+)',min:1.30,max:1.38,c:'rgba(61,158,116,.5)'},{l:'양호(1.24+)',min:1.24,max:1.30,c:'rgba(200,137,58,.4)'}];
+      })(), color:'#A78BFA'},
       con:  {get:(s)=>{return ss(s).consistency;}, yOpts:{min:0,max:100,unit:'점',callback:v=>`${v}점`}, zones:STATS_CON_ZONES, color:'#A78BFA'},
     };
 
