@@ -3004,9 +3004,7 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
     window._profChartData = Object.fromEntries(sortedClubs.map(club=>[club, cm[club]]));
 
     // ── 게임 스코어 추이용 데이터 ─────────────────────
-    // gameSessRaw는 이미 game_type screen/field 필터됨 + 날짜순 정렬됨
-    // sessions(GDR)에서도 혹시 있을 수 있는 game 세션 포함
-    const gameSessions = [...(sessions||[]),...(gameSessRaw||[])]
+    const gameSessions = sessions
       .filter(s=>(s.game_type==='screen'||s.game_type==='field')&&s.score>0)
       .sort((a,b)=>a.session_date>b.session_date?1:-1);
     const gameScores = gameSessions.map(s=>s.score);
