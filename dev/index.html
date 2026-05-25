@@ -2846,10 +2846,20 @@ async function renderPublicProfile(nickname){
       _setVisitingProfile(null);
     }
 
-    // 공개 세션
-    const{data:sessions}=await sb.from('practice_sessions')
-      .select('*').eq('user_id',prof.user_id).eq('is_public',true)
-      .order('session_date',{ascending:false}).limit(10);
+    // 공개 세션 (GDR + 게임 분리 쿼리, 충분한 데이터 확보)
+    const [{data:sessions},{data:gameSessRaw}] = await Promise.all([
+      sb.from('practice_sessions')
+        .select('*').eq('user_id',prof.user_id).eq('is_public',true)
+        .not('game_type','in','(screen,field)')
+        .order('session_date',{ascending:false}).limit(80),
+      sb.from('practice_sessions')
+        .select('id,session_date,score,holes,game_type,course_name,club,is_public')
+        .eq('user_id',prof.user_id)
+        .in('game_type',['screen','field'])
+        .gt('score',0).order('session_date',{ascending:true}).limit(40),
+    ]);
+    // 두 결과 합치기 (공개 프로필 페이지에 전달)
+    const allSessions = [...(sessions||[]), ...(gameSessRaw||[])];
 
     // 공개 학습노트
     const{data:notes}=await sb.from('videos')
@@ -2879,10 +2889,10 @@ async function renderPublicProfile(nickname){
       else if(bRecv?.status==='pending') buddyStatus='pending_recv';
     }
 
-    m.innerHTML=publicProfilePage(prof,sessions||[],notes||[],equip||[],followerCnt||0,isFollowing,buddyStatus);
+    m.innerHTML=publicProfilePage(prof,allSessions,notes||[],equip||[],followerCnt||0,isFollowing,buddyStatus);
     // 통계 차트 렌더링 (공개 프로필용) — DOM 완전 렌더 후 그리기
-    if(prof.is_public && sessions?.length){
-      setTimeout(()=>_drawProfPublicCharts(), 120);
+    if(prof.is_public && allSessions?.length){
+      setTimeout(()=>_drawProfPublicCharts(), 300);
     }
   }catch(e){
     m.innerHTML=`<div class="page"><div style="text-align:center;padding:3rem;color:var(--muted)">${esc(e.message)}</div></div>`;
@@ -2970,7 +2980,7 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
     const cm={};
     sessions.forEach(s=>{
       if(!s.club)return;
-      const nc=s.club; // 이미 정규화된 클럽명 사용
+      const nc=typeof normalizeClub==='function'?normalizeClub(s.club)||s.club:s.club;
       if(!cm[nc])cm[nc]={c:[],tot:[],h:[],b:[],sf:[],con:[]};
       const shots=s.shots||[];
       const carries=shots.map(sh=>sh.carry).filter(v=>v>0);
@@ -2994,8 +3004,10 @@ function publicProfilePage(prof,sessions,notes,equip,followerCnt,isFollowing,bud
     window._profChartData = Object.fromEntries(sortedClubs.map(club=>[club, cm[club]]));
 
     // ── 게임 스코어 추이용 데이터 ─────────────────────
-    const gameSessions = sessions
-      .filter(s=>(s.game_type==='screen'||s.game_type==='field')&&s.score>0&&(s.holes||18)===18)
+    // gameSessRaw는 이미 game_type screen/field 필터됨 + 날짜순 정렬됨
+    // sessions(GDR)에서도 혹시 있을 수 있는 game 세션 포함
+    const gameSessions = [...(sessions||[]),...(gameSessRaw||[])]
+      .filter(s=>(s.game_type==='screen'||s.game_type==='field')&&s.score>0)
       .sort((a,b)=>a.session_date>b.session_date?1:-1);
     const gameScores = gameSessions.map(s=>s.score);
     const bestScore = gameScores.length ? Math.min(...gameScores) : null;
@@ -3175,21 +3187,21 @@ window.switchProfTab=(id)=>{
 
 function _drawProfPublicCharts(){
   if(typeof Chart==='undefined') return;
-  const pd = window._profDistData;
+  const pd = window._profDistData || {};
 
   // ── 게임 스코어 추이 차트 ─────────────────────────────
   const gcEl = document.getElementById('pub-game-score-chart');
-  if(gcEl && pd?.gameSessions?.length>=2){
-    const gs = pd.gameSessions;
-    const avgSc = pd.avgScore;
-    const best = pd.bestScore;
+  const gs = pd.gameSessions || [];
+  if(gcEl && gs.length>=2){
+    const avgSc = pd.avgScore || Math.round(gs.reduce((a,s)=>a+s.score,0)/gs.length);
+    const best = pd.bestScore || Math.min(...gs.map(s=>s.score));
     try{
       new Chart(gcEl,{
         type:'line',
         data:{
-          labels: gs.map(s=>s.session_date?.slice(5)||''),
+          labels: gs.map(s=>(s.session_date||s.date||'').slice(5)),
           datasets:[{
-            data: gs.map(s=>s.score),
+            data: gs.map(s=>Number(s.score)),
             borderColor:'#C8893A', backgroundColor:'rgba(200,137,58,.08)',
             borderWidth:2, fill:true, tension:.3,
             pointBackgroundColor: gs.map(s=>s.score===best?'#FFD700':'#C8893A'),
