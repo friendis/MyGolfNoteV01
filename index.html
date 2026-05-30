@@ -10387,18 +10387,18 @@ function pDetail(){
         <input class="inp" type="date" id="se-date" value="${ea(s.date||'')}" onblur="saveSessionField('${s.id}','date',this.value)">
       </div>
       <div class="fg" style="flex:1;min-width:0">
-        <label class="fl-label">클럽</label>
-        <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)" style="width:100%;text-overflow:ellipsis">
-          <option value="">선택...</option>
-          ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(st=>`<option value="🎒 ${esc(st.name)}"${s.club===`🎒 ${st.name}`?' selected':''}>🎒 ${esc(st.name)}</option>`).join('')}</optgroup>`:''}
-          ${ownedClubOptions(s.club||'')}
-          <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${c}"${s.club===c?' selected':''}>${c}</option>`).join('')}</optgroup>
-        </select>
+        <label class="fl-label">장소</label>
+        <input class="inp" id="se-loc" value="${ea(s.loc||'')}" placeholder="연습장 · 장소" onblur="saveSessionField('${s.id}','location',this.value)">
       </div>
     </div>
     <div class="fg">
-      <label class="fl-label">장소</label>
-      <input class="inp" id="se-loc" value="${ea(s.loc||'')}" placeholder="연습장 · 장소" onblur="saveSessionField('${s.id}','location',this.value)">
+      <label class="fl-label">클럽</label>
+      <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)" style="width:100%;text-overflow:ellipsis">
+        <option value="">선택...</option>
+        ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(st=>`<option value="🎒 ${esc(st.name)}"${s.club===`🎒 ${st.name}`?' selected':''}>🎒 ${esc(st.name)}</option>`).join('')}</optgroup>`:''}
+        ${ownedClubOptions(s.club||'')}
+        <optgroup label="전체 클럽">${CLUBS.map(c=>`<option value="${c}"${s.club===c?' selected':''}>${c}</option>`).join('')}</optgroup>
+      </select>
     </div>
     <div class="fg" style="margin-bottom:0">
       <label class="fl-label">메모</label>
