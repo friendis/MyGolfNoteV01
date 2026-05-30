@@ -10375,13 +10375,13 @@ function pDetail(){
       <!-- 2행: 필터 / 목록 / 통계 -->
       <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%">
         <button onclick="window._navSameClub=!window._navSameClub;window._rerender()"
-          style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:${sameClubMode&&nc?'rgba(200,137,58,.12)':'rgba(240,237,230,.04)'};border:1px solid ${sameClubMode&&nc?'rgba(200,137,58,.3)':'rgba(240,237,230,.1)'};color:${sameClubMode&&nc?'var(--wing2)':'var(--muted)'};font-size:.68rem;padding:.28rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s">
+          style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:${sameClubMode&&nc?'rgba(200,137,58,.12)':'rgba(240,237,230,.04)'};border:1px solid ${sameClubMode&&nc?'rgba(200,137,58,.3)':'rgba(240,237,230,.1)'};color:${sameClubMode&&nc?'var(--wing2)':'var(--muted)'};font-size:.68rem;padding:.5rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all .15s">
           ${sameClubMode&&nc?`<span class="club-badge" style="font-size:.64rem;padding:1px 5px">${esc(nc)}</span>만 보기`:'전체 보기'}
         </button>
         <button onclick="goList()"
-          style="flex:1;background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);font-size:.68rem;padding:.28rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans)">목록</button>
+          style="flex:1;background:none;border:1px solid rgba(240,237,230,.1);color:var(--muted);font-size:.68rem;padding:.5rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans)">목록</button>
         <button onclick="gotoStats()"
-          style="flex:1;background:none;border:1px solid rgba(167,139,250,.2);color:#A78BFA;font-size:.68rem;padding:.28rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans)">통계</button>
+          style="flex:1;background:none;border:1px solid rgba(167,139,250,.2);color:#A78BFA;font-size:.68rem;padding:.5rem .4rem;border-radius:2px;cursor:pointer;font-family:var(--sans)">통계</button>
       </div>
     </div>
   </div>
