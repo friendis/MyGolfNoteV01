@@ -822,6 +822,32 @@ async function getLocationHistory(){
   return [...new Set([...fromMemory,...fromSessions])].sort();
 }
 
+// ── 비행 통계 장비 필터 설정 (Supabase user_settings 저장) ──────────
+window._statPrefsLoaded = false;
+async function loadStatPrefs(){
+  if(window._statPrefsLoaded) return;
+  try{
+    const uid=(await sb.auth.getUser()).data.user?.id;
+    if(!uid) return;
+    const{data}=await sb.from('user_settings').select('value').eq('user_id',uid).eq('key','stat_prefs').maybeSingle();
+    if(data?.value){
+      const p=typeof data.value==='string'?JSON.parse(data.value):data.value;
+      if(p.distFilter) window._distFilter=p.distFilter;
+      if(p.distSetIdx!=null) window._distSetIdx=p.distSetIdx;
+      if(p.distMode) window._distMode=p.distMode;
+    }
+  }catch(e){}
+  window._statPrefsLoaded=true;
+}
+async function saveStatPrefs(){
+  const prefs={distFilter:window._distFilter||'all',distSetIdx:window._distSetIdx??-1,distMode:window._distMode||'carry'};
+  try{
+    const uid=(await sb.auth.getUser()).data.user?.id;
+    if(!uid) return;
+    await sb.from('user_settings').upsert({user_id:uid,key:'stat_prefs',value:prefs},{onConflict:'user_id,key'});
+  }catch(e){}
+}
+
 const SB_URL='https://wmxccuceisvvocumgbfd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndteGNjdWNlaXN2dm9jdW1nYmZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0Mjc5NzEsImV4cCI6MjA4OTAwMzk3MX0.aD6DAEFs5UzyfNFWaA9Vo4CfAMwwla65R4lf1KPZ9WE';
 // ── AI 모델 설정 ── 문제 발생 시 'gemini-2.5-flash' 로 변경 ──
@@ -1816,6 +1842,7 @@ async function loadAll(){
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:(r.club||'').replace(/^AW\/GW$/,'AW').replace(/^GW$/,'AW'),memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.sets=(csR.data||[]).map(r=>({id:r.id,name:r.name,clubs:r.clubs||[],memo:r.memo||'',createdAt:r.created_at}));
     D.profile=pR.data||null;
+    loadStatPrefs();
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
     if(D.profile && !D.profile.ai_cache){
       try{
@@ -7929,7 +7956,27 @@ function pList(){
       if(st.consistency!=null)cm[nc].con.push(st.consistency);
     });
     const clubOrder=CLUBS.map(c=>c);
-    const sortedClubs=Object.keys(cm).sort((a,b)=>{const ia=clubOrder.indexOf(a),ib=clubOrder.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
+    const allSortedClubs=Object.keys(cm).sort((a,b)=>{const ia=clubOrder.indexOf(a),ib=clubOrder.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
+
+    const distFilter=window._distFilter||'all';
+    const filteredAllowed=new Set();
+    if(distFilter!=='all'){
+      const setIdx=distFilter.startsWith('set_')?parseInt(distFilter.slice(4)):-1;
+      const targetSet=setIdx>=0?D.sets[setIdx]:null;
+      if(targetSet&&targetSet.clubs?.length){
+        targetSet.clubs.forEach(cl=>filteredAllowed.add(normalizeClub(cl)||cl));
+      } else {
+        D.equip.filter(e=>e.status==='owned').forEach(e=>{
+          (e.ironSet||[]).forEach(n=>filteredAllowed.add(n));
+          (e.tags?.wedge_set||[]).forEach(n=>filteredAllowed.add(n));
+          (e.tags?.wood_set||[]).forEach(n=>filteredAllowed.add(n));
+          (e.tags?.util_set||[]).forEach(n=>filteredAllowed.add(n));
+          if(e.cat==='드라이버') filteredAllowed.add('드라이버');
+          if(e.cat==='퍼터') filteredAllowed.add('퍼터');
+        });
+      }
+    }
+    const sortedClubs=distFilter==='all'?allSortedClubs:allSortedClubs.filter(c=>filteredAllowed.has(c));
     const clubSections=sortedClubs.map(club=>{
       const d=cm[club];const con=avg(d.con);
       const chartDatas={carry:d.c,total:d.tot,hs:d.h,bs:d.b,sf:d.sf,con:d.con};
@@ -7966,7 +8013,7 @@ function pList(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase">📊 클럽별 비거리</div>
         <div style="display:flex;gap:.3rem;flex-wrap:wrap">
-          <button id="dist-filter-all" onclick="setDistFilter('all');window._distSetIdx=-1"
+          <button id="dist-filter-all" onclick="window._distSetIdx=-1;setDistFilter('all')"
             style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')==='all'?'rgba(200,137,58,.4)':'rgba(240,237,230,.08)'};background:${(window._distFilter||'all')==='all'?'rgba(200,137,58,.12)':'none'};color:${(window._distFilter||'all')==='all'?'var(--wing2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)">전체</button>
           <button id="dist-filter-owned" onclick="cycleSetFilter()" title="클릭할 때마다 저장된 세트 순환"
             style="font-size:.7rem;padding:2px 8px;border-radius:2px;border:1px solid ${(window._distFilter||'all')!=='all'?'rgba(74,143,168,.4)':'rgba(240,237,230,.08)'};background:${(window._distFilter||'all')!=='all'?'rgba(74,143,168,.1)':'none'};color:${(window._distFilter||'all')!=='all'?'var(--sky2)':'rgba(240,237,230,.35)'};cursor:pointer;font-family:var(--sans)">${(()=>{const idx=window._distSetIdx??-1;return idx>=0&&D.sets[idx]?'🎒 '+D.sets[idx].name:'보유 세트';})()} ↻</button>
@@ -8003,6 +8050,7 @@ function pList(){
       </div>
       ${selCount>=3?`<div style="font-size:.72rem;color:var(--amber);margin-top:.3rem">최대 3개까지 선택 가능</div>`:''}
     </div>
+    ${distFilter!=='all'?`<div style="font-size:.72rem;color:var(--sky2);margin-bottom:.5rem">🎒 ${(()=>{const idx=distFilter.startsWith('set_')?parseInt(distFilter.slice(4)):-1;return idx>=0&&D.sets[idx]?D.sets[idx].name:'보유 장비';})()}에 포함된 클럽만 표시 (${sortedClubs.length}개)</div>`:''}
     ${clubSections||`<div class="empty">클럽 기록이 없습니다.</div>`}
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -9490,29 +9538,23 @@ function clubColor(club) {
 
 window.setDistFilter = (filter) => {
   window._distFilter = filter;
-  if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
-  requestAnimationFrame(initCharts);
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  const m=$('main');m.innerHTML=pList();
+  requestAnimationFrame(()=>requestAnimationFrame(initCharts));
+  saveStatPrefs();
 };
 
 window.cycleSetFilter = () => {
   const sets = D.sets || [];
   if(!sets.length){ window.setDistFilter('all'); return; }
   const cur = window._distSetIdx ?? -1;
-  // 순서: -1=전체 → 0 → 1 → ... → sets.length-1 → -1(전체)
   const next = cur >= sets.length - 1 ? -1 : cur + 1;
   window._distSetIdx = next;
   window._distFilter = next === -1 ? 'all' : `set_${next}`;
-  // 버튼 텍스트 업데이트
-  const btn = document.getElementById('dist-filter-owned');
-  if(btn){
-    btn.textContent = next === -1 ? '보유 세트' : `🎒 ${sets[next].name}`;
-    const active = next !== -1;
-    btn.style.border = active ? '1px solid rgba(74,143,168,.4)' : '1px solid rgba(240,237,230,.08)';
-    btn.style.background = active ? 'rgba(74,143,168,.1)' : 'none';
-    btn.style.color = active ? 'var(--sky2)' : 'rgba(240,237,230,.35)';
-  }
-  if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
-  requestAnimationFrame(initCharts);
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={};
+  const m=$('main');m.innerHTML=pList();
+  requestAnimationFrame(()=>requestAnimationFrame(initCharts));
+  saveStatPrefs();
 };
 
 window.setDistMode = (mode) => {
@@ -9528,6 +9570,7 @@ window.setDistMode = (mode) => {
   });
   if(charts['club-dist-chart']){try{charts['club-dist-chart'].destroy()}catch(e){} delete charts['club-dist-chart'];}
   requestAnimationFrame(initCharts);
+  saveStatPrefs();
 };
 
 
