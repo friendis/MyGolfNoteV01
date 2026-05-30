@@ -1384,7 +1384,7 @@ function bodyProfileContext(){
   if(p.weight_kg) parts.push(`몸무게: ${p.weight_kg}kg`);
   if(p.body_build) parts.push(`체형: ${bMap[p.body_build]||p.body_build}`);
   if(!parts.length) return '';
-  return `[골퍼 신체 정보]
+  return `[골퍼 신체 정보 — 내부 참고용, 분석 결과에서 키·몸무게·성별·체형 등 신체 정보를 직접 언급하지 마세요]
 ${parts.join(' | ')}
 `;
 }
