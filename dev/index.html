@@ -832,9 +832,16 @@ async function loadStatPrefs(){
     const{data}=await sb.from('user_settings').select('value').eq('user_id',uid).eq('key','stat_prefs').maybeSingle();
     if(data?.value){
       const p=typeof data.value==='string'?JSON.parse(data.value):data.value;
-      if(p.distFilter) window._distFilter=p.distFilter;
-      if(p.distSetIdx!=null) window._distSetIdx=p.distSetIdx;
       if(p.distMode) window._distMode=p.distMode;
+      if(p.distSetIdx!=null) window._distSetIdx=p.distSetIdx;
+      if(p.distFilter) {
+        const setIdx=p.distFilter.startsWith('set_')?parseInt(p.distFilter.slice(4)):-1;
+        if(setIdx>=0 && (!D.sets || !D.sets[setIdx])){
+          window._distFilter='all'; window._distSetIdx=-1;
+        } else {
+          window._distFilter=p.distFilter;
+        }
+      }
     }
   }catch(e){}
   window._statPrefsLoaded=true;
@@ -1842,7 +1849,7 @@ async function loadAll(){
     D.sessions=sR.data.map(r=>({id:r.id,date:r.session_date,loc:r.location||'',club:(r.club||'').replace(/^AW\/GW$/,'AW').replace(/^GW$/,'AW'),memo:r.memo||'',imgUrl:r.image_url||'',imageUrls:r.image_urls||[],shots:r.shots||[],aiAnalysis:r.ai_analysis||'',gameType:r.game_type||'gdr',score:r.score||null,courseName:r.course_name||'',holes:r.holes||18,isPublic:r.is_public||false,holeScores:r.hole_scores||null}));
     D.sets=(csR.data||[]).map(r=>({id:r.id,name:r.name,clubs:r.clubs||[],memo:r.memo||'',createdAt:r.created_at}));
     D.profile=pR.data||null;
-    loadStatPrefs();
+    await loadStatPrefs();
     // localStorage AI 캐시를 DB로 마이그레이션 (최초 1회)
     if(D.profile && !D.profile.ai_cache){
       try{
