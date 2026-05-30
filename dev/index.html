@@ -11947,16 +11947,21 @@ window.handleGamePhoto = async function(input) {
       } else if(!knownPlace) {
         const addr = await gpsToAddress(lat, lon);
         if(addr && pl && !pl.value) pl.value = addr;
-        if(pl) {
-          pl.dataset.gpsKey = gpsKey;
-          pl.dataset.isNewPlace = '1';
-          pl.style.borderColor = 'rgba(167,139,250,.5)';
-          if(!$('pl-new-hint')){
+        const plT2=$('pl-top');
+        if(addr && plT2 && !plT2.value) plT2.value = addr;
+        const targetEl2 = plT2 || pl;
+        if(targetEl2) {
+          targetEl2.dataset.gpsKey = gpsKey;
+          targetEl2.dataset.isNewPlace = '1';
+          if(pl) { pl.dataset.gpsKey = gpsKey; pl.dataset.isNewPlace = '1'; }
+          targetEl2.style.borderColor = 'rgba(167,139,250,.5)';
+          targetEl2.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
+          if(!$('pl-new-hint') && targetEl2.parentNode){
             const hint=document.createElement('div');
             hint.id='pl-new-hint';
             hint.style.cssText='font-size:.72rem;color:#A78BFA;margin-top:3px';
             hint.textContent='✨ 처음 방문한 장소입니다. 장소 이름을 확인하거나 직접 입력해주세요.';
-            pl.parentNode.insertBefore(hint, pl.nextSibling);
+            targetEl2.parentNode.insertBefore(hint, targetEl2.nextSibling);
           }
         }
       }
@@ -12143,24 +12148,29 @@ async function analyzeOne(idx) {
     const knownPlace = gpsMemory[gpsKey];
     const pl = $('pl');
 
+    const plT = $('pl-top');
     if(knownPlace && pl && !pl.value) {
       pl.value = knownPlace;
+      if(plT && !plT.value) plT.value = knownPlace;
       toast(`📍 ${knownPlace}`);
     } else if(!knownPlace) {
       const addr = await gpsToAddress(lat, lon);
       if(addr && pl && !pl.value) pl.value = addr;
-      if(pl) {
-        pl.dataset.gpsKey = gpsKey;
-        pl.dataset.isNewPlace = '1';
+      if(addr && plT && !plT.value) plT.value = addr;
+      const targetEl = plT || pl;
+      if(targetEl) {
+        targetEl.dataset.gpsKey = gpsKey;
+        targetEl.dataset.isNewPlace = '1';
+        if(pl) { pl.dataset.gpsKey = gpsKey; pl.dataset.isNewPlace = '1'; }
         setTimeout(()=>{
-          pl.style.borderColor = 'rgba(167,139,250,.5)';
-          pl.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
-          if(!$('pl-new-hint')){
+          targetEl.style.borderColor = 'rgba(167,139,250,.5)';
+          targetEl.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
+          if(!$('pl-new-hint') && targetEl.parentNode){
             const hint = document.createElement('div');
             hint.id = 'pl-new-hint';
             hint.style.cssText = 'font-size:.72rem;color:#A78BFA;margin-top:3px';
             hint.textContent = '✨ 처음 방문한 장소입니다. 장소 이름을 확인하거나 직접 입력해주세요.';
-            pl.parentNode.insertBefore(hint, pl.nextSibling);
+            targetEl.parentNode.insertBefore(hint, targetEl.nextSibling);
           }
         }, 300);
       }
@@ -12639,8 +12649,10 @@ window.saveSession = async () => {
 
   // GPS ↔ 장소 매핑 저장
   const pl = $('pl');
-  if(pl?.dataset.gpsKey && loc) {
-    await saveGpsMemory(pl.dataset.gpsKey, loc);
+  const plTopEl = $('pl-top');
+  const gpsKey = pl?.dataset.gpsKey || plTopEl?.dataset.gpsKey;
+  if(gpsKey && loc) {
+    await saveGpsMemory(gpsKey, loc);
   }
 
   // 이미지 전부 업로드 (분석 완료 여부와 무관)
