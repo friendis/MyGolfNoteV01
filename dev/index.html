@@ -7862,7 +7862,7 @@ const ss=s=>{
 const consistencyLabel=c=>c==null?'—':c>=85?'매우 높음':c>=70?'높음':c>=55?'보통':c>=40?'낮음':'불안정';
 const consistencyColor=c=>c==null?'var(--muted)':c>=85?'var(--turf)':c>=70?'#7ab0e8':c>=55?'var(--wing2)':c>=40?'var(--amber)':'var(--red)';
 function pList(){
-  const gdrSessions = D.sessions.filter(s=>!s.gameType||s.gameType==='gdr');
+  const gdrSessions = D.sessions.filter(s=>!s.gameType||s.gameType==='gdr'||s.gameType==='memo');
   const gameSessions = D.sessions.filter(s=>s.gameType==='screen'||s.gameType==='field');
   const totalShots=gdrSessions.reduce((a,s)=>a+(s.shots?.length||0),0);
   const clubs=[...new Set(gdrSessions.map(s=>s.club).filter(Boolean))];
@@ -8091,24 +8091,30 @@ function pList(){
     const st=ss(s); const con=st.consistency; const nc=normalizeClub(s.club);
     const imgs=s.imageUrls?.length||0;
     const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
+    const isMemoType = s.gameType==='memo';
     return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',event.currentTarget,event.currentTarget.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
       <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
       <div style="flex:1;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px">
+            ${isMemoType?'<span style="font-size:.72rem">📝</span>':''}
             <div class="card-title">${s.date||''}</div>
             ${s.club?`<span class="club-badge" title="${esc(s.club)}" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom">${esc(nc||s.club)}</span>`:''}
             ${needsReanalyze?`<span style="font-size:.65rem;background:rgba(200,137,58,.15);color:var(--wing2);border:1px solid rgba(200,137,58,.3);border-radius:2px;padding:1px 5px;white-space:nowrap">📡 재분석 필요</span>`:''}
           </div>
           ${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}
+          ${isMemoType?`<div style="font-size:.76rem;color:var(--dim);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc((s.memo||'').split('\n')[0].slice(0,60))}</div>
           <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
+            ${imgs?`<span style="font-size:.76rem;color:var(--muted)">사진 <span style="color:var(--wing2);font-weight:700">${imgs}장</span></span>`:''}
+          </div>`
+          :`<div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
             <span style="font-size:.76rem;color:var(--muted)">샷 <span style="color:var(--wing2);font-weight:700">${s.shots?.length||0}개</span>${needsReanalyze?`<span style="font-size:.68rem;color:var(--muted)">/${imgs}</span>`:''}</span>
             ${st.avgCarry?`<span style="font-size:.76rem;color:var(--muted)">캐리 <span style="color:var(--wing2);font-weight:700">${fn(st.avgCarry,'m')}</span></span>`:''}
             ${st.bestCarry?`<span style="font-size:.76rem;color:var(--muted)">베스트 <span style="color:var(--wing2);font-weight:700">${fn(st.bestCarry,'m')}</span></span>`:''}
             ${st.avgHs?`<span style="font-size:.76rem;color:var(--muted)">HS <span style="color:var(--turf);font-weight:700">${fn(st.avgHs)}</span></span>`:''}
             ${con!=null?`<span style="font-size:.7rem;color:${consistencyColor(con)};font-weight:600">🎯 ${con}점</span>`:''}
-          </div>
+          </div>`}
         </div>
         ${s.imgUrl?`<img src="${ea(s.imgUrl)}" style="width:58px;height:42px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-left:.65rem;flex-shrink:0" alt="">`:''}
       </div>
