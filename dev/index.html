@@ -8092,19 +8092,21 @@ function pList(){
     const imgs=s.imageUrls?.length||0;
     const needsReanalyze = imgs>0 && (s.shots?.length||0) < imgs;
     const isMemoType = s.gameType==='memo';
+    const memoClubNames = isMemoType ? [...new Set((s.memo||'').match(/\[([^\]]+)\]/g)?.map(m=>m.slice(1,-1))||[])].filter(c=>c!=='클럽') : [];
     return`<div class="card" data-session-id="${s.id}" onclick="window._compareMode?toggleCompareSelect('${s.id}',event.currentTarget,event.currentTarget.querySelector('.compare-sel-btn')):goDetail('${s.id}')" style="display:flex;align-items:stretch;gap:.5rem">
       <button class="compare-sel-btn" style="display:none" onclick="event.stopPropagation();toggleCompareSelect('${s.id}',this.closest('[data-session-id]'),this)">○</button>
       <div style="flex:1;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px">
+          <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:3px;flex-wrap:wrap">
             ${isMemoType?'<span style="font-size:.72rem">📝</span>':''}
             <div class="card-title">${s.date||''}</div>
-            ${s.club?`<span class="club-badge" title="${esc(s.club)}" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom">${esc(nc||s.club)}</span>`:''}
+            ${isMemoType&&memoClubNames.length?memoClubNames.map(c=>`<span class="club-badge" style="font-size:.68rem;padding:1px 6px">${esc(normalizeClub(c)||c)}</span>`).join('')
+              :s.club?`<span class="club-badge" title="${esc(s.club)}" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom">${esc(nc||s.club)}</span>`:''}
             ${needsReanalyze?`<span style="font-size:.65rem;background:rgba(200,137,58,.15);color:var(--wing2);border:1px solid rgba(200,137,58,.3);border-radius:2px;padding:1px 5px;white-space:nowrap">📡 재분석 필요</span>`:''}
           </div>
           ${s.loc?`<div style="font-size:.76rem;color:var(--muted);margin-bottom:3px">📍 ${esc(s.loc)}</div>`:''}
-          ${isMemoType?`<div style="font-size:.76rem;color:var(--dim);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc((s.memo||'').split('\n')[0].slice(0,60))}</div>
+          ${isMemoType?`<div style="font-size:.76rem;color:var(--dim);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc((s.memo||'').replace(/\[[^\]]*\]\s*/g,'').split('\n').filter(l=>l.trim())[0]?.slice(0,60)||'')}</div>
           <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center">
             ${imgs?`<span style="font-size:.76rem;color:var(--muted)">사진 <span style="color:var(--wing2);font-weight:700">${imgs}장</span></span>`:''}
           </div>`
@@ -12625,21 +12627,22 @@ window.saveSession = async () => {
   if(overLimit('sessions')){ toast(limitMsg('sessions')); return; }
   const recType=(document.querySelector('input[name="rec-type"]:checked')||{}).value||'gdr';
   const isMemo = recType==='memo';
-  // memo 타입: 첫 번째 클럽을 대표 클럽으로, 클럽별 메모를 pm에 병합
+  let memoClubEntries = [];
   if(isMemo){
-    // pc-memo(첫 번째 클럽 메모)도 _memoClubs에 병합
     const pcMemoVal=$('pc-memo')?.value?.trim()||'';
     const pcClubVal=$('pc')?.value?.trim()||'';
     if(pcMemoVal||pcClubVal){const existing=(_memoClubs||[]).find(m=>m&&m.club===pcClubVal);if(!existing)_memoClubs.unshift({club:pcClubVal,memo:pcMemoVal});else if(!existing.memo)existing.memo=pcMemoVal;}
-    const clubMemos = (_memoClubs||[]).filter(Boolean).filter(m=>m.club||m.memo);
-    if(clubMemos.length){
-      const merged = clubMemos.map(m=>'[' + (m.club||'클럽') + '] ' + m.memo).join('\n');
-      const pmEl=$('pm');if(pmEl&&!pmEl.value.trim())pmEl.value=merged;
-      if(!$('pc').value && clubMemos[0].club) $('pc').value=clubMemos[0].club;
+    memoClubEntries = (_memoClubs||[]).filter(Boolean).filter(m=>m.club||m.memo);
+    if(memoClubEntries.length){
+      const merged = memoClubEntries.map(m=>'[' + (m.club||'클럽') + '] ' + m.memo).join('\n');
+      const pmEl=$('pm');
+      const existingMemo = pmEl?.value?.trim()||'';
+      if(pmEl) pmEl.value = existingMemo ? existingMemo + '\n\n' + merged : merged;
+      const allClubNames = memoClubEntries.map(m=>normalizeClub(m.club)||m.club).filter(Boolean);
+      if(!$('pc').value && memoClubEntries[0].club) $('pc').value=memoClubEntries[0].club;
     }
   }
   const club = recType==='gdr'||isMemo?($('pc')?.value||''):'';
-  // pl-top(상단 장소 입력) 값을 hidden pl에 동기화
   const plTop=$('pl-top');const plHid=$('pl');if(plTop&&plHid&&plTop.value)plHid.value=plTop.value;
   const loc = ($('pl-top')?.value||$('pl')?.value||'').trim(), memo = $('pm').value.trim();
   const score = recType!=='gdr'?($('p-score')?.value?parseInt($('p-score').value):null):null;
