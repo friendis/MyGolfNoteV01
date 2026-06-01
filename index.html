@@ -7921,10 +7921,25 @@ function pList(){
     const avg18=gameSessions.filter(s=>s.score>0&&(s.holes||18)===18).map(s=>s.score);
     const best=scores.length?Math.min(...scores):null;
     const avgScore=avg18.length?Math.round(avg18.reduce((a,b)=>a+b,0)/avg18.length):null;
+    // 목록탭용 핸디캡 계산
+    const hdcpRounds=gameSessions.filter(s=>s.score>0&&(s.holes||18)===18).sort((a,b)=>a.date>b.date?1:-1);
+    const listHdcp=(()=>{
+      if(hdcpRounds.length<3) return null;
+      const recent=hdcpRounds.slice(-20);
+      const diffs=recent.map(s=>{
+        let cp=72;
+        if(s.holeScores?.holes?.length) cp=s.holeScores.holes.reduce((sum,h)=>sum+(h.par||4),0);
+        return s.score-cp;
+      });
+      const n=diffs.length;
+      const uc=n<=4?1:n<=6?2:n<=8?3:n<=10?4:n<=12?5:n<=14?6:n<=16?7:n<=18?8:n<=20?8:10;
+      const sorted=[...diffs].sort((a,b)=>a-b);
+      return Math.round(sorted.slice(0,uc).reduce((a,b)=>a+b,0)/uc*0.96*10)/10;
+    })();
     const summaryRow=scores.length?`<div style="display:flex;gap:.4rem;margin-bottom:.75rem">
       ${best!=null?`<div style="flex:1;text-align:center;background:rgba(61,158,116,.08);border:1px solid rgba(61,158,116,.2);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:#3D9E74">${best}타</div><div style="font-size:.70rem;color:var(--muted)">베스트</div></div>`:''}
       ${avgScore!=null?`<div style="flex:1;text-align:center;background:rgba(200,137,58,.08);border:1px solid rgba(200,137,58,.2);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:var(--wing2)">${avgScore}타</div><div style="font-size:.70rem;color:var(--muted)">평균(18홀)</div></div>`:''}
-      <div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border:1px solid var(--border);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:var(--chalk)">${gameSessions.length}</div><div style="font-size:.70rem;color:var(--muted)">총 게임</div></div>
+      ${listHdcp!=null?`<div style="flex:1;text-align:center;background:rgba(84,184,232,.06);border:1px solid rgba(84,184,232,.2);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:#54B8E8">${listHdcp>0?'+':''}${listHdcp}</div><div style="font-size:.70rem;color:var(--muted)">핸디캡</div></div>`:`<div style="flex:1;text-align:center;background:rgba(240,237,230,.04);border:1px solid var(--border);border-radius:3px;padding:.4rem"><div style="font-size:1rem;font-weight:700;color:var(--chalk)">${gameSessions.length}</div><div style="font-size:.70rem;color:var(--muted)">총 게임</div></div>`}
     </div>`:'';
     return`<div class="page">${srow}${ptabs}${summaryRow}${gameCards}</div>`;
   }
@@ -7938,6 +7953,33 @@ function pList(){
   if(pSub==='stats'){
     const gameScores=gameSessions.filter(s=>s.score>0&&(s.holes||18)===18)
       .sort((a,b)=>a.date>b.date?1:-1);
+
+    // 핸디캡 계산 (WHS 간소화 방식)
+    function calcHandicapIndex(rounds){
+      if(!rounds.length) return null;
+      const diffs=rounds.map(s=>{
+        let coursePar=72;
+        if(s.holeScores?.holes?.length){
+          coursePar=s.holeScores.holes.reduce((sum,h)=>sum+(h.par||4),0);
+        }
+        return s.score-coursePar;
+      });
+      const n=diffs.length;
+      const useCount=n<=4?1:n<=6?2:n<=8?3:n<=10?4:n<=12?5:n<=14?6:n<=16?7:n<=18?8:n<=20?8:10;
+      const sorted=[...diffs].sort((a,b)=>a-b);
+      const bestDiffs=sorted.slice(0,useCount);
+      const avg=bestDiffs.reduce((a,b)=>a+b,0)/bestDiffs.length;
+      return Math.round(avg*0.96*10)/10;
+    }
+    function calcRunningHandicap(rounds){
+      return rounds.map((_,i)=>{
+        const window=rounds.slice(0,i+1).slice(-20);
+        return calcHandicapIndex(window);
+      });
+    }
+    const currentHdcp=gameScores.length>=3?calcHandicapIndex(gameScores.slice(-20)):null;
+    const runningHdcp=gameScores.length>=3?calcRunningHandicap(gameScores):null;
+
     const gameChartSection=gameScores.length>=2?`
       <div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:1.1rem">
         <div style="font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem">⛳ 게임 스코어 추이 (18홀)</div>
@@ -7946,6 +7988,7 @@ function pList(){
             <span style="font-size:.75rem;color:var(--muted)">베스트 <strong style="color:#3D9E74">${best}타</strong></span>
             <span style="font-size:.75rem;color:var(--muted)">평균 <strong style="color:var(--wing2)">${avgSc}타</strong></span>
             <span style="font-size:.75rem;color:var(--muted)">최근 <strong style="color:var(--chalk)">${gameScores[gameScores.length-1].score}타</strong></span>
+            ${currentHdcp!=null?`<span style="font-size:.75rem;color:var(--muted)">핸디캡 <strong style="color:#54B8E8">${currentHdcp>0?'+':''}${currentHdcp}</strong></span>`:''}
           `;})()}
         </div>
         <div style="position:relative;height:130px"><canvas id="game-score-chart"></canvas></div>
@@ -9636,6 +9679,22 @@ function initCharts(){
         const avgSc=Math.round(gameScores.reduce((a,s)=>a+s.score,0)/gameScores.length);
         const bestScore=Math.min(...gameScores.map(x=>x.score));
 
+        // 핸디캡 추이 계산
+        function _calcHI(rounds){
+          if(rounds.length<3) return null;
+          const diffs=rounds.map(s=>{
+            let cp=72;
+            if(s.holeScores?.holes?.length) cp=s.holeScores.holes.reduce((sm,h)=>sm+(h.par||4),0);
+            return s.score-cp;
+          });
+          const n=diffs.length;
+          const uc=n<=4?1:n<=6?2:n<=8?3:n<=10?4:n<=12?5:n<=14?6:n<=16?7:n<=18?8:n<=20?8:10;
+          const sorted=[...diffs].sort((a,b)=>a-b);
+          return Math.round(sorted.slice(0,uc).reduce((a,b)=>a+b,0)/uc*0.96*10)/10;
+        }
+        const hdcpData=gameScores.map((_,i)=>_calcHI(gameScores.slice(0,i+1).slice(-20)));
+        const hasHdcp=hdcpData.some(v=>v!==null);
+
         // 사용 클럽 세트별 심볼 구분 (club 필드에 세트명이 있는 경우)
         const setNames=[...new Set(gameScores.map(s=>{
           const m=s.club?.match(/^🎒\s*(.+)/);
@@ -9647,20 +9706,16 @@ function initCharts(){
         const hasMultiSet=setNames.length>1;
 
         const pointStyles=gameScores.map(s=>{
-          if(s.score===bestScore) return 'star'; // 베스트 스코어는 항상 별
+          if(s.score===bestScore) return 'star';
           const m=s.club?.match(/^🎒\s*(.+)/);
           const setName=m?m[1].trim():(s.club||'');
           return hasMultiSet&&setStyleMap[setName]?setStyleMap[setName]:'circle';
         });
 
-        charts['game-score-chart']=new Chart(gameScoreEl,{
-          type:'line',
-          data:{
-            labels:gameScores.map(s=>s.date?.slice(5)||''),
-            datasets:[{
+        const datasets=[{
               data:gameScores.map(s=>s.score),
               borderColor:'#C8893A',backgroundColor:'rgba(200,137,58,.08)',
-              borderWidth:2,fill:true,tension:.3,
+              borderWidth:2,fill:true,tension:.3,yAxisID:'y',
               pointBackgroundColor:gameScores.map(s=>s.score===bestScore?'#FFD700':'#C8893A'),
               pointBorderColor:gameScores.map(s=>s.score===bestScore?'#fff':'#0D1117'),
               pointBorderWidth:gameScores.map(s=>s.score===bestScore?2.5:1.5),
@@ -9670,27 +9725,50 @@ function initCharts(){
             },{
               data:gameScores.map(()=>avgSc),
               borderColor:'rgba(200,137,58,.3)',borderWidth:1,borderDash:[4,4],
-              pointRadius:0,fill:false,
-            }]
+              pointRadius:0,fill:false,yAxisID:'y',
+            }];
+        if(hasHdcp){
+          datasets.push({
+            data:hdcpData,
+            borderColor:'#54B8E8',backgroundColor:'rgba(84,184,232,.06)',
+            borderWidth:1.5,fill:false,tension:.3,yAxisID:'yHdcp',
+            borderDash:[3,3],
+            pointBackgroundColor:'#54B8E8',pointBorderColor:'#0D1117',
+            pointRadius:hdcpData.map(v=>v!==null?3:0),
+            pointHoverRadius:hdcpData.map(v=>v!==null?5:0),
+          });
+        }
+
+        charts['game-score-chart']=new Chart(gameScoreEl,{
+          type:'line',
+          data:{
+            labels:gameScores.map(s=>s.date?.slice(5)||''),
+            datasets
           },
           options:{
             responsive:true,maintainAspectRatio:false,
             plugins:{
               legend:false,
               tooltip:{callbacks:{label:c=>{
+                if(c.datasetIndex===2){
+                  return c.raw!=null?`핸디캡 ${c.raw>0?'+':''}${c.raw}`:null;
+                }
+                if(c.datasetIndex===1) return null;
                 const s=gameScores[c.dataIndex];
                 const setLabel=s?.club?.match(/^🎒\s*(.+)/)?` | ${s.club.replace('🎒','').trim()}`:'';
                 return`${c.raw}타${setLabel}${s?.score===bestScore?' ⭐ 베스트':''}`;
-              }}}
+              },filter:c=>c.datasetIndex!==1}}
             },
             scales:{
               x:{ticks:{font:{size:12},color:'rgba(240,237,230,.5)'},grid:{color:'rgba(240,237,230,.05)'}},
-              y:{reverse:true,ticks:{font:{size:12},color:'rgba(240,237,230,.5)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}}
+              y:{reverse:true,position:'left',ticks:{font:{size:12},color:'rgba(240,237,230,.5)',callback:v=>`${v}타`},grid:{color:'rgba(240,237,230,.05)'}},
+              ...(hasHdcp?{yHdcp:{reverse:true,position:'right',ticks:{font:{size:10},color:'rgba(84,184,232,.5)',callback:v=>`${v}`},grid:{display:false}}}:{})
             },
             onClick:(e,elements)=>{
               if(!elements.length)return;
-              const idx=elements[0].index;
-              const session=gameScores[idx];
+              const el=elements.find(x=>x.datasetIndex===0);
+              if(!el) return;
+              const session=gameScores[el.index];
               if(session?.id) goDetail(session.id);
             },
             onHover:(e,elements)=>{
