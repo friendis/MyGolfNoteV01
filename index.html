@@ -1375,6 +1375,33 @@ function ownedClubOptions(currentVal=''){
     .map(g=>`<optgroup label="${g.label}">${g.items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`)
     .join('') + (hasPast ? '<optgroup label="" disabled><option disabled>◇ 이전 보유 장비는 ◇ 표시됩니다</option></optgroup>' : '');
 }
+function memoClubOptions(){
+  const ownedClubs=[];const pastClubs=[];const seen=new Set();
+  function extractClubs(e){
+    const clubs=[];
+    if(e.cat==='드라이버') clubs.push('드라이버');
+    else if(e.cat==='우드')(e.tags?.wood_set?.length?e.tags.wood_set:CAT_TO_CLUBS['우드']||[]).forEach(n=>clubs.push(n));
+    else if(e.cat==='하이브리드')(e.tags?.util_set?.length?e.tags.util_set:CAT_TO_CLUBS['하이브리드']||[]).forEach(n=>clubs.push(n));
+    else if(e.cat==='아이언'){(e.ironSet?.length?e.ironSet:CAT_TO_CLUBS['아이언']).forEach(n=>clubs.push(n));(e.tags?.wedge_set||[]).forEach(n=>clubs.push(n));}
+    else if(e.cat==='웨지')(e.tags?.wedge_set?.length?e.tags.wedge_set:CAT_TO_CLUBS['웨지']||[]).forEach(n=>clubs.push(n));
+    else if(e.cat==='퍼터') clubs.push('퍼터');
+    return clubs;
+  }
+  D.equip.filter(e=>e.status==='owned').forEach(e=>{
+    extractClubs(e).forEach(c=>{if(!seen.has(c)){seen.add(c);ownedClubs.push({club:c,equip:e.name});}});
+  });
+  D.equip.filter(e=>e.status==='past').forEach(e=>{
+    extractClubs(e).forEach(c=>{if(!seen.has(c)){seen.add(c);pastClubs.push({club:c,equip:e.name});}});
+  });
+  const clubOrd=(a,b)=>{const ia=CLUBS.indexOf(a.club),ib=CLUBS.indexOf(b.club);return(ia<0?999:ia)-(ib<0?999:ib);};
+  ownedClubs.sort(clubOrd);pastClubs.sort(clubOrd);
+  const stdClubs=CLUBS.filter(c=>!seen.has(c));
+  let html='';
+  if(ownedClubs.length) html+=`<optgroup label="✓ 보유 클럽">${ownedClubs.map(c=>`<option value="${c.club}">${c.club} (${c.equip})</option>`).join('')}</optgroup>`;
+  html+=`<optgroup label="전체 클럽">${stdClubs.map(c=>`<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+  if(pastClubs.length) html+=`<optgroup label="◇ 이전 보유">${pastClubs.map(c=>`<option value="${c.club}">${c.club} (${c.equip})</option>`).join('')}</optgroup>`;
+  return html;
+}
 const today=()=>new Date().toISOString().split('T')[0];
 const promptDate=()=>{const d=new Date();return `${d.getFullYear()}년 ${d.getMonth()+1}월`;};
 const promptYearRange=()=>{const y=new Date().getFullYear();return `${y-1}~${y}년`;};
@@ -10605,7 +10632,7 @@ function pDetail(){
             <div class="fg" style="flex:0 0 130px;margin-bottom:0">
               <select class="sel" id="memo-add-club" style="width:100%">
                 <option value="">클럽 선택</option>
-                ${CLUBS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+                ${memoClubOptions()}
               </select>
             </div>
             <div class="fg" style="flex:1;min-width:0;margin-bottom:0">
