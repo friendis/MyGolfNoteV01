@@ -10484,7 +10484,7 @@ function pDetail(){
         <input class="inp" id="se-loc" value="${ea(s.loc||'')}" placeholder="연습장 · 장소" onblur="saveSessionField('${s.id}','location',this.value)">
       </div>
     </div>
-    <div class="fg">
+    ${s.gameType!=='memo'?`<div class="fg">
       <label class="fl-label">클럽</label>
       <select class="sel" id="se-club" onchange="saveSessionField('${s.id}','club',this.value)" style="width:100%;text-overflow:ellipsis">
         <option value="">선택...</option>
@@ -10496,7 +10496,7 @@ function pDetail(){
     <div class="fg" style="margin-bottom:0">
       <label class="fl-label">메모</label>
       <textarea class="ta" id="se-memo" placeholder="이번 비행의 기록, 개선점..." style="min-height:62px;resize:vertical;field-sizing:content" onblur="saveSessionField('${s.id}','memo',this.value)">${ea(s.memo||'')}</textarea>
-    </div>
+    </div>`:''}
   </div>
 
   ${(()=>{
@@ -10575,6 +10575,47 @@ function pDetail(){
         </div>
       </div>`;
     }
+    // 연습 메모 기록
+    if(s.gameType==='memo'){
+      const memoEntries=(()=>{
+        const text=s.memo||'';
+        const blocks=text.split(/(?=\[)/);
+        const entries=[];
+        blocks.forEach(b=>{
+          const m=b.match(/^\[([^\]]+)\]\s*([\s\S]*)/);
+          if(m&&m[1]!=='클럽') entries.push({club:m[1],text:m[2].trim()});
+          else if(b.trim()&&!entries.length) entries.push({club:'',text:b.trim()});
+        });
+        return entries;
+      })();
+      return`<div style="background:var(--dusk2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;margin-bottom:.9rem">
+        <div class="sec-label" style="margin-bottom:.6rem">📝 클럽별 연습 메모</div>
+        ${memoEntries.length?memoEntries.map((e,i)=>`
+          <div style="background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:3px;padding:.6rem .8rem;margin-bottom:.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+              ${e.club?`<span class="club-badge" style="font-size:.72rem;padding:2px 8px;font-weight:600">${esc(normalizeClub(e.club)||e.club)}</span>`:`<span style="font-size:.72rem;color:var(--muted)">일반 메모</span>`}
+              <button onclick="removeMemoEntry('${s.id}',${i})" style="background:none;border:none;color:var(--red);font-size:.72rem;cursor:pointer;padding:2px 6px;opacity:.6">삭제</button>
+            </div>
+            <div style="font-size:.8rem;color:var(--dim);white-space:pre-wrap;line-height:1.5">${esc(e.text)}</div>
+          </div>`).join('')
+        :`<div style="font-size:.78rem;color:var(--muted);padding:.5rem 0">등록된 연습 메모가 없습니다.</div>`}
+        <div style="margin-top:.7rem;border-top:1px solid var(--border);padding-top:.7rem">
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:.4rem;letter-spacing:.06em">클럽 메모 추가</div>
+          <div class="frow" style="gap:.4rem;margin-bottom:.4rem">
+            <div class="fg" style="flex:0 0 130px;margin-bottom:0">
+              <select class="sel" id="memo-add-club" style="width:100%">
+                <option value="">클럽 선택</option>
+                ${CLUBS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+              </select>
+            </div>
+            <div class="fg" style="flex:1;min-width:0;margin-bottom:0">
+              <textarea class="ta" id="memo-add-text" placeholder="연습 내용, 느낀 점..." style="min-height:48px;resize:vertical;field-sizing:content"></textarea>
+            </div>
+          </div>
+          <button onclick="addMemoEntry('${s.id}')" class="btn btn-s" style="font-size:.74rem;padding:.35rem .9rem">+ 추가</button>
+        </div>
+      </div>`;
+    }
     // GDR 기록은 AI 스윙 분석 + 샷 데이터 표시
     if(s.gameType==='gdr'||!s.gameType){
       return`<div style="margin-bottom:.8rem">
@@ -10607,8 +10648,9 @@ function pDetail(){
   <!-- GDR/게임 사진 -->
   ${(()=>{
     const isGame=s.gameType==='screen'||s.gameType==='field';
+    const isMemo=s.gameType==='memo';
     const imgs=s.imageUrls?.length>1?s.imageUrls:s.imgUrl?[s.imgUrl]:[];
-    const sectionLabel=isGame?'게임 사진':'GDR 사진';
+    const sectionLabel=isGame?'게임 사진':isMemo?'연습 사진':'GDR 사진';
     const inputId=`session-photo-input-${s.id}`;
     return`<div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
@@ -11059,6 +11101,38 @@ window.toggleEquipPublic=async(id,val)=>{
   toast(val?'장비를 공개했습니다':'장비를 비공개했습니다');
 };
 
+window.addMemoEntry=async(sid)=>{
+  const club=$('memo-add-club')?.value||'';
+  const text=$('memo-add-text')?.value?.trim()||'';
+  if(!text){toast('메모 내용을 입력하세요');return;}
+  const s=D.sessions.find(x=>x.id===sid);if(!s)return;
+  const entry=club?`[${club}] ${text}`:text;
+  const newMemo=s.memo?s.memo+'\n\n'+entry:entry;
+  sync('busy');
+  const{error}=await sb.from('practice_sessions').update({memo:newMemo}).eq('id',sid).eq('user_id',user.id);
+  if(error){toast('저장 실패');sync('err');return;}
+  s.memo=newMemo;sync('ok');toast('메모 추가됨');
+  const m=$('main');m.innerHTML=pDetail();
+};
+window.removeMemoEntry=async(sid,idx)=>{
+  if(!confirm('이 메모를 삭제할까요?'))return;
+  const s=D.sessions.find(x=>x.id===sid);if(!s)return;
+  const text=s.memo||'';
+  const blocks=text.split(/(?=\[)/);
+  const entries=[];
+  blocks.forEach(b=>{
+    const m=b.match(/^\[([^\]]+)\]\s*([\s\S]*)/);
+    if(m&&m[1]!=='클럽') entries.push(b);
+    else if(b.trim()&&!entries.length) entries.push(b);
+  });
+  entries.splice(idx,1);
+  const newMemo=entries.join('').trim();
+  sync('busy');
+  const{error}=await sb.from('practice_sessions').update({memo:newMemo||null}).eq('id',sid).eq('user_id',user.id);
+  if(error){toast('삭제 실패');sync('err');return;}
+  s.memo=newMemo;sync('ok');toast('메모 삭제됨');
+  const m=$('main');m.innerHTML=pDetail();
+};
 window.toggleStatsPublic=async(val)=>{
   if(!D.profile){toast('프로필을 먼저 설정해주세요');return;}
   sync('busy');
