@@ -9663,12 +9663,53 @@ function initHomeDistChart(){
   const el=document.getElementById('home-dist-chart');
   if(!el)return;
   if(charts['home-dist-chart']){try{charts['home-dist-chart'].destroy();}catch(e){}delete charts['home-dist-chart'];}
+  const sessions=[...D.sessions].reverse();
+  const mode=window._distMode||'carry';
+  const distFilter=window._distFilter||'all';
+
+  const allowedClubs=new Set();
+  if(distFilter!=='all'){
+    const setIdx=distFilter.startsWith('set_')?parseInt(distFilter.slice(4)):-1;
+    const targetSet=setIdx>=0?D.sets[setIdx]:null;
+    if(targetSet&&targetSet.clubs?.length){
+      targetSet.clubs.forEach(cl=>allowedClubs.add(normalizeClub(cl)||cl));
+    } else {
+      D.equip.filter(e=>e.status==='owned').forEach(e=>{
+        (e.ironSet||[]).forEach(n=>allowedClubs.add(n));
+        (e.tags?.wedge_set||[]).forEach(n=>allowedClubs.add(n));
+        (e.tags?.wood_set||[]).forEach(n=>allowedClubs.add(n));
+        (e.tags?.util_set||[]).forEach(n=>allowedClubs.add(n));
+        if(e.cat==='드라이버') allowedClubs.add('드라이버');
+        if(e.cat==='퍼터') allowedClubs.add('퍼터');
+      });
+    }
+  }
+
   const cm={};
-  D.sessions.forEach(s=>{const nc=normalizeClub(s.club);if(!nc)return;if(!cm[nc])cm[nc]=[];const cv=ss(s).avgCarry;if(cv)cm[nc].push(cv);});
-  const clubOrder=[...CLUBS].reverse().filter(cl=>cm[cl]?.length);
+  sessions.forEach(s=>{
+    const nc=normalizeClub(s.club);if(!nc)return;
+    if(distFilter!=='all'&&allowedClubs.size>0&&!allowedClubs.has(nc)) return;
+    if(!cm[nc])cm[nc]={sessions:[]};
+    cm[nc].sessions.push(s);
+  });
+
+  const modeN=mode==='avg3'||mode==='top3'||mode==='last1'?(mode==='last1'?1:3):5;
+  Object.keys(cm).forEach(cl=>{
+    const sorted=cm[cl].sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const recent=sorted.slice(0,modeN);
+    if(mode==='top3'){
+      cm[cl].c=recent.map(s=>ss(s).topCarry).filter(Boolean);
+      cm[cl].tot=recent.map(s=>ss(s).topTotal).filter(Boolean);
+    } else {
+      cm[cl].c=recent.map(s=>ss(s).avgCarry).filter(Boolean);
+      cm[cl].tot=recent.map(s=>ss(s).avgTotal).filter(Boolean);
+    }
+  });
+
+  const showTotal=mode==='total';
+  const clubOrder=[...CLUBS].reverse().filter(cl=>cm[cl]?.c?.length||cm[cl]?.tot?.length);
   if(!clubOrder.length)return;
-  const RECENT_N=5;
-  const vals=clubOrder.map(cl=>Math.round(avg(cm[cl].slice(-RECENT_N))));
+  const vals=clubOrder.map(cl=>{const d=cm[cl];return Math.round(avg(showTotal?(d.tot||[]):(d.c||[])));});
   const colors=clubOrder.map(cl=>(typeof clubColor==='function'?clubColor(cl):{line:'#C8893A'}).line||'#C8893A');
   charts['home-dist-chart']=new Chart(el,{
     type:'bar',
