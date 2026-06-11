@@ -1321,9 +1321,11 @@ window.toggleSpecRow=(n)=>{
   if(row) row.style.display=(chk?.checked)?'block':'none';
 };
 // 보유 장비 클럽 옵션 HTML 생성
-function ownedClubOptions(currentVal=''){
-  // 보유 중 + 이전 보유 모두 포함 (이전 보유도 기록에 남아야 하므로)
-  const owned=D.equip.filter(e=>e.status==='owned'||e.status==='past');
+function ownedClubOptions(currentVal='',statusFilter=''){
+  const owned=D.equip.filter(e=>{
+    if(statusFilter) return e.status===statusFilter;
+    return e.status==='owned'||e.status==='past';
+  });
   if(!owned.length)return'';
   // 카테고리별 그룹 {label, items[]}
   const groups={
@@ -1368,12 +1370,13 @@ function ownedClubOptions(currentVal=''){
       pushItem('퍼터',`${e.name} — 퍼터`,`${e.name} — 퍼터${pastMark}`);
     }
   });
-  // 이전 보유 장비가 있으면 헤더 레이블에 표시
-  const hasPast = owned.some(e=>e.status==='past');
-  return Object.values(groups)
-    .filter(g=>g.items.length)
-    .map(g=>`<optgroup label="${g.label}">${g.items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`)
-    .join('') + (hasPast ? '<optgroup label="" disabled><option disabled>◇ 이전 보유 장비는 ◇ 표시됩니다</option></optgroup>' : '');
+  const hasPast = !statusFilter && owned.some(e=>e.status==='past');
+  const prefix = statusFilter==='past' ? '◇ ' : '';
+  const filtered = Object.values(groups).filter(g=>g.items.length);
+  if(!filtered.length) return '';
+  return (statusFilter==='past'?'<optgroup label="◇ 이전 보유 장비" disabled></optgroup>':'')
+    + filtered.map(g=>`<optgroup label="${prefix}${g.label}">${g.items.map(i=>`<option value="${i.val}"${i.selected?' selected':''}>${i.label}</option>`).join('')}</optgroup>`).join('')
+    + (hasPast ? '<optgroup label="" disabled><option disabled>◇ 이전 보유 장비는 ◇ 표시됩니다</option></optgroup>' : '');
 }
 function memoClubOptions(){
   const ownedClubs=[];const pastClubs=[];const seen=new Set();
@@ -12505,13 +12508,14 @@ function pAdd() {
         <select class="sel" id="pc" onchange="showSetInfo(this.value)">
           <option value="">선택...</option>
           ${D.sets.length?`<optgroup label="🎒 세트 구성">${D.sets.map(s=>`<option value="🎒 ${esc(s.name)}" data-type="set">🎒 ${esc(s.name)}</option>`).join('')}</optgroup>`:'' }
-          ${ownedClubOptions()}
+          ${ownedClubOptions('','owned')}
           <optgroup label="── 드라이버">${['드라이버'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W','11W'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 하이브리드/유틸">${['1UT','2UT','3UT','4UT','5UT','6UT','7UT'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 아이언">${['1I','2I','3I','4I','5I','6I','7I','8I','9I'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
           <optgroup label="── 퍼터">${['퍼터'].map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>
+          ${ownedClubOptions('','past')}
         </select>
         ${!D.sets.length?`<div style="font-size:.7rem;color:var(--muted);margin-top:.25rem"><a href="#" onclick="event.preventDefault();gotoTab('equipment');window._eSub='sets'" style="color:var(--wing2)">장비 창고 → 세트 구성</a>에서 세트를 먼저 만들어보세요</div>`:''}
         <div id="pc-set-info" style="font-size:.72rem;color:var(--wing2);margin-top:.3rem;display:none"></div>
@@ -12521,13 +12525,14 @@ function pAdd() {
         <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">연습 클럽</div>
         <select class="sel" id="pc-memo-club" style="width:100%;margin-bottom:.55rem" onchange="document.getElementById('pc').value=this.value;showSetInfo(this.value)">
           <option value="">클럽 선택...</option>
-          ${ownedClubOptions()}
+          ${ownedClubOptions('','owned')}
           <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
           <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W','11W'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
           <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT','7UT'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
           <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
           <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(c=>'<option value="'+c+'">'+c+'</option>').join('')}</optgroup>
           <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
+          ${ownedClubOptions('','past')}
         </select>
         <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">메모</div>
         <textarea id="pc-memo" class="ta" placeholder="이 클럽으로 연습한 내용, 느낀 점..."
@@ -12788,13 +12793,14 @@ window.addMemoClub = () => {
     <select id="mc-club-${idx}" onchange="_memoClubs[${idx}].club=this.value"
       style="width:100%;background:var(--dusk);border:1px solid rgba(240,237,230,.1);color:var(--chalk);padding:.38rem .5rem;border-radius:3px;font-size:.84rem;font-family:var(--sans);margin-bottom:.55rem">
       <option value="">클럽 선택...</option>
-      ${ownedClubOptions('')||''}
+      ${ownedClubOptions('','owned')||''}
       <optgroup label="── 드라이버"><option value="드라이버">드라이버</option></optgroup>
       <optgroup label="── 우드">${['2W','3W','4W','5W','7W','9W'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
       <optgroup label="── 하이브리드">${['1UT','2UT','3UT','4UT','5UT','6UT'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
       <optgroup label="── 아이언">${['5I','6I','7I','8I','9I','4I','3I','2I','1I'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
       <optgroup label="── 웨지">${['PW','AW','SW','LW'].map(n=>'<option value="'+n+'">'+n+'</option>').join('')}</optgroup>
       <optgroup label="── 퍼터"><option value="퍼터">퍼터</option></optgroup>
+      ${ownedClubOptions('','past')||''}
     </select>
     <div style="font-size:.68rem;font-weight:600;color:rgba(200,137,58,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;margin-bottom:.35rem">메모</div>
     <textarea id="mc-memo-${idx}" class="ta" oninput="_memoClubs[${idx}].memo=this.value"
