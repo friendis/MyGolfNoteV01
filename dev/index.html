@@ -12298,6 +12298,46 @@ window.handleShotTablePhoto = async function(input) {
     if (previewEl) previewEl.style.display = 'block';
   }
 
+  // EXIF 추출 (날짜·GPS → 연습장 위치 자동 입력)
+  try {
+    const exif = await readExif(file);
+    const dt = exifDateToISO(exif.dateTime);
+    if(dt) { const pd = $('pd'); if(pd && !pd.value) pd.value = dt; }
+    if(exif.gps?.lat && exif.gps?.lon) {
+      const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
+      const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
+      const gpsKey = `${Math.round(lat*1000)/1000},${Math.round(lon*1000)/1000}`;
+      const gpsMemory = await loadGpsMemory();
+      const knownPlace = gpsMemory[gpsKey];
+      const pl = $('pl');
+      const plT = $('pl-top');
+      if(knownPlace && pl && !pl.value) {
+        pl.value = knownPlace;
+        if(plT && !plT.value) plT.value = knownPlace;
+        toast(`📍 ${knownPlace}`);
+      } else if(!knownPlace) {
+        const addr = await gpsToAddress(lat, lon);
+        if(addr && pl && !pl.value) pl.value = addr;
+        if(addr && plT && !plT.value) plT.value = addr;
+        const targetEl = plT || pl;
+        if(targetEl) {
+          targetEl.dataset.gpsKey = gpsKey;
+          targetEl.dataset.isNewPlace = '1';
+          if(pl) { pl.dataset.gpsKey = gpsKey; pl.dataset.isNewPlace = '1'; }
+          targetEl.style.borderColor = 'rgba(167,139,250,.5)';
+          targetEl.style.boxShadow = '0 0 0 2px rgba(167,139,250,.15)';
+          if(!$('pl-new-hint') && targetEl.parentNode){
+            const hint = document.createElement('div');
+            hint.id = 'pl-new-hint';
+            hint.style.cssText = 'font-size:.72rem;color:#A78BFA;margin-top:3px';
+            hint.textContent = '✨ 처음 방문한 장소입니다. 장소 이름을 확인하거나 직접 입력해주세요.';
+            targetEl.parentNode.insertBefore(hint, targetEl.nextSibling);
+          }
+        }
+      }
+    }
+  } catch(e) { console.error('EXIF 추출 오류:', e); }
+
   const startTime = Date.now();
   const shots = await analyzeMultiShotImage(file, (status, msg) => {
     if (!statusEl) return;
