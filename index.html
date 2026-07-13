@@ -12316,18 +12316,30 @@ window.handleShotTablePhoto = async function(input) {
 
   if (!shots || !shots.length) return;
 
-  // 클럽 자동 선택 (첫 번째 샷의 클럽)
+  // 클럽 자동 선택 (첫 번째 샷의 클럽 — 보유 장비 우선)
   const firstClub = shots[0]?.club;
   if (firstClub) {
     const pc = $('pc');
     if (pc) {
-      const CLUBS = ['드라이버','2W','3W','4W','5W','7W','9W','11W','1UT','2UT','3UT','4UT','5UT','6UT','7UT','1I','2I','3I','4I','5I','6I','7I','8I','9I','PW','AW','SW','LW','퍼터'];
-      const clubStr = String(firstClub);
-      const match = CLUBS.find(c =>
-        c.toLowerCase().includes(clubStr.toLowerCase()) ||
-        clubStr.toLowerCase().includes(c.toLowerCase())
+      const clubStr = String(firstClub).toLowerCase();
+      const normalizedClub = CLUBS.find(c =>
+        c.toLowerCase().includes(clubStr) || clubStr.includes(c.toLowerCase())
       );
-      if (match && !pc.value) pc.value = match;
+      const targetClub = normalizedClub || clubStr;
+      // 보유 장비 option 중에서 매칭 (value에 "장비명 — 클럽" 형태)
+      const opts = Array.from(pc.options);
+      const ownedMatch = opts.find(o => {
+        if (!o.value || !o.value.includes(' — ')) return false;
+        const suffix = o.value.split(' — ').pop().toLowerCase();
+        return suffix === (normalizedClub || '').toLowerCase() ||
+               suffix.includes(clubStr) || clubStr.includes(suffix);
+      });
+      if (ownedMatch) {
+        pc.value = ownedMatch.value;
+        showSetInfo(ownedMatch.value);
+      } else if (normalizedClub) {
+        pc.value = normalizedClub;
+      }
     }
   }
 
@@ -12492,17 +12504,28 @@ window.handleMultiPhoto = async function(input) {
   // EXIF + AI 분석 순차 실행
   for(let i = startIdx; i < multiFiles.length; i++) {
     await analyzeOne(i);
-    // 클럽 자동 선택
+    // 클럽 자동 선택 (보유 장비 우선)
     const gdrData = multiFiles[i].gdrData;
     if(gdrData?.club) {
       const pc = $('pc');
       if(pc) {
-        const clubStr = String(gdrData.club);
-        const match = CLUBS.find(c =>
-          c.toLowerCase().includes(clubStr.toLowerCase()) ||
-          clubStr.toLowerCase().includes(c.toLowerCase())
+        const clubStr = String(gdrData.club).toLowerCase();
+        const normalizedClub = CLUBS.find(c =>
+          c.toLowerCase().includes(clubStr) || clubStr.includes(c.toLowerCase())
         );
-        if(match) pc.value = match;
+        const opts = Array.from(pc.options);
+        const ownedMatch = opts.find(o => {
+          if (!o.value || !o.value.includes(' — ')) return false;
+          const suffix = o.value.split(' — ').pop().toLowerCase();
+          return suffix === (normalizedClub || '').toLowerCase() ||
+                 suffix.includes(clubStr) || clubStr.includes(suffix);
+        });
+        if (ownedMatch) {
+          pc.value = ownedMatch.value;
+          showSetInfo(ownedMatch.value);
+        } else if (normalizedClub) {
+          pc.value = normalizedClub;
+        }
       }
     }
     updateShotRows();
