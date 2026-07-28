@@ -6930,7 +6930,44 @@ window.toggleRecType=v=>{
   if(memoF)    memoF.style.display    = isMemo ?'block':'none';
   const gdrWrap=$('club-wrap-gdr'); if(gdrWrap) gdrWrap.style.display=isMemo?'none':'block';
   const pcMemoW=$('pc-memo-wrap'); if(pcMemoW) pcMemoW.style.display=isMemo?'block':'none';
-  if(isGame){ _parEditMode=false; setTimeout(renderHoleInputs, 0); }
+  if(isGame){
+    _parEditMode=false; setTimeout(renderHoleInputs, 0);
+    // 최근 사용한 클럽 세트 자동 선택
+    const gs=$('p-game-set');
+    if(gs&&!gs.value){
+      const last=D.sessions.find(s=>s.gameType===v&&s.club);
+      if(last&&D.sets.some(set=>set.name===last.club)) gs.value=last.club;
+    }
+    // 필드 골프: 코스명 입력 시 장소 자동 동기화
+    if(v==='field'){
+      const pcEl=$('p-course');
+      if(pcEl&&!pcEl._fieldSync){
+        pcEl._fieldSync=true;
+        pcEl.addEventListener('input',()=>{
+          const plT=$('pl-top'),plH=$('pl');
+          if(plT&&!plT.value) plT.value=pcEl.value;
+          if(plH&&!plH.value) plH.value=pcEl.value;
+        });
+      }
+    }
+  }
+};
+
+// 장소·코스명 자동완성 datalist 채우기
+window.fillPlDatalist=()=>{
+  const dl=$('pl-datalist-top')||$('pl-datalist');
+  if(!dl)return;
+  const places=[...new Set([
+    ...Object.values(window._gpsMemoryCache||{}),
+    ...(D.sessions||[]).map(s=>s.loc).filter(Boolean)
+  ])].sort();
+  dl.innerHTML=places.map(p=>`<option value="${esc(p)}">`).join('');
+};
+window.fillCourseDatalist=()=>{
+  const dl=$('course-datalist');
+  if(!dl)return;
+  const courses=[...new Set((D.sessions||[]).map(s=>s.courseName).filter(Boolean))].sort();
+  dl.innerHTML=courses.map(c=>`<option value="${esc(c)}">`).join('');
 };
 
 let _holeScoresData = [];
@@ -7233,9 +7270,10 @@ window.runScorecardAnalysis=async(dummy,isRetry)=>{
         prompt:`이 골프 스코어카드 사진을 분석해서 한 줄 minified JSON으로만 응답하세요. 공백/개행 없이 순수 JSON만 출력하세요.
 
 형식:
-{"corners":{"tl":{"x":0.0,"y":0.0},"tr":{"x":1.0,"y":0.0},"br":{"x":1.0,"y":1.0},"bl":{"x":0.0,"y":1.0}},"crop":{"x":0.0,"y":0.0,"w":1.0,"h":1.0},"players":["이름1"],"holes":18,"scores":[{"player":"이름1","hole_scores":[{"hole":1,"par":4,"score":5},{"hole":2,"par":3,"score":3}],"total":90}]}
+{"courseName":"골프장명","corners":{"tl":{"x":0.0,"y":0.0},"tr":{"x":1.0,"y":0.0},"br":{"x":1.0,"y":1.0},"bl":{"x":0.0,"y":1.0}},"crop":{"x":0.0,"y":0.0,"w":1.0,"h":1.0},"players":["이름1"],"holes":18,"scores":[{"player":"이름1","hole_scores":[{"hole":1,"par":4,"score":5},{"hole":2,"par":3,"score":3}],"total":90}]}
 
 규칙:
+- courseName: 스코어카드에 골프장/코스 이름이 보이면 추출 (예: "설악밸리 CC", "골든비치 GC"). 없으면 빈 문자열 ""
 - corners: 스코어카드 표의 네 꼭짓점 상대좌표(0.0~1.0). tl=좌상, tr=우상, br=우하, bl=좌하. 기울어진 경우 실제 꼭짓점으로 지정
 - crop: corners의 bounding box (corners 없을 때 fallback)
 - hole_scores: 모든 홀 포함
@@ -7464,6 +7502,14 @@ window.applyScorecardToForm=(playerIdx)=>{
   _holeScoresData=final;
   const he=$('p-holes');if(he)he.value=final.length<=9?'9':'18';
   const se=$('p-score');if(se)se.value=total;
+  // 코스명 자동 입력
+  const cn=_scorecardAnalyzed.courseName||'';
+  if(cn){
+    const pcEl=$('p-course');if(pcEl&&!pcEl.value)pcEl.value=cn;
+    const plT=$('pl-top'),plH=$('pl');
+    if(plT&&!plT.value)plT.value=cn;
+    if(plH&&!plH.value)plH.value=cn;
+  }
   renderHoleInputs();
   document.getElementById('scorecard-overlay')?.remove();
   if(_scorecardOrigFile){
@@ -12302,7 +12348,7 @@ window.handleShotTablePhoto = async function(input) {
   try {
     const exif = await readExif(file);
     const dt = exifDateToISO(exif.dateTime);
-    if(dt) { const pd = $('pd'); if(pd && !pd.value) pd.value = dt; }
+    if(dt) { const pd = $('pd'); if(pd) pd.value = dt; }
     if(exif.gps?.lat && exif.gps?.lon) {
       const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
       const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
@@ -12444,7 +12490,7 @@ window.handleGamePhoto = async function(input) {
   for(const file of files) {
     const exif = await readExif(file);
     const dt = exifDateToISO(exif.dateTime);
-    if(dt) { const pd=$('pd'); if(pd&&!pd.value) pd.value=dt; }
+    if(dt) { const pd=$('pd'); if(pd) pd.value=dt; }
     if(exif.gps?.lat && exif.gps?.lon) {
       const lat = exif.gps.latRef==='S' ? -exif.gps.lat : exif.gps.lat;
       const lon = exif.gps.lonRef==='W' ? -exif.gps.lon : exif.gps.lon;
@@ -12456,6 +12502,9 @@ window.handleGamePhoto = async function(input) {
         pl.value = knownPlace;
         const plT=$('pl-top');if(plT&&!plT.value)plT.value=knownPlace;
         toast(`📍 ${knownPlace}`);
+        // GPS 기반 코스명 추천 (스크린/필드)
+        const prevCourse = D.sessions.find(s=>(s.gameType==='screen'||s.gameType==='field')&&s.loc===knownPlace&&s.courseName);
+        const pcEl=$('p-course'); if(prevCourse&&pcEl&&!pcEl.value) pcEl.value=prevCourse.courseName;
       } else if(!knownPlace) {
         const addr = await gpsToAddress(lat, lon);
         if(addr && pl && !pl.value) pl.value = addr;
@@ -12658,7 +12707,7 @@ async function analyzeOne(idx) {
   const exif = await readExif(item.file);
   item.exif = exif;
   const dt = exifDateToISO(exif.dateTime);
-  if(dt) { const pd = $('pd'); if(pd && !pd.value) pd.value = dt; }
+  if(dt) { const pd = $('pd'); if(pd) pd.value = dt; }
   if(exif.gps?.lat && exif.gps?.lon) {
     const lat = exif.gps.latRef === 'S' ? -exif.gps.lat : exif.gps.lat;
     const lon = exif.gps.lonRef === 'W' ? -exif.gps.lon : exif.gps.lon;
